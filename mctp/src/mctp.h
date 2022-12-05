@@ -518,10 +518,10 @@ extern uint8_t mctp_i2c_rx_register(const uint8_t channel,
 /******************************************************************************/
 /** mctp_i2c_configure_and_enable
  * This function can be used to start and enable the i2c controller
- * @param channel     channel, check enums in smb.h
+ * @param channel     channel (I2C controller number)
  * @param own_address 7-bit smb address
- * @param speed       speed, check enums in smb.h
- * @param port        default port on the controller
+ * @param speed       speed
+ * @param port        I2C port (I2C port number inside the I2C controller)
  * @param configFlag  |      BIT0      |      BIT1      |      BIT2      |    BIT3 - BIT7 |
  *                    | i2c module     |     Unused     | MCTP fairness  |      Unused    |
  *                    | enable/disable |                |protocol enable |                |
@@ -538,10 +538,10 @@ extern uint8_t mctp_i2c_rx_register(const uint8_t channel,
  * routine. 
  * The configFlag paramter is optional and if the user's driver does
  * not support MCTP fairness protocol it can disacard this parameter.
- * The port parameter is optional and if the user driver supports only 
+ * The channel parameter is optional and if the user driver supports only 
  * one controller, it can discard this parameter
- * The channel parameter is used in case the user's driver supports 
- * more than one channel per i2c controller. Otherwise, the user can 
+ * The port parameter is used in case the user's driver supports 
+ * more than one port per I2C channel/controller. Otherwise, the user can 
  * discard this parameter
  * -----------------------
  * Example:
@@ -612,7 +612,7 @@ extern uint8_t mctp_i2c_get_chan_busy_status(uint8_t channel);
  * API of FreeRTOS depending on the rate at which their i2c driver task is
  * running
  * -----------------------
- * Usage notes:
+ * Example:
  * -----------------------
  * Assume user i2c driver task running every 10 RTOS ticks
  * uint16_t mctp_i2c_get_current_timestamp(void)
@@ -637,7 +637,7 @@ extern uint16_t mctp_i2c_get_current_timestamp(void);
  * has been populated in mctp_pktbuf[MCTP_BUF2] and ready to be processed
  * by MCTP module
  * -----------------------
- * Usage notes:
+ * Example:
  * -----------------------
  * MCTP_PKT_BUF *spdm_buf_tx = MCTP_NULL;
  * MCTP_PKT_BUF *spdm_buf_rx = MCTP_NULL;
@@ -651,6 +651,49 @@ extern uint16_t mctp_i2c_get_current_timestamp(void);
  * ############################################################################
 *******************************************************************************/
 void SET_MCTP_EVENT_FLAG(void);
+
+/******************************************************************************/
+/** mctp_update_eid()
+ * Update the device endpoint id
+ * @param  eid endpoint id value
+ * @return none
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function should be called by the user to update the endpoint id
+ * of the MCTP device. This API is useful in cases where the device endpoint
+ * id is store and updated externally, in which case, the user could call this
+ * API to keep updating the device's EID as it keeps changing
+ * -----------------------
+ * Example:
+ * -----------------------
+ * Assume that the device endpoint id is stored in an extrnal flash
+ * at location 0x20000, which is updated as part of a firmware update
+ * 
+ * #define DEV_EID_QMSPI_ADDR       0x20000U
+ * #define DEV_EID_QMSPINUM_BYTES   1U
+ * 
+ * int8_t flash_device_read_and update_eid(void)
+ * {
+ *      uint8_t dev_eid = 0;
+ *      int8_t status = 0;
+ * 
+ *      if(qmspi_read_request(&dev_eid, DEV_EID_QMSPINUM_BYTES, DEV_EID_QMSPI_ADDR); < 0)
+ *      {
+ *          status = -1;
+ *      }
+ *      else
+ *      {
+ *          mctp_update_eid(dev_eid);
+ *      }
+ * 
+ *      return status;
+ * }
+ * ############################################################################
+*******************************************************************************/
+void mctp_update_eid(uint8_t eid);
 
 /******************************************************************************/
 /** SET_SPDM_EVENT_FLAG()

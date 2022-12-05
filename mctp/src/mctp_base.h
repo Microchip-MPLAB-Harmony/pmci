@@ -450,7 +450,7 @@ uint8_t app_to_mctp_packetXfer(uint8_t CommandCode, MCTP_PKT_BUF *pkt_buf, \
 MCTP_PKT_BUF * app_to_mctp_getReqBuf(uint8_t CommandCode);
 
 void mctp_update_i2c_params(MCTP_CONTEXT* mctp_ctxt);
-void mctp_i2c_update(uint8_t slv_addr, uint8_t freq, uint8_t eid);
+void mctp_i2c_update(uint8_t slv_addr, uint8_t freq);
 void sb_mctp_enable();
 
 /******************************************************************************/

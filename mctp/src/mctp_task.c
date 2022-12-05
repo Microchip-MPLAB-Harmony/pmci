@@ -108,7 +108,8 @@ static void mctp_main(void* pvParameters)
     }
 
 	mctp_init_task();
-	mctp_i2c_update(HOST_SLAVE_ADDR, MCTP_I2C_CLK_FREQ, MCTP_EC_EID);
+    mctp_update_eid(MCTP_EC_EID);
+	mctp_i2c_update(HOST_SLAVE_ADDR, MCTP_I2C_CLK_FREQ);
 	mctp_smbaddress_update(mctpContext->i2c_slave_addr, 0);
 	mctp_update_i2c_params(mctpContext);
 	sb_mctp_enable();
@@ -149,7 +150,18 @@ void SET_MCTP_EVENT_FLAG(void)
     xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_EVENT_BIT );
 }
 
-void mctp_i2c_update(uint8_t slv_addr, uint8_t freq, uint8_t eid)
+void mctp_i2c_update(uint8_t slv_addr, uint8_t freq)
+{
+    mctpContext = mctp_ctxt_get();
+    if(NULL == mctpContext)
+    {
+        return;
+    }
+    mctpContext->i2c_bus_freq = freq;
+    mctpContext->i2c_slave_addr = slv_addr;
+}
+
+void mctp_update_eid(uint8_t eid)
 {
     mctpContext = mctp_ctxt_get();
     if(NULL == mctpContext)
@@ -157,8 +169,6 @@ void mctp_i2c_update(uint8_t slv_addr, uint8_t freq, uint8_t eid)
         return;
     }
     mctpContext->eid = eid;
-    mctpContext->i2c_bus_freq = freq;
-    mctpContext->i2c_slave_addr = slv_addr;
 }
 
 void sb_mctp_enable()

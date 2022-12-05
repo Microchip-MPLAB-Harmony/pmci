@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<Package name="replaceme">
+<Package name="dmtf_stack">
     <Dependencies>
-    </Dependencies>
+        <Dependency name="csp" version="v3.14.0"/>
+        <Dependency name="CMSIS-FreeRTOS" version="v10.4.6"/>
+</Dependencies>
 </Package>

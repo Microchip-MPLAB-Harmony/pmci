@@ -1,3 +1,20 @@
+<#--
+/*******************************************************************************
+  MCTP Freemarker Template File
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+   mctp.h.ftl
+
+  Summary:
+    MCTP Freemarker Template File
+
+  Description:
+
+*******************************************************************************/
+-->
 /*****************************************************************************
 * Copyright (c) 2022 Microchip Technology Inc. and its subsidiaries.
 * You may use this software and any derivatives exclusively with
@@ -624,6 +641,42 @@ extern uint8_t mctp_i2c_get_chan_busy_status(uint8_t channel);
 extern uint16_t mctp_i2c_get_current_timestamp(void);
 
 /******************************************************************************/
+/** mctp_wait_for_done_spdm(void)
+ * MCTP wait for SPDM application to be done
+ * @param None
+ * @return None
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the MCTP module after filling mctp_pktbuf[MCTP_BUF3]
+ * with the SPDM request packet. The SPDM module is expected to inform the MCTP
+ * module after it has done processing the SPDM request packet.
+ * ############################################################################
+*******************************************************************************/
+extern void mctp_wait_for_done_spdm(void);
+
+/******************************************************************************/
+/** mctp_app_done_inform_i2c(void)
+ * Inform I2C driver that MCTP has received SPDM response packet
+ * @param None
+ * @return None
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the MCTP module after it has received the SPDM
+ * (or) PLDM reponse packet and is ready to be sent on the I2C bus. This 
+ * interface function is used in conjunction with mctp_wait_for_done_spdm()
+ * interface function. These interface functions are available to the user
+ * for cases where the user's I2C driver double / triple buffer capability,
+ * and wants to NACK the host if applications are busy processing the 
+ * previous request packets.
+ * ############################################################################
+*******************************************************************************/
+extern void mctp_app_done_inform_i2c(void);
+
+/******************************************************************************/
 /** SET_MCTP_EVENT_FLAG()
  * Set event flag to trigger MCTP packet processing
  * @param  none
@@ -695,6 +748,7 @@ void SET_MCTP_EVENT_FLAG(void);
 *******************************************************************************/
 void mctp_update_eid(uint8_t eid);
 
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 /******************************************************************************/
 /** SET_SPDM_EVENT_FLAG()
  * Set event flag to trigger SPDM packet processing
@@ -742,7 +796,8 @@ void mctp_update_eid(uint8_t eid);
  * ############################################################################
 *******************************************************************************/
 extern void SET_SPDM_EVENT_FLAG(void);
-
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
 /******************************************************************************/
 /** SET_PLDM_EVENT_FLAG()
  * Set event flag to trigger PLDM packet processing
@@ -790,6 +845,7 @@ extern void SET_SPDM_EVENT_FLAG(void);
  * ############################################################################
 *******************************************************************************/
 extern void SET_PLDM_EVENT_FLAG(void);
+</#if>
 
 /* Provide C++ Compatibility */
 #ifdef __cplusplus

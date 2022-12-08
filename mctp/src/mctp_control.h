@@ -1,5 +1,5 @@
 /*****************************************************************************
-* © 2013 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc. and its subsidiaries.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -18,27 +18,8 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-/** @file mctp_control.h
- * MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
- */
-
-/*******************************************************************************
- *  MCHP version control information (Perforce):
- *
- *  FILE:     $ $
- *  REVISION: $Revision: #2 $
- *  DATETIME: $DateTime: 2022/10/17 03:01:37 $
- *  AUTHOR:   $Author: i64652 $
- *
- *  Revision history (latest first):
- *      # 1: Initial revision for the MCTP porting
- ***********************************************************************************
-*/
-
-#ifndef MCTP_CONTROL_H_
-#define MCTP_CONTROL_H_
+#ifndef MCTP_CONTROL_H
+#define MCTP_CONTROL_H
 
 #include "mctp_common.h"
 
@@ -255,6 +236,6 @@ extern MCTP_BSS_ATTR MCTP_ROUTING_TABLE mctp_rt;
 }
 #endif
 
-#endif /*MCTP_CONTROL_H_*/
+#endif /*MCTP_CONTROL_H*/
 /**   @}
  */

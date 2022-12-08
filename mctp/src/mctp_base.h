@@ -1,5 +1,5 @@
 /*****************************************************************************
-* � 2020 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc. and its subsidiaries.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -17,25 +17,6 @@
 * MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE
 * OF THESE TERMS.
 *****************************************************************************/
-
-/** @file mctp_base.h
- *  MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
- */
-
-/*******************************************************************************
- *  MCHP version control information (Perforce):
- *
- *  FILE:     $ $
- *  REVISION: $Revision: #4 $
- *  DATETIME: $DateTime: 2022/10/17 03:01:37 $
- *  AUTHOR:   $Author: i64652 $
- *
- *  Revision history (latest first):
- *      # 1: Initial revision for the MCTP porting
- ***********************************************************************************
-*/
 
 #ifndef MCTP_BASE_H
 #define MCTP_BASE_H
@@ -77,6 +58,8 @@ extern "C" {
 #define MCTP_MSGTYPE_CONTROL        0
 #define MCTP_MSGTYPE_PLDM           1
 #define MCTP_MSGTYPE_SPDM           5
+
+#define MCTP_SPDM_CMD_GET_CERT      0x82
 
 #define MCTP_BUF1                   0
 #define MCTP_BUF2                   1
@@ -207,7 +190,6 @@ enum MCTP_TX_STATES
 {
     MCTP_TX_IDLE = 0, /**< No TX buffer is pending */
     MCTP_TX_NEXT, /**< Search for any pending TX buffer */
-    MCTP_TX_WAIT_SMBUS_CHAN_STAT_GET, /**< Check smbus busy status */
     MCTP_TX_SMBUS_ACQUIRE, /**< Check smbus busy and timeout conditions */
     MCTP_TX_IN_PROGRESS /**< Transmission over smbus is in progress */
 };

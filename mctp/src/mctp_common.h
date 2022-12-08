@@ -18,12 +18,6 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-/** @file common.h
- * Common definitions
- */
-/** @defgroup MCTP core
- */
-
 #ifndef MCTP_COMMON_H    /* Guard against multiple inclusion */
 #define MCTP_COMMON_H
 

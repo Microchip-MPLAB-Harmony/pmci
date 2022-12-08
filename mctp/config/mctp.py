@@ -42,19 +42,38 @@ def mctpI2CPortUpdate(symbol, event):
     selectedPhy = event["value"]
     symbol.setVisible(selectedPhy == "I2C")
 
+def mctpIsSpdmRequired(symbol, event):
+    usrSelection = event["value"]
+    symbol.setValue(usrSelection == True)
+
+def mctpIsPldmRequired(symbol, event):
+    usrSelection = event["value"]
+    symbol.setValue(usrSelection == True)
+
+def onAttachmentConnected(source, target):
+     if(target["component"].getID() == "FreeRTOS"):
+        print("RTOS connected")
+        isRtosComponentConnected.setValue(True)
+
+def onAttachmentDisconnected(source, target):
+     if(target["component"].getID() == "FreeRTOS"):
+        print("RTOS disconnected")
+        isRtosComponentConnected.setValue(False)
+
 def instantiateComponent(mctpComponent):
 
     global phyLayerSelection
     global isSpdmComponentConnected
     global isPldmComponentConnected
+    global isRtosComponentConnected
 
     print("MCTP stack component initialize")
     
-    autoComponentIDTable = ["FreeRTOS"]
+    autoComponentIDTable = ["FreeRTOS", "HarmonyCore"]
 
     # FreeRTOS is required for MCTP module to function
-    mctpComponent.addDependency("RTOS_DEP", "FreeRTOS", None, True, True)
-    mctpComponent.setDependencyEnabled("RTOS_DEP", True)
+    mctpComponent.addDependency("FreeRTOS_DEP", "RTOS", None, True, True)
+    mctpComponent.setDependencyEnabled("FreeRTOS_DEP", True)
     Database.activateComponents(autoComponentIDTable)
     
     # EC slave address
@@ -92,26 +111,28 @@ def instantiateComponent(mctpComponent):
     phyLayerSelection.setDescription("MCTP Physical layer selection")
     phyLayerSelection.setDefaultValue("Select")
     
+    # MCTP I2C controller selection
+    mctpI2CCoontrollerSelect = mctpComponent.createIntegerSymbol("MCTP_I2C_CONTROLLER", None)
+    mctpI2CCoontrollerSelect.setHelp("mcc_h3_manager_configurations")
+    mctpI2CCoontrollerSelect.setLabel("MCTP I2C controller")
+    mctpI2CCoontrollerSelect.setVisible(False)
+    mctpI2CCoontrollerSelect.setDescription("I2C controller to use")
+    mctpI2CCoontrollerSelect.setMin(0)
+    mctpI2CCoontrollerSelect.setMax(4)
+    mctpI2CCoontrollerSelect.setDefaultValue(0)
+    mctpI2CCoontrollerSelect.setDependencies(mctpI2CPortUpdate, ["MCTP_PHY_LAYER"])
+    
     # MCTP I2C port selection
     mctpI2CportSelect = mctpComponent.createIntegerSymbol("MCTP_I2C_PORT", None)
     mctpI2CportSelect.setHelp("mcc_h3_manager_configurations")
     mctpI2CportSelect.setLabel("MCTP I2C port")
     mctpI2CportSelect.setVisible(False)
     mctpI2CportSelect.setDescription("I2C controller port to use")
+    mctpI2CportSelect.setMin(0)
     mctpI2CportSelect.setMax(15)
     mctpI2CportSelect.setDefaultValue(0)
     mctpI2CportSelect.setDependencies(mctpI2CPortUpdate, ["MCTP_PHY_LAYER"])
-
-    # MCTP I2C controller selection
-    mctpI2CportSelect = mctpComponent.createIntegerSymbol("MCTP_I2C_CONTROLLER", None)
-    mctpI2CportSelect.setHelp("mcc_h3_manager_configurations")
-    mctpI2CportSelect.setLabel("MCTP I2C controller")
-    mctpI2CportSelect.setVisible(False)
-    mctpI2CportSelect.setDescription("I2C controller to use")
-    mctpI2CportSelect.setMax(4)
-    mctpI2CportSelect.setDefaultValue(0)
-    mctpI2CportSelect.setDependencies(mctpI2CPortUpdate, ["MCTP_PHY_LAYER"])
-
+    
     # MCTP I2C speed selection
     mctpI2CClkFreqSelect = mctpComponent.createComboSymbol("MCTP_I2C_CLK_FREQ", None, i2cSpeedList) 
     mctpI2CClkFreqSelect.setHelp("mcc_h3_manager_configurations")
@@ -120,16 +141,41 @@ def instantiateComponent(mctpComponent):
     mctpI2CClkFreqSelect.setDescription("MCTP I2C clock frequency selection")
     mctpI2CClkFreqSelect.setDefaultValue("100")
     mctpI2CClkFreqSelect.setDependencies(mctpI2CPortUpdate, ["MCTP_PHY_LAYER"])
+    
+    isControlPktRequired = mctpComponent.createBooleanSymbol("MCTP_IS_CONTROL_REQUIRED", None)
+    isControlPktRequired.setLabel("MCTP control packet processing")
+    isControlPktRequired.setVisible(True)
+    isControlPktRequired.setDefaultValue(True)
+    isControlPktRequired.setReadOnly(True)
 
-    isSpdmComponentConnected = mctpComponent.createBooleanSymbol("IS_SPDM_COMPONENT_CONNECTED", None)
+    isSpdmRequired = mctpComponent.createBooleanSymbol("MCTP_IS_SPDM_REQUIRED", None)
+    isSpdmRequired.setLabel("SPDM packet routing")
+    isSpdmRequired.setVisible(True)
+    isSpdmRequired.setDefaultValue(False)
+    isSpdmRequired.setValue(False)
+
+    isPldmRequired = mctpComponent.createBooleanSymbol("MCTP_IS_PLDM_REQUIRED", None)
+    isPldmRequired.setLabel("PLDM packet routing")
+    isPldmRequired.setVisible(False)
+    isPldmRequired.setDefaultValue(False)
+    isPldmRequired.setValue(False)
+
+    isSpdmComponentConnected = mctpComponent.createBooleanSymbol("MCTP_IS_SPDM_COMPONENT_CONNECTED", None)
     isSpdmComponentConnected.setVisible(False)
     isSpdmComponentConnected.setDefaultValue(False)
     isSpdmComponentConnected.setValue(False)
+    isSpdmComponentConnected.setDependencies(mctpIsSpdmRequired, ["MCTP_IS_SPDM_REQUIRED"])
     
-    isPldmComponentConnected = mctpComponent.createBooleanSymbol("IS_PLDM_COMPONENT_CONNECTED", None)
+    isPldmComponentConnected = mctpComponent.createBooleanSymbol("MCTP_IS_PLDM_COMPONENT_CONNECTED", None)
     isPldmComponentConnected.setVisible(False)
     isPldmComponentConnected.setDefaultValue(False)
     isPldmComponentConnected.setValue(False)
+    isPldmComponentConnected.setDependencies(mctpIsPldmRequired, ["MCTP_IS_PLDM_REQUIRED"])
+    
+    isRtosComponentConnected = mctpComponent.createBooleanSymbol("MCTP_IS_RTOS_COMPONENT_CONNECTED", None)
+    isRtosComponentConnected.setVisible(False)
+    isRtosComponentConnected.setDefaultValue(False)
+    isRtosComponentConnected.setValue(False)
     
     #Add configuration files to project
     #Add mctp_config.h
@@ -145,13 +191,13 @@ def instantiateComponent(mctpComponent):
     #Add interface file to project
     #Add mctp.h
     mctpSmbusIfaceHeaderFile = mctpComponent.createFileSymbol(None, None)
-    mctpSmbusIfaceHeaderFile.setSourcePath("mctp/src/mctp.h")
+    mctpSmbusIfaceHeaderFile.setSourcePath("mctp/templates/mctp.h.ftl")
     mctpSmbusIfaceHeaderFile.setOutputName("mctp.h")
     mctpSmbusIfaceHeaderFile.setDestPath("../../dmtf_stack/mctp/")
     mctpSmbusIfaceHeaderFile.setProjectPath("mctp/")
     mctpSmbusIfaceHeaderFile.setOverwrite(True)
     mctpSmbusIfaceHeaderFile.setType("HEADER")
-    mctpSmbusIfaceHeaderFile.setMarkup(False)
+    mctpSmbusIfaceHeaderFile.setMarkup(True)
     
     #Add core files
     #Add mctp_common.h
@@ -201,40 +247,40 @@ def instantiateComponent(mctpComponent):
     mctpControlSourceFile.setMarkup(True)
     #Add mctp_smbus.h
     mctpSmbusHeaderFile = mctpComponent.createFileSymbol(None, None)
-    mctpSmbusHeaderFile.setSourcePath("mctp/src/mctp_smbus.h")
+    mctpSmbusHeaderFile.setSourcePath("mctp/templates/mctp_smbus.h.ftl")
     mctpSmbusHeaderFile.setOutputName("mctp_smbus.h")
     mctpSmbusHeaderFile.setDestPath("../../dmtf_stack/mctp/")
     mctpSmbusHeaderFile.setProjectPath("mctp/")
     mctpSmbusHeaderFile.setOverwrite(True)
     mctpSmbusHeaderFile.setType("HEADER")
-    mctpSmbusHeaderFile.setMarkup(False)
+    mctpSmbusHeaderFile.setMarkup(True)
     #Add mctp_smbus.c
     mctpSmbusSourceFile = mctpComponent.createFileSymbol(None, None)
-    mctpSmbusSourceFile.setSourcePath("mctp/src/mctp_smbus.c")
+    mctpSmbusSourceFile.setSourcePath("mctp/templates/mctp_smbus.c.ftl")
     mctpSmbusSourceFile.setOutputName("mctp_smbus.c")
     mctpSmbusSourceFile.setDestPath("../../dmtf_stack/mctp/")
     mctpSmbusSourceFile.setProjectPath("mctp/")
     mctpSmbusSourceFile.setOverwrite(True)
     mctpSmbusSourceFile.setType("SOURCE")
-    mctpSmbusSourceFile.setMarkup(False)
+    mctpSmbusSourceFile.setMarkup(True)
     #Add mctp_task.h
     mctpSmbusHeaderFile = mctpComponent.createFileSymbol(None, None)
-    mctpSmbusHeaderFile.setSourcePath("mctp/src/mctp_task.h")
+    mctpSmbusHeaderFile.setSourcePath("mctp/templates/mctp_task.h.ftl")
     mctpSmbusHeaderFile.setOutputName("mctp_task.h")
     mctpSmbusHeaderFile.setDestPath("../../dmtf_stack/mctp/")
     mctpSmbusHeaderFile.setProjectPath("mctp/")
     mctpSmbusHeaderFile.setOverwrite(True)
     mctpSmbusHeaderFile.setType("HEADER")
-    mctpSmbusHeaderFile.setMarkup(False)
+    mctpSmbusHeaderFile.setMarkup(True)
     #Add mctp_task.c
     mctpSmbusSourceFile = mctpComponent.createFileSymbol(None, None)
-    mctpSmbusSourceFile.setSourcePath("mctp/src/mctp_task.c")
+    mctpSmbusSourceFile.setSourcePath("mctp/templates/mctp_task.c.ftl")
     mctpSmbusSourceFile.setOutputName("mctp_task.c")
     mctpSmbusSourceFile.setDestPath("../../dmtf_stack/mctp/")
     mctpSmbusSourceFile.setProjectPath("mctp/")
     mctpSmbusSourceFile.setOverwrite(True)
     mctpSmbusSourceFile.setType("SOURCE")
-    mctpSmbusSourceFile.setMarkup(False)
+    mctpSmbusSourceFile.setMarkup(True)
     
     #Project configurations
     xc32SettingIncDirMctpConfig = mctpComponent.createSettingSymbol("XC32C_INCLUDE_DIR_MCTP", None)

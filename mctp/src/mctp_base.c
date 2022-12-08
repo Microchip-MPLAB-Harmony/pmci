@@ -1,5 +1,5 @@
 /*****************************************************************************
-* � 2013 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc. and its subsidiaries.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -18,24 +18,6 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-/** @file mctp_base.c
- * MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
- */
-
-/*******************************************************************************
- *  MCHP version control information (Perforce):
- *
- *  FILE:     $ $
- *  REVISION: $Revision: #2 $
- *  DATETIME: $DateTime: 2022/10/17 03:01:37 $
- *  AUTHOR:   $Author: i64652 $
- *
- *  Revision history (latest first):
- *      # 1: Initial revision for the MCTP porting
- ***********************************************************************************
-*/
 #include "definitions.h"
 
 #include "mctp.h"
@@ -353,12 +335,12 @@ void mctp_event_tx_handler(void)
                         memcpy(&tx_buf->pkt.data[0], (uint8_t *)&transmit_buf[0], sizeof(MCTP_BUFDATA));
                     }
                     //if spdm message with get certificate command, no timeout specified as per spec
-//                    if((store_msg_type_tx == MCTP_MSGTYPE_SPDM) && (mctpContext->check_spdm_cmd == SPDM_GET_CERT))
-//                    {
+                   if((store_msg_type_tx == MCTP_MSGTYPE_SPDM) && (mctpContext->check_spdm_cmd == MCTP_SPDM_CMD_GET_CERT))
+                   {
 //                        /* change state to transmit it's data over smbus */
-//                        mctp_tx_state = MCTP_TX_WAIT_SMBUS_CHAN_STAT_GET;
-//                    }
-//                    else
+                       mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
+                   }
+                   else
                     {
                         /* check timeout condition */
                        if(!mctp_tx_timeout(tx_buf))
@@ -366,7 +348,7 @@ void mctp_event_tx_handler(void)
                             trace0(0, MCTP, 0, "mctp_evt_tx_hlr: rspse 132ms");
 
                             /* change state to transmit it's data over smbus */
-                            mctp_tx_state = MCTP_TX_WAIT_SMBUS_CHAN_STAT_GET;
+                            mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
 
                             /*Process the non empty buffer*/
                             /*This break comes out of "for" loop*/
@@ -398,8 +380,7 @@ void mctp_event_tx_handler(void)
                     trace0(0, MCTP, 0, "mctp_evt_tx_hlr: ec tx respse bufr");
 
                     /* change state to transmit it's data over smbus */
-//                        mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
-                    mctp_tx_state = MCTP_TX_WAIT_SMBUS_CHAN_STAT_GET;
+                    mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
 
                     start_time = (uint32_t)(mctp_i2c_get_current_timestamp());
                     // interval = 0; // Coverity security Fixes, variable unused
@@ -439,32 +420,6 @@ void mctp_event_tx_handler(void)
     /*If code reaches here, one or more TX buffers are active. So
      * fall-through to next state*/
 
-    case MCTP_TX_WAIT_SMBUS_CHAN_STAT_GET:
-
-        if (0 == (smb_channel_busy_status & 0x80))
-        {
-            // we use the last bit to check if a response was already
-            // sent in a previous visit to this state
-            smb_channel_busy_status |= 0x80;
-            mctp_i2c_get_chan_busy_status(MCTP_I2C_CHANNEL);
-			trace0(0, MCTP, 0, "Wait busy status update...");
-        }
-		else if(0x40 == (smb_channel_busy_status & 0x40))
-		{
-			trace0(0, MCTP, 0, "Got busy status, proceed...");
-			smb_channel_busy_status &= ((uint8_t)(~0xC0 & UINT8_MAX));
-			mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
-			SET_MCTP_EVENT_TASK(mctp);
-		}
-        else
-        {
-            // wait in this state untill response is available, state will be changed
-            // in function mctp_di_process_smb_status_response() to MCTP_TX_SMBUS_ACQUIRE
-            ;
-        }
-
-        break;
-
     case MCTP_TX_SMBUS_ACQUIRE:
 
         trace0(0, MCTP, 0, "mctp_evt_tx_hlr: MCTP_TX_SMBUS_ACQUIRE");
@@ -472,16 +427,7 @@ void mctp_event_tx_handler(void)
         /*Check if smbus can be acquired. We are not running preemptive
          * kernel. So status check and bus usage following that, are atomic
          * in nature*/
-//            acquire_status = smb_busyStatus_get(MCTP_I2C_CHANNEL);
-
-        if((smb_channel_busy_status&(0x01<<MCTP_I2C_CHANNEL)))
-        {
-            acquire_status = MASTER_AVAILABLE;
-        }
-        else
-        {
-            acquire_status = MASTER_BUSY;
-        }
+        acquire_status = mctp_i2c_get_chan_busy_status(MCTP_I2C_CHANNEL);
 
         /* get current TX buffer pointer */
         tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
@@ -515,7 +461,7 @@ void mctp_event_tx_handler(void)
             }
             else
             {
-                mctp_tx_state = MCTP_TX_WAIT_SMBUS_CHAN_STAT_GET;
+                mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
             }
 
             SET_MCTP_EVENT_TASK(mctp);

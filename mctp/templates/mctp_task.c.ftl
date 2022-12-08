@@ -1,3 +1,20 @@
+<#--
+/*******************************************************************************
+  MCTP Freemarker Template File
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+   mctp_task.c.ftl
+
+  Summary:
+    MCTP Freemarker Template File
+
+  Description:
+
+*******************************************************************************/
+-->
 /*****************************************************************************
  * Copyright (c) 2020 Microchip Technology Inc. and its subsidiaries.
  * You may use this software and any derivatives exclusively with
@@ -54,24 +71,44 @@ TaskHandle_t mctp_task1_get_handle(void)
 **********************************************************************/
 int mctp_app_task_create(void *pvParams)
 {
-	/* Create the task without using any dynamic memory allocation. */
-	mctp_task1_handle = xTaskCreateStatic(
-				  mctp_main,       /* Function that implements the task. */
-				  "mctp_task",          /* Text name for the task. */
-				  MCTP_TASK1_STACK_WORD_SIZE,      /* Number of indexes in the xStack array. */
-				  ( void * ) 1,    /* Parameter passed into the task. */
-				  MCTP_TASK1_PRIORITY,/* Priority at which the task is created. */
-				  mctp_task1_stack,          /* Array to use as the task's stack. */
-				  &mctp_task1_tcb );  /* Variable to hold the task's data structure. */
-	
-	if (mctp_task1_handle == NULL)
+<#if (MCTP_IS_RTOS_COMPONENT_CONNECTED == true && FreeRTOS.FREERTOS_STATIC_ALLOC == true) || MCTP_IS_RTOS_COMPONENT_CONNECTED == false>
+    /* Create the task without using any dynamic memory allocation. */
+    mctp_task1_handle = xTaskCreateStatic(
+                            mctp_main,                  /* Function that implements the task. */
+                            "mctp_task",                /* Text name for the task. */
+                            MCTP_TASK1_STACK_WORD_SIZE, /* Number of indexes in the xStack array. */
+                            ( void * ) 1,               /* Parameter passed into the task. */
+                            MCTP_TASK1_PRIORITY,        /* Priority at which the task is created. */
+                            mctp_task1_stack,           /* Array to use as the task's stack. */
+                            &mctp_task1_tcb );          /* Variable to hold the task's data structure. */
+    
+    if (mctp_task1_handle == NULL)
     {
         return -1;
     }
-	
-	mctpContext = mctp_ctxt_get();
-	mctpContext->xmctp_EventGroupHandle = xEventGroupCreateStatic(&mctpContext->xmctp_CreatedEventGroup);
+<#else>
+    BaseType_t xReturned;
+    /* Create the task, storing the handle. */
+    xReturned = xTaskCreate(
+                    mctp_main,                          /* Function that implements the task. */
+                    "mctp_task",                        /* Text name for the task. */
+                    MCTP_TASK1_STACK_WORD_SIZE,         /* Stack size in words, not bytes. */
+                    ( void * ) 1,                       /* Parameter passed into the task. */
+                    MCTP_TASK1_PRIORITY,                /* Priority at which the task is created. */
+                    &mctp_task1_handle );               /* Used to pass out the created task's handle. */
 
+    if( xReturned == pdFAIL )
+    {
+        /* The task was created.  Use the task's handle to delete the task. */
+        return -1;
+    }
+</#if>
+    mctpContext = mctp_ctxt_get();
+<#if (MCTP_IS_RTOS_COMPONENT_CONNECTED == true && FreeRTOS.FREERTOS_STATIC_ALLOC == true) || MCTP_IS_RTOS_COMPONENT_CONNECTED == false>
+    mctpContext->xmctp_EventGroupHandle = xEventGroupCreateStatic(&mctpContext->xmctp_CreatedEventGroup);
+<#else>
+    mctpContext->xmctp_EventGroupHandle = xEventGroupCreate();
+</#if>
     return 0;
 }
 

@@ -1,5 +1,22 @@
+<#--
+/*******************************************************************************
+  MCTP Freemarker Template File
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+   mctp_smbus.h.ftl
+
+  Summary:
+    MCTP Freemarker Template File
+
+  Description:
+
+*******************************************************************************/
+-->
 /*****************************************************************************
-* � 2013 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc. and its subsidiaries.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -18,26 +35,8 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-/** @file mctp_smbus.h
- * MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
- */
-
-/*******************************************************************************
- *  MCHP version control information (Perforce):
- *
- *  FILE:     $ $
- *  REVISION: $Revision: #2 $
- *  DATETIME: $DateTime: 2022/10/17 03:01:37 $
- *  AUTHOR:   $Author: i64652 $
- *
- *  Revision history (latest first):
- *      # 1: Initial revision for the MCTP porting
- ***********************************************************************************
-*/
-#ifndef MCTP_SMBUS_H_
-#define MCTP_SMBUS_H_
+#ifndef MCTP_SMBUS_H
+#define MCTP_SMBUS_H
 
 #include "mctp_common.h"
 #include "mctp_base.h"
@@ -72,7 +71,9 @@ void mctp_smbdone_handler(MCTP_PKT_BUF *tx_buf);
 void mctp_smbdone_drop(MCTP_PKT_BUF *tx_buf);
 void mctp_txpktready_init(MCTP_PKT_BUF *tx_buf);
 uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info);
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info);
+</#if>
 extern void mctp_smbaddress_update(uint8_t smb_address, uint8_t mctp_port);
 extern void mctp_smbenable_rt_update(void);
 uint8_t packetize_data(uint8_t pkt_len, I2C_BUFFER_INFO *buffer_info, MCTP_PKT_BUF *rx_buf);
@@ -89,23 +90,27 @@ uint8_t mctp_otp_get_crisis_mode_smb_port(void);
 void SET_MCTP_EVENT_FLAG(void);
 #define SET_MCTP_EVENT_TASK(mctp)   SET_MCTP_EVENT_FLAG()
 
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 void SET_SPDM_EVENT_FLAG(void);
 #define SET_EVENT_SPDM_TASK(spdm)   SET_SPDM_EVENT_FLAG()
-
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
 void SET_PLDM_EVENT_FLAG(void);
 #define SET_EVENT_PLDM_TASK(pldm)   SET_PLDM_EVENT_FLAG()
-
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
 /**********************************************************************************************/
 /** This is called when packet received over smbus is targeted for EC and message type is PLDM.
 * @param *buffer_info Pointer to I2C_BUFFER_INFO structure of smbus layer
 * @return void
 ***********************************************************************************************/
 uint8_t mctp_copy_rx_for_pldm_for_ec(I2C_BUFFER_INFO *buffer_info);
+</#if>
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /*MCTP_SMBUS_H_*/
+#endif /*MCTP_SMBUS_H*/
 /**   @}
  */

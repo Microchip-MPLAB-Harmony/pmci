@@ -1,3 +1,20 @@
+<#--
+/*******************************************************************************
+  MCTP Freemarker Template File
+
+  Company:
+    Microchip Technology Inc.
+
+  File Name:
+   mctp_task.h.ftl
+
+  Summary:
+    MCTP Freemarker Template File
+
+  Description:
+
+*******************************************************************************/
+-->
 /*****************************************************************************
  * Copyright (c) 2020 Microchip Technology Inc. and its subsidiaries.
  * You may use this software and any derivatives exclusively with
@@ -42,9 +59,11 @@ extern "C" {
 #define MCTP_TASK1_BUF_MPU_ATTR 0U
 #define MCTP_TASK1_BUF_ALIGN __attribute__((aligned(MCTP_TASK1_BUF_SIZE)))
 
-#define MCTP_EVENT_BIT      ( 1 << 1u )
-#define MCTP_I2C_ENABLE_BIT  (1 << 0u)
-#define MCTP_SMB_RESPONSE_BIT      ( 2 << 1u )
+#define MCTP_EVENT_BIT              (1 << 1u)
+#define MCTP_I2C_ENABLE_BIT         (1 << 0u)
+#define MCTP_SMB_RESPONSE_BIT       (2 << 1u)
+#define MCTP_WAIT_FOR_SPDM_DONE     (1u << 18)
+#define MCTP_WAIT_FOR_PLDM_DONE     (1u << 19)
 
 #ifdef __cplusplus
 }

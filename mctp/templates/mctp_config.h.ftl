@@ -15,7 +15,6 @@
 
 *******************************************************************************/
 -->
-
 /*****************************************************************************
 * Copyright (c) 2022 Microchip Technology Inc. and its subsidiaries.
 * You may use this software and any derivatives exclusively with
@@ -35,12 +34,6 @@
 * MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE
 * OF THESE TERMS.
 *****************************************************************************/
-
-/** @file mctp_config.h
- *  MCTP configuration header file
- */
-/** @defgroup MCTP Configuration
- */
 
 #ifndef MCTP_CONFIG_H
 #define MCTP_CONFIG_H

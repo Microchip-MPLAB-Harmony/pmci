@@ -35,24 +35,6 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-/** @file mctp_control.c
- * MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
- */
-
-/*******************************************************************************
- *  MCHP version control information (Perforce):
- *
- *  FILE:     $ $
- *  REVISION: $Revision: #2 $
- *  DATETIME: $DateTime: 2022/10/17 03:01:37 $
- *  AUTHOR:   $Author: i64652 $
- *
- *  Revision history (latest first):
- *      # 1: Initial revision for the MCTP porting
- ***********************************************************************************
-*/
 #include "definitions.h"
 
 #include "mctp.h"
@@ -93,16 +75,18 @@ uint8_t mctp_packet_routing(I2C_BUFFER_INFO *buffer_info)
         trace0(0, MCTP, 0, "mctp pkt rtng:rcvd pkt EC");
         ret_value = mctp_copy_rxpkt_for_ec(buffer_info);
         break;
-<#--  <#if IS_SPDM_COMPONENT_CONNECTED == true>  -->
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     case MCTP_IC_MSGTYPE_SPDM:
         trace0(0, MCTP, 0, "mctp pkt rtng:rcvd pkt SPDM mod EC");
+        ret_value = mctp_copy_rx_for_spdm_for_ec(buffer_info);
         break;
-<#--  </#if>  -->
-<#--  <#if IS_PLDM_COMPONENT_CONNECTED == true>  -->
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     case MCTP_IC_MSGTYPE_PLDM:
         trace0(0, MCTP, 3, "mctp pkt rtng:rcvd pkt frm PLDM mod EC");
+        ret_value = mctp_copy_rx_for_pldm_for_ec(buffer_info);
         break;
-<#--  </#if>  -->
+</#if>
     default:
         trace0(0, MCTP, 0, "mctp pkt rtng:Shd not reach here");
         ret_value = MCTP_FAILURE;

@@ -179,7 +179,7 @@ void mctp_init_task()
 
     mctp_cfg.smb_fairness = 1; /// Fairness enable
     mctp_cfg.mctp_discovery = false;
-    mctp_cfg.smbus_speed = SMBUS_SPEED_400KHZ; //default set to 400 Khz
+    mctp_cfg.smbus_speed = MCTP_I2C_CLK_FREQ; //default set to 400 Khz
 
 } /* End mctp_init_task() */
 
@@ -432,9 +432,9 @@ void mctp_event_tx_handler(void)
         /* get current TX buffer pointer */
         tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
 
-        if(MASTER_AVAILABLE == acquire_status)
+        if(I2C_MASTER_AVAILABLE == acquire_status)
         {
-            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: MASTER_AVAILABLE");
+            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: I2C_MASTER_AVAILABLE");
 
             /*smbus is available, start transmission*/
             mctp_wait_smbus_callback = 0x0;
@@ -442,9 +442,9 @@ void mctp_event_tx_handler(void)
             mctp_tx_state = MCTP_TX_IN_PROGRESS;
             /*Fall Through to MCTP_TX_IN_PROGRESS state*/
         }
-        else if(MASTER_BUSY == acquire_status)
+        else if(I2C_MASTER_BUSY == acquire_status)
         {
-            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: MASTER_BUSY");
+            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: I2C_MASTER_BUSY");
 
 
             interval = mctp_timer_difference(start_time);

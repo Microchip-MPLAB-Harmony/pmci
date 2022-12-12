@@ -105,7 +105,7 @@ typedef struct I2C_MAPP_CBK_NEW_TX
 } I2C_MAPP_CBK_NEW_TX;
 
 /******************************************************************************/
-/** enum master_busy_status 
+/** enum i2c_master_busy_status 
  * Enumeration to denote whether master is busy or ready to send the next packet
  * on the bus
  * @note
@@ -121,14 +121,14 @@ typedef struct I2C_MAPP_CBK_NEW_TX
  * Refer mctp_i2c_get_chan_busy_status interface function
  * ############################################################################
 *******************************************************************************/
-enum master_busy_status
+enum i2c_master_busy_status
 {
-    MASTER_BUSY =0      /**< Master is busy, retry after sometime */
-   , MASTER_AVAILABLE   /**< Master is available, go ahead with transaction */
+    I2C_MASTER_BUSY =0      /**< Master is busy, retry after sometime */
+   , I2C_MASTER_AVAILABLE   /**< Master is available, go ahead with transaction */
 };
 
 /******************************************************************************/
-/** enum slave_app_reg_status 
+/** enum i2c_slave_app_reg_status 
  * Enumeration to denote status codes for slave registration by application
  * @note
  * ############################################################################
@@ -143,12 +143,12 @@ enum master_busy_status
  * Refer mctp_i2c_rx_register interface function
  * ############################################################################
 *******************************************************************************/
-enum slave_app_reg_status
+enum i2c_slave_app_reg_status
 {
-     STATUS_ALREADY_REGISTERED = 0  /**< Application has already registered */
-    , STATUS_MAX_APP_REGISTERED     /**< Maximum number of application registered */
-    , STATUS_APP_NOT_REGISTERED     /**< Application is not registered */
-    , STATUS_OK                     /**< Success status */
+     I2C_SLAVE_APP_STATUS_ALREADY_REGISTERED = 0  /**< Application has already registered */
+    , I2C_SLAVE_APP_STATUS_MAX_APP_REGISTERED     /**< Maximum number of application registered */
+    , I2C_SLAVE_APP_STATUS_APP_NOT_REGISTERED     /**< Application is not registered */
+    , I2C_SLAVE_APP_STATUS_OK                     /**< Success status */
 };
 
 /******************************************************************************/
@@ -166,20 +166,20 @@ enum slave_app_reg_status
  * -----------------------
  * Refer mctp_i2c_tx interface function
  *******************************************************************************/
-enum master_status
+enum i2c_master_status
 {
-    ERROR_BER_TIMEOUT =0        /**< Bus Error due to Timeout */
-    , ERROR_BER_NON_TIMEOUT     /**< Bus Error due to Non Timeout */
-    , ERROR_LAB                 /**< Lost Arbitration Error */
-    , ERROR_MADDR_NAKX          /**< Slave sent Address NACK */
-    , ERROR_MDATA_NAKX          /**< Slave sent Data NACK */
-    , ERROR_SMB_DISABLED        /**< smbus is disabled thru Vreg */
-    , ERROR_CLK_DATA_NOT_HIGH   /**< CLK or Data Not High */
-    , ERROR_PEC                 /**< PEC Error */
-    , SUCCESS_TX                /**< Successful Master Tx */
-    , SUCCESS_RX                /**< Successful Master Rx */
-    , SUCCESS_TX_CHAINED        /**< Successful Master Tx for chained transfer - intermediate status*/
-    , SUCCESS_RX_CHAINED        /**< Successful Master Rx for chained transfer - intermediate status*/
+    I2C_ERROR_BER_TIMEOUT =0        /**< Bus Error due to Timeout */
+    , I2C_ERROR_BER_NON_TIMEOUT     /**< Bus Error due to Non Timeout */
+    , I2C_ERROR_LAB                 /**< Lost Arbitration Error */
+    , I2C_ERROR_MADDR_NAKX          /**< Slave sent Address NACK */
+    , I2C_ERROR_MDATA_NAKX          /**< Slave sent Data NACK */
+    , I2C_ERROR_SMB_DISABLED        /**< smbus is disabled thru Vreg */
+    , I2C_ERROR_CLK_DATA_NOT_HIGH   /**< CLK or Data Not High */
+    , I2C_ERROR_PEC                 /**< PEC Error */
+    , I2C_SUCCESS_TX                /**< Successful Master Tx */
+    , I2C_SUCCESS_RX                /**< Successful Master Rx */
+    , I2C_SUCCESS_TX_CHAINED        /**< Successful Master Tx for chained transfer - intermediate status*/
+    , I2C_SUCCESS_RX_CHAINED        /**< Successful Master Rx for chained transfer - intermediate status*/
 };
 
 /******************************************************************************/
@@ -195,16 +195,16 @@ enum master_status
  * communicates about the transmission status to the MCTP module (refer mctp_i2c_tx)
  * The I2C driver is expected to take relevent action
  *******************************************************************************/
-enum application_return_values
+enum i2c_application_return_values
 {
-    APP_RETVAL_RELEASE_SMBUS =0     /**< Application releases hold on smbus */
-    , APP_RETVAL_HOLD_SMBUS         /**< Application still acquires smbus */
-    , APP_RETVAL_RETRY              /**< Application wants to retry the current transaction */
-    , APP_RETVAL_NEW_TX             /**< Application wants to start new Master TX immediately */
-    , APP_RETVAL_CHAINED_RX         /**< Application is continuing a chained RX transaction */
-    , APP_RETVAL_CHAINED_RX_LAST    /**< Last request for a chained RX transaction */
-    , APP_RETVAL_CHAINED_TX         /**< Application is continuing a chained TX transaction */
-    , APP_RETVAL_CHAINED_TX_LAST    /**< Last request for a chained TX transaction */
+    I2C_APP_RETVAL_RELEASE_SMBUS =0     /**< Application releases hold on smbus */
+    , I2C_APP_RETVAL_HOLD_SMBUS         /**< Application still acquires smbus */
+    , I2C_APP_RETVAL_RETRY              /**< Application wants to retry the current transaction */
+    , I2C_APP_RETVAL_NEW_TX             /**< Application wants to start new Master TX immediately */
+    , I2C_APP_RETVAL_CHAINED_RX         /**< Application is continuing a chained RX transaction */
+    , I2C_APP_RETVAL_CHAINED_RX_LAST    /**< Last request for a chained RX transaction */
+    , I2C_APP_RETVAL_CHAINED_TX         /**< Application is continuing a chained TX transaction */
+    , I2C_APP_RETVAL_CHAINED_TX_LAST    /**< Last request for a chained TX transaction */
 };
 
 /******************************************************************************/
@@ -219,9 +219,9 @@ enum application_return_values
  *******************************************************************************/
 enum i2c_bus_speed
 {
-    SMBUS_SPEED_100KHZ
-   ,SMBUS_SPEED_400KHZ
-   ,SMBUS_SPEED_1MHZ
+    I2C_BUS_SPEED_100KHZ
+   ,I2C_BUS_SPEED_400KHZ
+   ,I2C_BUS_SPEED_1MHZ
 };
 
 /******************************************************************************/
@@ -236,9 +236,9 @@ enum i2c_bus_speed
  *******************************************************************************/
 enum i2c_slave_packet_status
 {
-    STATUS_BUFFER_NOT_DONE= 0   /**< Packet not accepted, since application is busy */
-    ,STATUS_BUFFER_DONE         /**< Packet accepted by application */
-    ,STATUS_BUFFER_ERROR        /**< Packet not meant for this application */
+    I2C_STATUS_BUFFER_NOT_DONE= 0   /**< Packet not accepted, since application is busy */
+    ,I2C_STATUS_BUFFER_DONE         /**< Packet accepted by application */
+    ,I2C_STATUS_BUFFER_ERROR        /**< Packet not meant for this application */
 };
 
 /******************************************************************************/
@@ -254,8 +254,8 @@ enum i2c_slave_packet_status
  *******************************************************************************/
 enum i2c_slave_transmit_status
 {
-    SLAVE_TRANSMIT_FALSE = false    /**< Slave Transmit phase not required */
-    ,SLAVE_TRANSMIT_TRUE= true      /**< Slave Transmit phase required */
+    I2C_SLAVE_TRANSMIT_FALSE = false    /**< Slave Transmit phase not required */
+    ,I2C_SLAVE_TRANSMIT_TRUE= true      /**< Slave Transmit phase required */
 };
 
 /******************************************************************************/
@@ -272,7 +272,7 @@ enum i2c_slave_transmit_status
  * -----------------------
  * Example:
  * -----------------------
- * Refer SLAVE_FUNC_PTR
+ * Refer I2C_SLAVE_FUNC_PTR
 *******************************************************************************/
 typedef struct I2C_BUFFER_INFO
 {
@@ -288,7 +288,7 @@ typedef struct I2C_BUFFER_INFO
 } I2C_BUFFER_INFO;
 
 /******************************************************************************/
-/** SLAVE_FUNC_PTR - Slave application function pointer
+/** I2C_SLAVE_FUNC_PTR - Slave application function pointer
  * The first argument is pointer to I2C_BUFFER_INFO structure which will contain
  * details of the packet received. The second parameter is flag to indicate
  * slave transmit phase. In case of slave transmit phase, the application
@@ -326,7 +326,7 @@ typedef struct I2C_BUFFER_INFO
  *      i2c_rx_packet.pecFlag    = 1;
  *      i2c_rx_packet.channel    = channel;
  * 
- *      mctp_rx_cb[channel](&i2c_rx_packet, SLAVE_TRANSMIT_FALSE);
+ *      mctp_rx_cb[channel](&i2c_rx_packet, I2C_SLAVE_TRANSMIT_FALSE);
  * }
  * ############################################################################
  * -----------------------
@@ -339,10 +339,10 @@ typedef struct I2C_BUFFER_INFO
  * ############################################################################
  * ############################################################################
 *******************************************************************************/
-typedef uint8_t (*SLAVE_FUNC_PTR)(I2C_BUFFER_INFO *, uint8_t);
+typedef uint8_t (*I2C_SLAVE_FUNC_PTR)(I2C_BUFFER_INFO *, uint8_t);
 
 /******************************************************************************/
-/** MASTER_FUNC_PTR - Master transmit status function pointer
+/** I2C_MASTER_FUNC_PTR - Master transmit status function pointer
  * This function pointer should be saved by the I2C driver and called later
  * to inform the MCTP module about the status of the packet transmission.
  * The first parameters should contain the channel information
@@ -373,7 +373,7 @@ typedef uint8_t (*SLAVE_FUNC_PTR)(I2C_BUFFER_INFO *, uint8_t);
  * Refer mctp_i2c_tx interface function
  * ############################################################################
 *******************************************************************************/
-typedef uint8_t (*MASTER_FUNC_PTR)(uint8_t, uint8_t, uint8_t *, I2C_MAPP_CBK_NEW_TX *);
+typedef uint8_t (*I2C_MASTER_FUNC_PTR)(uint8_t, uint8_t, uint8_t *, I2C_MAPP_CBK_NEW_TX *);
 
 /******************************************************************************/
 /** mctp_i2c_tx
@@ -407,12 +407,12 @@ typedef uint8_t (*MASTER_FUNC_PTR)(uint8_t, uint8_t, uint8_t *, I2C_MAPP_CBK_NEW
  * -----------------------
  * Example:
  * -----------------------
- * MASTER_FUNC_PTR i2c_tx_status i2c_tx_status_cb;
+ * I2C_MASTER_FUNC_PTR i2c_tx_status i2c_tx_status_cb;
  * uint8_t i2c_tx_status[MAX_I2C_CHANNELS];
  * uint8_t i2c_tx_done[MAX_I2C_CHANNELS];
  * uint8_t *tx_buffer = NULL;
  * uint8_t mctp_i2c_tx(const uint8_t channel, uint8_t *buffer_ptr, const uint8_t smb_protocol, 
- *                     const uint8_t writeCount, MASTER_FUNC_PTR func_ptr, const uint8_t pecEnable, 
+ *                     const uint8_t writeCount, I2C_MASTER_FUNC_PTR func_ptr, const uint8_t pecEnable, 
  *                     const uint8_t readChainedFlag, const uint8_t writeChainedFlag);
  * {
  *     uint8_t status = MASTER_OK;
@@ -480,7 +480,7 @@ extern uint8_t mctp_i2c_tx(const uint8_t channel,
                     const uint8_t smb_protocol, 
                     const uint8_t writeCount, 
                     const uint8_t pecEnable, 
-                    MASTER_FUNC_PTR func_ptr, 
+                    I2C_MASTER_FUNC_PTR func_ptr, 
                     const uint8_t readChainedFlag,
                     const uint8_t writeChainedFlag);
 
@@ -489,7 +489,8 @@ extern uint8_t mctp_i2c_tx(const uint8_t channel,
  * This function registers a I2C slave application
  * @channel the channel on which the slave is registered
  * @param slaveFuncPtr The application function to call on receiving a packet
- * @return             STATUS_OK on successful registration, else error status
+ * @return             I2C_SLAVE_APP_STATUS_OK on successful registration, 
+ *                     else error status
  * @note
  * ############################################################################
  * -----------------------
@@ -503,34 +504,34 @@ extern uint8_t mctp_i2c_tx(const uint8_t channel,
  * -----------------------
  * Example:
  * -----------------------
- * SLAVE_FUNC_PTR mctp_rx_cb[MAX_I2C_CHANNELS];
- * uint8_t mctp_i2c_rx_register(const uint8_t channel, SLAVE_FUNC_PTR slaveFuncPtr)
+ * I2C_SLAVE_FUNC_PTR mctp_rx_cb[MAX_I2C_CHANNELS];
+ * uint8_t mctp_i2c_rx_register(const uint8_t channel, I2C_SLAVE_FUNC_PTR slaveFuncPtr)
  * {
- *     uint8_t status = STATUS_APP_NOT_REGISTERED;
+ *     uint8_t status = I2C_SLAVE_APP_STATUS_APP_NOT_REGISTERED;
  *      
  *     do
  *     {
  *         if(channel > MAX_I2C_CHANNELS)
  *         {
- *             status = STATUS_MAX_APP_REGISTERED;
+ *             status = I2C_SLAVE_APP_STATUS_MAX_APP_REGISTERED;
  *             break;
  *         }
  *         
  *         if(mctp_rx_cb[channel] != NULL)
  *         {
- *             status = STATUS_ALREADY_REGISTERED;
+ *             status = I2C_SLAVE_APP_STATUS_ALREADY_REGISTERED;
  *             break;
  *         }
  *         
  *         mctp_rx_cb[channel] = slaveFuncPtr;
- *         status = STATUS_OK;
+ *         status = I2C_SLAVE_APP_STATUS_OK;
  *     }
  *     while(0);
  * }
  * ############################################################################
 *******************************************************************************/
 extern uint8_t mctp_i2c_rx_register(const uint8_t channel, 
-                            SLAVE_FUNC_PTR slaveFuncPtr);
+                            I2C_SLAVE_FUNC_PTR slaveFuncPtr);
 
 /******************************************************************************/
 /** mctp_i2c_configure_and_enable
@@ -586,7 +587,7 @@ extern void mctp_i2c_configure_and_enable(uint8_t channel,
  * This function checks if master resource is available on a given
  * channel
  * @param channel i2c channel
- * @return MASTER_AVAILABLE/MASTER_BUSY
+ * @return I2C_MASTER_AVAILABLE/I2C_MASTER_BUSY
  * @note
  * ############################################################################
  * -----------------------
@@ -603,10 +604,10 @@ extern void mctp_i2c_configure_and_enable(uint8_t channel,
  * -----------------------
  * uint8_t mctp_i2c_get_chan_busy_status(uint8_t channel)
  * {
- *      uint8_t status = MASTER_BUSY;
+ *      uint8_t status = I2C_MASTER_BUSY;
  *      if(i2c_is_channel_busy(channel) == False)
  *      {
- *          status = MASTER_AVAILABLE
+ *          status = I2C_MASTER_AVAILABLE
  *      }
  *      return status;
  * }

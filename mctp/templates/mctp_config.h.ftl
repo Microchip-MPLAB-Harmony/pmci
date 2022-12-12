@@ -50,11 +50,11 @@ extern "C" {
 #define MCTP_I2C_PORT                          ${MCTP_I2C_PORT}U
 #define MCTP_I2C_CHANNEL                       ${MCTP_I2C_CONTROLLER}U
 <#if MCTP_I2C_CLK_FREQ == "1000">
-#define MCTP_I2C_CLK_FREQ                      SMBUS_SPEED_1MHZ
+#define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_1MHZ
 <#elseif MCTP_I2C_CLK_FREQ == "400">
-#define MCTP_I2C_CLK_FREQ                      SMBUS_SPEED_400KHZ
+#define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_400KHZ
 <#else> <#-- MCTP_I2C_CLK_FREQ == 100 -->
-#define MCTP_I2C_CLK_FREQ                      SMBUS_SPEED_100KHZ
+#define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_100KHZ
 </#if>
 
 #ifdef __cplusplus

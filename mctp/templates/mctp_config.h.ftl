@@ -47,6 +47,7 @@ extern "C" {
 #define HOST_SLAVE_ADDR                        0x${MCTP_EC_SLAVE_ADDR}
 #define MCTP_EC_EID                            0x${MCTP_EC_EID}
 #define MCTP_HOST_EID                          0x${MCTP_HOST_EID}
+#define MCTP_TASK_PRIORITY                     ${MCTP_TASK_PRIORITY}U
 #define MCTP_I2C_PORT                          ${MCTP_I2C_PORT}U
 #define MCTP_I2C_CHANNEL                       ${MCTP_I2C_CONTROLLER}U
 <#if MCTP_I2C_CLK_FREQ == "1000">

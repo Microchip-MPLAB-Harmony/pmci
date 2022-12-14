@@ -51,12 +51,14 @@ def mctpIsPldmRequired(symbol, event):
     symbol.setValue(usrSelection == True)
 
 def onAttachmentConnected(source, target):
-     if(target["component"].getID() == "FreeRTOS"):
+    global isRtosComponentConnected
+    if(target["component"].getID() == "FreeRTOS"):
         print("RTOS connected")
         isRtosComponentConnected.setValue(True)
 
 def onAttachmentDisconnected(source, target):
-     if(target["component"].getID() == "FreeRTOS"):
+    global isRtosComponentConnected
+    if(target["component"].getID() == "FreeRTOS"):
         print("RTOS disconnected")
         isRtosComponentConnected.setValue(False)
 
@@ -102,6 +104,20 @@ def instantiateComponent(mctpComponent):
     mctpDestinationEid.setReadOnly(False)
     mctpDestinationEid.setDefaultValue(0x95)
     mctpDestinationEid.setVisible(True)
+    
+    # MCTP task priority selection
+    mctpTaskPriority = mctpComponent.createIntegerSymbol("MCTP_TASK_PRIORITY", None)
+    mctpTaskPriority.setHelp("mcc_h3_manager_configurations")
+    mctpTaskPriority.setLabel("MCTP task priority")
+    mctpTaskPriority.setDescription("Value of MCTP task priority")
+    mctpTaskPriority.setReadOnly(False)
+    mctpTaskPriority.setMin(1)
+    mctpTaskPriority.setMax(999999999)
+    mctpTaskPriority.setDefaultValue(2)
+    mctpTaskPriority.setVisible(True)
+
+    mctpTaskPrioritySelectionGuide = mctpComponent.createCommentSymbol("MCTP_TASK_PRIORITY_SELECTION_GUIDE", None)
+    mctpTaskPrioritySelectionGuide.setLabel("**** Task priority should be less than PHY driver priority and greater than idle task priority ****")
     
     # Physical layer selection
     phyLayerSelection = mctpComponent.createComboSymbol("MCTP_PHY_LAYER", None, phyLayerList) 

@@ -678,6 +678,46 @@ extern void mctp_wait_for_done_spdm(void);
 extern void mctp_app_done_inform_i2c(void);
 
 /******************************************************************************/
+/** mctp_app_task_create(void)
+ * Create MCTP FreeRTOS task
+ * @param pvParams  This parameter is not used
+ * @return -1 :Fail, 0: Pass
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function creates and prepares the MCTP task to be run by the FreeRTOS
+ * task scheduler. The user is expected to call this function in their main
+ * function along with any other application task creation routines and start
+ * the FreeRTOS scheduler. Make sure that all necessary peripheral initializations
+ * have been completed before calling this function
+ * -----------------------
+ * Example:
+ * -----------------------
+ * int main ( void )
+ * {
+ *    
+ *    SYS_Initialize ( NULL );
+ *    
+ *    if(mctp_app_task_create((void*)NULL) < 0)
+ *    {
+ *        while(1);
+ *    }
+ *    
+ *    if(smb_drv_task_create((void*)NULL) < 0)
+ *    {
+ *        while(1);
+ *    }
+ *    
+ *    vTaskStartScheduler();
+ *    
+ *    return ( EXIT_FAILURE );
+ * }
+ * ############################################################################
+*******************************************************************************/
+int mctp_app_task_create(void *pvParams);
+
+/******************************************************************************/
 /** SET_MCTP_EVENT_FLAG()
  * Set event flag to trigger MCTP packet processing
  * @param  none

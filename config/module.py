@@ -24,9 +24,9 @@
 
 def loadModule():
     print("Load Module: Harmony MCTP Stack")
-    dmtf_mctpComponent = Module.CreateComponent("MCTP", "MCTP", "/DMTF/", "/mctp/config/mctp.py")
+    dmtf_mctpComponent = Module.CreateComponent("MCTP", "MCTP", "/PMCI/", "/mctp/config/mctp.py")
     dmtf_mctpComponent.setDisplayType("MCTP stack")
 
     print("Load Module: Harmony SPDM Stack")
-    dmtf_spdmComponent = Module.CreateComponent("SPDM", "SPDM", "/DMTF/", "/spdm/config/spdm.py")
+    dmtf_spdmComponent = Module.CreateComponent("SPDM", "SPDM", "/PMCI/", "/spdm/config/spdm.py")
     dmtf_spdmComponent.setDisplayType("SPDM stack")

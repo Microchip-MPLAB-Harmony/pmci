@@ -41,13 +41,14 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "mctp_common.h"
+#include "mctp_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* MPU */
-#define configMCTP_TASK1_PRIORITY 3U
+#define configMCTP_TASK1_PRIORITY MCTP_TASK_PRIORITY
 #define MCTP_TASK1_PRIORITY ((tskIDLE_PRIORITY + configMCTP_TASK1_PRIORITY) % configMAX_PRIORITIES)
 /* Stack size must be a power of 2 if the task is restricted */
 #define MCTP_TASK1_STACK_SIZE 1024U       // 2 * configMINIMAL_STACK_SIZE (120)

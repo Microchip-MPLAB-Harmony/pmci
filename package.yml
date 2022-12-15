@@ -1,6 +1,6 @@
 package:
   format-version: "1.0.0"
-  name: "dmtf_stack"
+  name: "pmci"
   type: "api"
   status: "beta"
   required: false

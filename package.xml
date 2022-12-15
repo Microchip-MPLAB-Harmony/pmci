@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<Package name="dmtf_stack">
+<Package name="pmci">
     <Dependencies>
         <Dependency name="csp" version="v3.14.0"/>
         <Dependency name="CMSIS-FreeRTOS" version="v10.4.6"/>

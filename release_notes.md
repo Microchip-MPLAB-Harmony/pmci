@@ -3,3 +3,28 @@
 
 # Microchip MPLAB® Harmony 3 Release Notes
 
+## PMCI Release v3.0.0
+    
+### New Features
+    
+- Added MCTP and SPDM stacks
+    
+- **Applications**
+  
+    - MPLAB Harmony provides large number of application examples to accelerate learning and reduce the development cycles for your embedded systems with reusable software components. The applications examples are available in the [product family specific repository](apps/readme.md).
+    
+- **New Features and Enhancements**
+      
+### Known Issues
+    
+    - None
+    
+### Development Tools
+    
+For CEC173x family of devices:
+    
+    - [MPLAB® X IDE v6.05](https://www.microchip.com/mplab/mplab-x-ide)
+    - [MPLAB® XC32 C/C++ Compiler v4.20](https://www.microchip.com/mplab/compilers)
+    
+### Notes
+    -  None

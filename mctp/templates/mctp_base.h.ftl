@@ -48,9 +48,7 @@ extern "C" {
 #define MCTP_BYTECNT_OFFSET         3
 #define MCTP_PEC_BYTE               1
 #define PAYLOAD                     8
-// MCTP_BYTECNT_MIN = (MCTP_PACKET_MIN - MCTP_BYTECNT_OFFSET - MCTP_PEC_BYTE)
 #define MCTP_BYTECNT_MIN            5
-// MCTP_BYTECNT_MAX = (MCTP_PACKET_MAX - MCTP_BYTECNT_OFFSET - MCTP_PEC_BYTE)
 #define MCTP_BYTECNT_MAX           69
 
 #define MCTP_SMBUS_HDR_CMD_CODE  0x0F
@@ -108,11 +106,16 @@ extern "C" {
 #define MCTP_IC_MSGTYPE_CONTROL     0x00
 #define MCTP_IC_MSGTYPE_LHUP_RESP   0x01
 #define MCTP_IC_MSGTYPE_LHUP_DGRM   0x02
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 #define MCTP_IC_MSGTYPE_SPDM        0x05
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
 #define MCTP_IC_MSGTYPE_PLDM        0X01
+</#if>
 #define MCTP_IC_MSGTYPE_UNKNWN      0xFF
-
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 #define SPDM_TIMEOUT_MS             135u //135 ms
+</#if>
 #define MCTP_TIMEOUT_MS             100u //100 ms
 
 #define VENDOR_ID_PS_M_REF          0x80
@@ -142,11 +145,13 @@ extern "C" {
 
 #define INSTANCE_ID              0x01
 
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 /*SPDM header bit pos*/
 #define SPDM_MSG_TYPE_POS        8 // For multiple response, msg type will not be present in packets other than first packet 
 #define SPDM_HEADER_VERSION_POS  9
 #define SPDM_HEADER_COMMAND_POS  10
 #define SPDM_HEADER_DATA_POS     11u
+</#if>
 /* PLDM header bit position */
 #define PLDM_PAYLOAD_START_MUTLIPLE_PKT_POS 8
 #define PLDM_HEADER_VERSION_PLDM_TYPE_POS 10

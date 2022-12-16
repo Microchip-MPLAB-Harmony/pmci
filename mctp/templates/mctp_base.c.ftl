@@ -321,6 +321,7 @@ void mctp_event_tx_handler(void)
                     {
                         store_msg_type_tx = tx_buf->pkt.field.hdr.msg_type;
                     }
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
                     if(store_msg_type_tx == MCTP_MSGTYPE_SPDM)
                     {
                         memcpy(&transmit_buf[0], (uint8_t *)&tx_buf->pkt.data[MCTP_PKT_DST_ADDR_POS], (hdr_struct_size - 1));
@@ -329,18 +330,21 @@ void mctp_event_tx_handler(void)
                         memcpy(&tx_buf->pkt.data[0], (uint8_t *)&transmit_buf[0], sizeof(MCTP_BUFDATA));
                     }
                     else
+</#if>
                     {
                         memcpy(&transmit_buf[0], (uint8_t *)&tx_buf->pkt.data[MCTP_PKT_DST_ADDR_POS], hdr_struct_size);
                         memcpy(&transmit_buf[hdr_struct_size], (uint8_t *)&tx_buf->pkt.data[10], (MCTP_PKT_BUF_DATALEN - (hdr_struct_size)));
                         memcpy(&tx_buf->pkt.data[0], (uint8_t *)&transmit_buf[0], sizeof(MCTP_BUFDATA));
                     }
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
                     //if spdm message with get certificate command, no timeout specified as per spec
                    if((store_msg_type_tx == MCTP_MSGTYPE_SPDM) && (mctpContext->check_spdm_cmd == MCTP_SPDM_CMD_GET_CERT))
                    {
-//                        /* change state to transmit it's data over smbus */
+                       /* change state to transmit it's data over smbus */
                        mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
                    }
                    else
+</#if>
                     {
                         /* check timeout condition */
                        if(!mctp_tx_timeout(tx_buf))
@@ -491,12 +495,13 @@ void mctp_event_tx_handler(void)
 
         break;
     }
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     if ((mctp_pktbuf[mctp_txbuf_index].pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] == PLDM_TYPE5_AND_HEADER_VERSION)
             && (mctp_pktbuf[mctp_txbuf_index].pkt.data[PLDM_HEADER_COMMAND_CODE_POS] == PLDM_SEND_VERIFY_COMPLETE_CMD))
     {
         mctp_pktbuf[mctp_txbuf_index].buf_full = MCTP_EMPTY;
-//        di_mctp_done_set();
     }
+</#if>
     trace0(0, MCTP, 0, "mctp_evt_tx_hlr: End");
 
 } /* End mctp_event_tx_handler() */
@@ -525,7 +530,12 @@ void mctp_handle_ec_rx_request_pkt(void)
 {
     MCTP_PKT_BUF *rx_buf;
     MCTP_PKT_BUF *tx_resp_buf;
-    MCTP_PKT_BUF *spdm_msg_rx_buf, *pldm_msg_rx_buf;
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+    MCTP_PKT_BUF *spdm_msg_rx_buf;
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+    MCTP_PKT_BUF *pldm_msg_rx_buf;
+</#if>
 
     trace0(0, MCTP, 0, "mctp_handle_ec_rx_rqst_pkt: Enter");
 
@@ -533,12 +543,14 @@ void mctp_handle_ec_rx_request_pkt(void)
     rx_buf      = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF1];
     /* get pointer of ec tx response buffer */
     tx_resp_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF1];
-
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     /* get pointer of ec response buffer for spdm*/
     spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
+</#if>
 
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
-
+</#if>
     /* if ec rx request buffer has valid packet */
     if(rx_buf->buf_full == MCTP_RX_PENDING)
     {
@@ -559,16 +571,20 @@ void mctp_handle_ec_rx_request_pkt(void)
             mctp_txpktready_init(tx_resp_buf);
         }
     }
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     else if(spdm_msg_rx_buf->buf_full == MCTP_RX_PENDING)
     {
         spdm_msg_rx_buf->buf_full = MCTP_EMPTY;//MCTP receive buffer for spdm available
         memset(spdm_msg_rx_buf, 0, MCTP_PKT_BUF_DATALEN);
     }
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     else if (pldm_msg_rx_buf->buf_full == MCTP_RX_PENDING)
     {
         pldm_msg_rx_buf->buf_full = MCTP_EMPTY;
         memset(pldm_msg_rx_buf, 0, MCTP_PKT_BUF_DATALEN);
     }
+</#if>
 } /* mctp_handle_ec_rx_request_pkt */
 
 /******************************************************************************/
@@ -605,7 +621,10 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
             return MCTP_FALSE;
         }
         if (MCTP_OTHER_PKT == mctp_get_packet_type(pkt_buf)
-                && (pkt_buf[MCTP_PKT_IC_MSGTYPE_POS] != MCTP_IC_MSGTYPE_SPDM)) // Check not required for SPDM
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+                && (pkt_buf[MCTP_PKT_IC_MSGTYPE_POS] != MCTP_IC_MSGTYPE_SPDM) /* Check not required for SPDM */
+</#if>
+                )
         {
             trace0(0, MCTP, 0, "mctp pkt val:Pkt neither req nor resp");
             return MCTP_FALSE;
@@ -626,7 +645,10 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
         if( (pkt_buf[MCTP_PKT_TO_MSGTAG_POS] & MCTP_SOM_REF_MSK) == MCTP_SOM_REF ) // IF SOM ==1
         {
             if (MCTP_OTHER_PKT == mctp_get_packet_type(pkt_buf)
-                    && (pkt_buf[MCTP_PKT_IC_MSGTYPE_POS] != MCTP_IC_MSGTYPE_SPDM)) // Check not required for SPDM
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+                    && (pkt_buf[MCTP_PKT_IC_MSGTYPE_POS] != MCTP_IC_MSGTYPE_SPDM) /* Check not required for SPDM */
+</#if>
+                    )
             {
                 trace0(0, MCTP, 0, "mctp pkt val:Mul pkt neither req nor resp");
                 return MCTP_FALSE;
@@ -709,15 +731,18 @@ uint8_t mctp_tx_timeout(MCTP_PKT_BUF *tx_buf)
     {
         max_tick_count = ((MCTP_TIMEOUT_MS * configTICK_RATE_HZ)/1000); //max 100 ms timeout
     }
-    else if (store_msg_type_tx == MCTP_MSGTYPE_SPDM)// SPDM Message
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+    if (store_msg_type_tx == MCTP_MSGTYPE_SPDM)// SPDM Message
     {
         max_tick_count = ((SPDM_TIMEOUT_MS * configTICK_RATE_HZ)/1000); //max 135 ms timeout
     }
-    else if (store_msg_type_tx == MCTP_MSGTYPE_PLDM)
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+    if (store_msg_type_tx == MCTP_MSGTYPE_PLDM)
     {
         return MCTP_FALSE;
     }
-
+</#if>
     /* check for timeout condition */
     if(processing_time <= max_tick_count)
     {

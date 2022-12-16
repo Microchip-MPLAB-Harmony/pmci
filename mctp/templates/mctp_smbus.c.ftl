@@ -107,7 +107,12 @@ uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFl
 #endif
     uint8_t pkt_len;
     MCTP_PKT_BUF *pkt_buf;
-    MCTP_PKT_BUF *spdm_msg_rx_buf = NULL, *pldm_msg_rx_buf = NULL;
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+    MCTP_PKT_BUF *spdm_msg_rx_buf = NULL;
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+    MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+</#if>
     trace0(0, MCTP, 0, "mctp_rcve_SB: Enter");
 
     pkt_buf = (MCTP_PKT_BUF *)((void *)&buffer_info->buffer_ptr[0]);
@@ -188,12 +193,16 @@ uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFl
     else
     {
         mctp_base_packetizing_val_set(false);
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
         spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
         memset(spdm_msg_rx_buf, 0, MCTP_PKT_BUF_DATALEN);
         spdm_msg_rx_buf->buf_full = MCTP_EMPTY;
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
         pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
         memset(pldm_msg_rx_buf, 0, MCTP_PKT_BUF_DATALEN);
         pldm_msg_rx_buf->buf_full = MCTP_EMPTY;
+</#if>
         smb_rx_index = 0;
         mctp_clean_up_buffer_states();
         return I2C_STATUS_BUFFER_ERROR;
@@ -478,15 +487,19 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 {
     MCTP_PKT_BUF *tx_buf;
     uint8_t ret_val;
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     uint8_t spdm_pend = 0x00;
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     uint8_t pldm_pend = 0x00;
+</#if>
 
     trace0(0, MCTP, 0, "mctp_smbmaster_done: Enter");
     trace1(0, MCTP, 0, "mctp_smbmaster_done: status = %04Xh", status);
 
     /* get current TX buffer pointer */
     tx_buf = (MCTP_PKT_BUF *)((void *) buffer_ptr);
-
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     if(store_msg_type_tx == MCTP_IC_MSGTYPE_SPDM)
     {
         if((buffer_ptr[MCTP_PKT_TO_MSGTAG_POS] & MCTP_EOM_REF_MSK) != MCTP_EOM_REF)
@@ -498,7 +511,9 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
             spdm_pend = false;
         }
     }
-    else if (store_msg_type_tx == MCTP_IC_MSGTYPE_PLDM)
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+    if (store_msg_type_tx == MCTP_IC_MSGTYPE_PLDM)
     {
         if((buffer_ptr[MCTP_PKT_TO_MSGTAG_POS] & MCTP_EOM_REF_MSK) != MCTP_EOM_REF)
         {
@@ -509,7 +524,7 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
             pldm_pend = false;
         }
     }
-
+</#if>
     /* based on status code, schedule re-transmission of packet or
     * drop the packet / mark buffer available */
     switch (status)

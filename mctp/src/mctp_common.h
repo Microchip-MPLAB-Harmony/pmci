@@ -38,11 +38,11 @@
 extern "C" {
 #endif
 
-#define MCTP_BSS_ATTR                               __attribute__((section("mctp_bss")))
+#define MCTP_BSS_ATTR                                     __attribute__((section("mctp_bss")))
 
-#define trace0(nbr, cat, lvl, str)                  { }
-#define trace1(nbr, cat, lvl, str, p1)              { }
-#define trace2(nbr, cat, lvl, str, p1, p2)          { }
+#define trace0(nbr, cat, lvl, str)                        { }
+#define trace1(nbr, cat, lvl, str, p1)                    { }
+#define trace2(nbr, cat, lvl, str, p1, p2)                { }
 
 /* -------------------- SMB Protocol Type --------------------------------------
    SMB table PROTOCOL TYPE
@@ -59,17 +59,17 @@ extern "C" {
                   0 - 3E : read fixed number of bytes from 0 - 3Eh
                   3F     : read number of bytes indicated by first
                            byte of return string from SMB device. */
-#define I2C_NOP                                     0
-#define I2C_WRITE                                   1
-#define I2C_READ                                    2
-#define I2C_REPEAT                                  3
+#define I2C_OPER_NOP                                      0
+#define I2C_OPER_WRITE                                    1
+#define I2C_OPER_READ                                     2
+#define I2C_OPER_REPEAT                                   3
 
-#define SMB_READ_BYTE                               ((I2C_REPEAT << 6) + 0x01)
-#define SMB_READ_WORD                               ((I2C_REPEAT << 6) + 0x02)
-#define SMB_PROCESS_CALL                            ((I2C_REPEAT << 6) + 0x02)
-#define SMB_WRITE_BLOCK                             ((I2C_WRITE  << 6) + 0x00)
-#define SMB_READ_BLOCK                              ((I2C_REPEAT << 6) + 0x3F)
-#define SMB_BLOCK_WRITE_BLOCK_READ_PROCESS_CALL     ((I2C_REPEAT << 6) + 0x3F)
+#define SMB_PROTO_READ_BYTE                               ((I2C_OPER_REPEAT << 6) + 0x01)
+#define SMB_PROTO_READ_WORD                               ((I2C_OPER_REPEAT << 6) + 0x02)
+#define SMB_PROTO_PROCESS_CALL                            ((I2C_OPER_REPEAT << 6) + 0x02)
+#define SMB_PROTO_WRITE_BLOCK                             ((I2C_OPER_WRITE  << 6) + 0x00)
+#define SMB_PROTO_READ_BLOCK                              ((I2C_OPER_REPEAT << 6) + 0x3F)
+#define SMB_PROTO_BLOCK_WRITE_BLOCK_READ_PROCESS_CALL     ((I2C_OPER_REPEAT << 6) + 0x3F)
 
 /* Provide C++ Compatibility */
 #ifdef __cplusplus

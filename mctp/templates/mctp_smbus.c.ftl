@@ -453,7 +453,7 @@ void mctp_transmit_smbus(MCTP_PKT_BUF *tx_buf)
 
     status_tx = mctp_i2c_tx(MCTP_I2C_CHANNEL,
                             (uint8_t *)&tx_buf->pkt,
-                            SMB_WRITE_BLOCK,
+                            SMB_PROTO_WRITE_BLOCK,
                             tx_buf->pkt.data[MCTP_PKT_BYTE_CNT_POS] + 3,
                             true,
                             (I2C_MASTER_FUNC_PTR) mctp_smbmaster_done,

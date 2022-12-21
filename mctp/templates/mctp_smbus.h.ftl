@@ -47,20 +47,20 @@ extern "C" {
 #endif
 
 /* Supported SMBus Speed*/
-#define SMBUS_AT_400_KHZ    1
-#define SMBUS_AT_100_KHZ    0
+#define SMBUS_AT_400_KHZ    1U
+#define SMBUS_AT_100_KHZ    0U
 /* Config Speed for Smbus either 400 or 100 Khz*/
 #define SMBUS_SPEED_CONFIG  SMBUS_AT_400_KHZ
 
-#define MCTP_SMBUS_AQ_TIMEOUT  100000
+#define MCTP_SMBUS_AQ_TIMEOUT  100000U
 
 /*MCTP Retry Couners */
-#define MCTPSMBNKRET  0x08
-#define MCTPSMBLBRET  0x0F
-#define MCTPREQTOUT   0x0C
-#define MCTPREQRET    0x03
+#define MCTPSMBNKRET  0x08U
+#define MCTPSMBLBRET  0x0FU
+#define MCTPREQTOUT   0x0CU
+#define MCTPREQRET    0x03U
 
-#define INPUT_BUF_MAX_BYTES 1224
+#define INPUT_BUF_MAX_BYTES 1224U
 
 /* function declarations */
 uint8_t mctp_smbus_init(void);
@@ -68,26 +68,15 @@ void mctp_transmit_smbus(MCTP_PKT_BUF *tx_buf);
 uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFlag);
 uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr, I2C_MAPP_CBK_NEW_TX *newTxParams);
 void mctp_smbdone_handler(MCTP_PKT_BUF *tx_buf);
-void mctp_smbdone_drop(MCTP_PKT_BUF *tx_buf);
+void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf);
 void mctp_txpktready_init(MCTP_PKT_BUF *tx_buf);
 uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info);
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info);
 </#if>
 extern void mctp_smbaddress_update(uint8_t smb_address, uint8_t mctp_port);
-extern void mctp_smbenable_rt_update(void);
-uint8_t packetize_data(uint8_t pkt_len, I2C_BUFFER_INFO *buffer_info, MCTP_PKT_BUF *rx_buf);
+uint8_t packetize_data(uint8_t rx_packet_len, I2C_BUFFER_INFO *buffer_info, MCTP_PKT_BUF *rx_buf);
 
-/******************************************************************************/
-/** mctp_otp_get_crisis_mode_smb_port();
-* Get the crisis port SMBUS port from OTP
-* @param None
-* @return uint8_t -   returns 0xFF for invalid port,
-*                      returns enum smb_ports for valid port select bits,
-*******************************************************************************/
-uint8_t mctp_otp_get_crisis_mode_smb_port(void);
-
-void SET_MCTP_EVENT_FLAG(void);
 #define SET_MCTP_EVENT_TASK(mctp)   SET_MCTP_EVENT_FLAG()
 
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>

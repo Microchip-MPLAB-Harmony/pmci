@@ -45,12 +45,12 @@
 
 /* MPU */
 static void mctp_main(void *pvParameters);
-static MCTP_BSS_ATTR StaticTask_t mctp_task1_tcb;
-static MCTP_BSS_ATTR uint32_t mctp_task1_stack[MCTP_TASK1_STACK_WORD_SIZE] MCTP_TASK1_STACK_ALIGN;
-MCTP_BSS_ATTR TaskHandle_t mctp_task1_handle = NULL;
-MCTP_BSS_ATTR MCTP_CONTEXT *mctpContext = NULL;
+MCTP_BSS_ATTR static StaticTask_t mctp_task1_tcb;
+MCTP_BSS_ATTR static uint32_t mctp_task1_stack[MCTP_TASK1_STACK_WORD_SIZE] MCTP_TASK1_STACK_ALIGN;
+MCTP_BSS_ATTR static TaskHandle_t mctp_task1_handle = NULL;
+MCTP_BSS_ATTR static MCTP_CONTEXT *mctpContext = NULL;
 
-union
+static union
 {
     uint32_t w[MCTP_TASK1_BUF_SIZE / 4];
     uint8_t  b[MCTP_TASK1_BUF_SIZE];
@@ -77,7 +77,7 @@ int mctp_app_task_create(void *pvParams)
                             mctp_main,                  /* Function that implements the task. */
                             "mctp_task",                /* Text name for the task. */
                             MCTP_TASK1_STACK_WORD_SIZE, /* Number of indexes in the xStack array. */
-                            ( void * ) 1,               /* Parameter passed into the task. */
+                            ( void * ) NULL,            /* Parameter passed into the task. */
                             MCTP_TASK1_PRIORITY,        /* Priority at which the task is created. */
                             mctp_task1_stack,           /* Array to use as the task's stack. */
                             &mctp_task1_tcb );          /* Variable to hold the task's data structure. */
@@ -93,7 +93,7 @@ int mctp_app_task_create(void *pvParams)
                     mctp_main,                          /* Function that implements the task. */
                     "mctp_task",                        /* Text name for the task. */
                     MCTP_TASK1_STACK_WORD_SIZE,         /* Stack size in words, not bytes. */
-                    ( void * ) 1,                       /* Parameter passed into the task. */
+                    ( void * ) NULL,                    /* Parameter passed into the task. */
                     MCTP_TASK1_PRIORITY,                /* Priority at which the task is created. */
                     &mctp_task1_handle );               /* Used to pass out the created task's handle. */
 
@@ -122,6 +122,7 @@ MCTP_CONTEXT* mctp_ctxt_get(void)
 {
     MCTP_CONTEXT* ret_mctp_ctxt;
 
+// coverity[misra_c_2012_rule_11_3_violation:FALSE]
     ret_mctp_ctxt = (MCTP_CONTEXT*)(MCTP_TASK1_BUF_ADDR);
 
     return ret_mctp_ctxt;
@@ -146,12 +147,12 @@ static void mctp_main(void* pvParameters)
 
 	mctp_init_task();
     mctp_update_eid(MCTP_EC_EID);
-	mctp_i2c_update(HOST_SLAVE_ADDR, MCTP_I2C_CLK_FREQ);
+	mctp_i2c_update(HOST_SLAVE_ADDR, (uint8_t)MCTP_I2C_CLK_FREQ);
 	mctp_smbaddress_update(mctpContext->i2c_slave_addr, MCTP_I2C_PORT);
 	mctp_update_i2c_params(mctpContext);
 	sb_mctp_enable();
 
-    while(1)
+    while(true)
     {
         uxBits = xEventGroupWaitBits((mctpContext->xmctp_EventGroupHandle),
                                      (MCTP_EVENT_BIT | MCTP_I2C_ENABLE_BIT | MCTP_EVENT_BIT),
@@ -161,7 +162,7 @@ static void mctp_main(void* pvParameters)
 
         if(MCTP_I2C_ENABLE_BIT == (uxBits & MCTP_I2C_ENABLE_BIT))
         {
-            mctp_smbus_init();
+            (void)mctp_smbus_init();
         }
 
         if(MCTP_EVENT_BIT == (uxBits & MCTP_EVENT_BIT))
@@ -184,7 +185,7 @@ void SET_MCTP_EVENT_FLAG(void)
     {
         return;
     }
-    xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_EVENT_BIT );
+    (void)xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_EVENT_BIT );
 }
 
 void mctp_i2c_update(uint8_t slv_addr, uint8_t freq)
@@ -208,12 +209,12 @@ void mctp_update_eid(uint8_t eid)
     mctpContext->eid = eid;
 }
 
-void sb_mctp_enable()
+void sb_mctp_enable(void)
 {
     mctpContext = mctp_ctxt_get();
     if(NULL == mctpContext)
     {
         return;
     }
-    xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_I2C_ENABLE_BIT );
+    (void)xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_I2C_ENABLE_BIT );
 }

@@ -36,132 +36,132 @@ extern "C" {
 #define MCTP_TRUE                   1
 #define MCTP_FALSE                  0
 
-#define MCTP_SUCCESS                0
-#define MCTP_FAILURE                1
+#define MCTP_SUCCESS                0U
+#define MCTP_FAILURE                1U
 
-#define MCTP_PKT_BUF_DATALEN       74
-#define MCTP_PKT_BUF_NUM            5
+#define MCTP_PKT_BUF_DATALEN       74U
+#define MCTP_PKT_BUF_NUM            5U
 
-#define MCTP_PACKET_MIN            12
-#define MCTP_PACKET_MAX            73
+#define MCTP_PACKET_MIN            12U
+#define MCTP_PACKET_MAX            73U
 
-#define MCTP_BYTECNT_OFFSET         3
-#define MCTP_PEC_BYTE               1
-#define PAYLOAD                     8
-#define MCTP_BYTECNT_MIN            5
-#define MCTP_BYTECNT_MAX           69
+#define MCTP_BYTECNT_OFFSET         3U
+#define MCTP_PEC_BYTE               1U
+#define PAYLOAD                     8U
+#define MCTP_BYTECNT_MIN            5U
+#define MCTP_BYTECNT_MAX           69U
 
-#define MCTP_SMBUS_HDR_CMD_CODE  0x0F
+#define MCTP_SMBUS_HDR_CMD_CODE  0x0FU
 
-#define MCTP_MSGTYPE_CONTROL        0
-#define MCTP_MSGTYPE_PLDM           1
-#define MCTP_MSGTYPE_SPDM           5
+#define MCTP_MSGTYPE_CONTROL        0U
+#define MCTP_MSGTYPE_PLDM           1U
+#define MCTP_MSGTYPE_SPDM           5U
 
-#define MCTP_SPDM_CMD_GET_CERT      0x82
+#define MCTP_SPDM_CMD_GET_CERT      0x82U
 
-#define MCTP_BUF1                   0
-#define MCTP_BUF2                   1
-#define MCTP_BUF3                   2
-#define MCTP_BUF4                   3
-#define MCTP_BUF5                   4
+#define MCTP_BUF1                   0U
+#define MCTP_BUF2                   1U
+#define MCTP_BUF3                   2U
+#define MCTP_BUF4                   3U
+#define MCTP_BUF5                   4U
 
-#define MCTP_PKT_DST_ADDR_POS       0
-#define MCTP_PKT_CMD_CODE_POS       1
-#define MCTP_PKT_BYTE_CNT_POS       2
-#define MCTP_PKT_SRC_ADDR_POS       3
-#define MCTP_PKT_HDR_VER_POS        4
-#define MCTP_PKT_DST_EID_POS        5
-#define MCTP_PKT_SRC_EID_POS        6
-#define MCTP_PKT_TO_MSGTAG_POS      7
-#define MCTP_PKT_IC_MSGTYPE_POS     8
-#define MCTP_PKT_RQ_D_POS           9
+#define MCTP_PKT_DST_ADDR_POS       0U
+#define MCTP_PKT_CMD_CODE_POS       1U
+#define MCTP_PKT_BYTE_CNT_POS       2U
+#define MCTP_PKT_SRC_ADDR_POS       3U
+#define MCTP_PKT_HDR_VER_POS        4U
+#define MCTP_PKT_DST_EID_POS        5U
+#define MCTP_PKT_SRC_EID_POS        6U
+#define MCTP_PKT_TO_MSGTAG_POS      7U
+#define MCTP_PKT_IC_MSGTYPE_POS     8U
+#define MCTP_PKT_RQ_D_POS           9U
 
-#define MCTP_PKT_TO_VEND_ID_POS_M   9
-#define MCTP_PKT_TO_VEND_ID_POS_L   10
+#define MCTP_PKT_TO_VEND_ID_POS_M   9U
+#define MCTP_PKT_TO_VEND_ID_POS_L   10U
 
-#define MCTP_PKT_VEND_RQ_D_POS      11
-#define MCTP_PKT_VEND_MENI_CMD_POS  12
+#define MCTP_PKT_VEND_RQ_D_POS      11U
+#define MCTP_PKT_VEND_MENI_CMD_POS  12U
 
-#define INCR_NEXT                0x1
-#define MCTP_NULL_EID            0x00
-#define MCTP_EID_LOW             0x08
-#define MCTP_EID_HIGH            0xFF
+#define INCR_NEXT                   0x1U
+#define MCTP_NULL_EID               0x00U
+#define MCTP_EID_LOW                0x08U
+#define MCTP_EID_HIGH               0xFFU
 
-#define MCTP_HDR_VER_REF            0x01
-#define MCTP_HDR_VER_REF_MSK        0x0F
+#define MCTP_HDR_VER_REF            0x01U
+#define MCTP_HDR_VER_REF_MSK        0x0FU
 
-#define MCTP_SOM_EOM_REF            0xC0
-#define MCTP_SOM_EOM_REF_MSK        0xC0
-#define MCTP_SOM_REF                0x80
-#define MCTP_EOM_REF                0x40
-#define MCTP_SOM_REF_MSK            0x80
-#define MCTP_EOM_REF_MSK            0x40
-#define MCTP_MSG_TAG_REF_MASK       0x07
-#define MCTP_MSG_TAG_TO_REF_MASK    0x08
-#define MCTP_MSG_PKSEQ_REF_MASK     0x30
-#define MCTP_MSG_PKSEQ_SHIFT        0x4
-#define MCTP_MSG_PKSEQ_MAX_MASK     0x3
+#define MCTP_SOM_EOM_REF            0xC0U
+#define MCTP_SOM_EOM_REF_MSK        0xC0U
+#define MCTP_SOM_REF                0x80U
+#define MCTP_EOM_REF                0x40U
+#define MCTP_SOM_REF_MSK            0x80U
+#define MCTP_EOM_REF_MSK            0x40U
+#define MCTP_MSG_TAG_REF_MASK       0x07U
+#define MCTP_MSG_TAG_TO_REF_MASK    0x08U
+#define MCTP_MSG_PKSEQ_REF_MASK     0x30U
+#define MCTP_MSG_PKSEQ_SHIFT        0x4U
+#define MCTP_MSG_PKSEQ_MAX_MASK     0x3U
 
 #define MCTP_IC_MSGTYPE_VNDR        VNDR_LAHO_VERSION
-#define MCTP_IC_MSGTYPE_CONTROL     0x00
-#define MCTP_IC_MSGTYPE_LHUP_RESP   0x01
-#define MCTP_IC_MSGTYPE_LHUP_DGRM   0x02
+#define MCTP_IC_MSGTYPE_CONTROL     0x00U
+#define MCTP_IC_MSGTYPE_LHUP_RESP   0x01U
+#define MCTP_IC_MSGTYPE_LHUP_DGRM   0x02U
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
-#define MCTP_IC_MSGTYPE_SPDM        0x05
+#define MCTP_IC_MSGTYPE_SPDM        0x05U
 </#if>
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
-#define MCTP_IC_MSGTYPE_PLDM        0X01
+#define MCTP_IC_MSGTYPE_PLDM        0X01U
 </#if>
-#define MCTP_IC_MSGTYPE_UNKNWN      0xFF
+#define MCTP_IC_MSGTYPE_UNKNWN      0xFFU
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
-#define SPDM_TIMEOUT_MS             135u //135 ms
+#define SPDM_TIMEOUT_MS             135U //135 ms
 </#if>
-#define MCTP_TIMEOUT_MS             100u //100 ms
+#define MCTP_TIMEOUT_MS             100U //100 ms
 
-#define VENDOR_ID_PS_M_REF          0x80
-#define VENDOR_ID_PS_L_REF          0x86
-#define VNDR_ID_SEL_REF             0xFF
-#define PCI_VNDR_ID_REF             0x00
-#define MCTP_PKT_VEND_MENI_CMD_REF  0x03
-#define VENDOR_VDM_VERSION          0x01
-#define NONE_REF_VALUE              0x00
+#define VENDOR_ID_PS_M_REF          0x80U
+#define VENDOR_ID_PS_L_REF          0x86U
+#define VNDR_ID_SEL_REF             0xFFU
+#define PCI_VNDR_ID_REF             0x00U
+#define MCTP_PKT_VEND_MENI_CMD_REF  0x03U
+#define VENDOR_VDM_VERSION          0x01U
+#define NONE_REF_VALUE              0x00U
 
-#define MCTP_PKT_VEND_RQ_D_POS_MSK  0xC0
-#define MCTP_PKT_VEND_RQ_D_REF      0xC0
+#define MCTP_PKT_VEND_RQ_D_POS_MSK  0xC0U
+#define MCTP_PKT_VEND_RQ_D_REF      0xC0U
 
-#define MCTP_HDR_MASK_TO         0x08
-#define MCTP_HDR_MASK_RQ         0x80
-#define MCTP_HDR_MASK_D          0x40
+#define MCTP_HDR_MASK_TO            0x08U
+#define MCTP_HDR_MASK_RQ            0x80U
+#define MCTP_HDR_MASK_D             0x40U
 
-#define MCTP_RESP_PKT               0
-#define MCTP_REQ_PKT                1
-#define MCTP_DTGM_PKT               2
-#define MCTP_OTHER_PKT           0xFF
+#define MCTP_RESP_PKT               0U
+#define MCTP_REQ_PKT                1U
+#define MCTP_DTGM_PKT               2U
+#define MCTP_OTHER_PKT              0xFFU
 
-#define MCTP_NULL                0x00
+#define MCTP_NULL                   0x00U
 
-#define MCTP_MAX_NUM_APP            1
-#define INVALID_APP_CODE         0xFF
+#define MCTP_MAX_NUM_APP            1U
+#define INVALID_APP_CODE            0xFFU
 
-#define INSTANCE_ID              0x01
+#define INSTANCE_ID                 0x01U
 
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 /*SPDM header bit pos*/
-#define SPDM_MSG_TYPE_POS        8 // For multiple response, msg type will not be present in packets other than first packet 
-#define SPDM_HEADER_VERSION_POS  9
-#define SPDM_HEADER_COMMAND_POS  10
-#define SPDM_HEADER_DATA_POS     11u
+#define SPDM_MSG_TYPE_POS           8U // For multiple response, msg type will not be present in packets other than first packet 
+#define SPDM_HEADER_VERSION_POS     9U
+#define SPDM_HEADER_COMMAND_POS     10U
+#define SPDM_HEADER_DATA_POS        11U
 </#if>
 /* PLDM header bit position */
-#define PLDM_PAYLOAD_START_MUTLIPLE_PKT_POS 8
-#define PLDM_HEADER_VERSION_PLDM_TYPE_POS 10
-#define PLDM_HEADER_COMMAND_CODE_POS      11
-#define PLDM_HEADER_COMPLETION_CODE_POS   12 // completion code is only for response.
-#define PLDM_HEADER_DATA_POS_FOR_RESP     13
-#define PLDM_HEADER_DATA_POS_FOR_REQ      12
+#define PLDM_PAYLOAD_START_MUTLIPLE_PKT_POS 8U
+#define PLDM_HEADER_VERSION_PLDM_TYPE_POS   10U
+#define PLDM_HEADER_COMMAND_CODE_POS        11U
+#define PLDM_HEADER_COMPLETION_CODE_POS     12U // completion code is only for response.
+#define PLDM_HEADER_DATA_POS_FOR_RESP       13U
+#define PLDM_HEADER_DATA_POS_FOR_REQ        12U
 
-#define PLDM_SEND_VERIFY_COMPLETE_CMD     23
-#define PLDM_TYPE5_AND_HEADER_VERSION     05
+#define PLDM_SEND_VERIFY_COMPLETE_CMD       23U
+#define PLDM_TYPE5_AND_HEADER_VERSION       0x05U
 
 /* Status codes for application callback from MCTP */
 enum STATUS_TO_APP
@@ -206,8 +206,10 @@ enum MCTP_TX_STATES
 typedef struct MCTP_HEADER
 {
     /** Destination Read/Write */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
     uint8_t rw_dst:1,
           /** Destination Slave Address */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           dst_addr:7;
 
     /** Command Code */
@@ -217,13 +219,17 @@ typedef struct MCTP_HEADER
     uint8_t byte_cnt;
 
     /** IPMI over SMBus/I2C */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
     uint8_t ipmi_src:1,
           /** Source Slave Address */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           src_addr:7;
 
     /** Header Version */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
     uint8_t hdr_ver:4,
           /** MCTP reserved */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           mctp_rsvd:4;
 
     /** Destination Endpoint ID */
@@ -233,28 +239,39 @@ typedef struct MCTP_HEADER
     uint8_t src_eid;
 
     /** Message Tag */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
     uint8_t msg_tag:3,
           /** Tag Owner */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           tag_owner:1,
           /** Packet Sequence Number */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           pkt_seq:2,
           /** End Of Message */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           eom:1,
           /** Start Of Message */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           som:1;
 
     /** Message Type */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
     uint8_t msg_type:7,
           /** Integrity Check */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           integrity_check:1;
 
     /** Instance ID */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
     uint8_t inst_id:5,
           /** Reserved */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           rsvd:1,
           /** Datagram bit */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           dgram_bit:1,
           /** Request bit */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           req_bit:1;
 
 } MCTP_HEADER;
@@ -359,11 +376,14 @@ typedef struct MCTP_CFG_PARA
     Bit[3] SMBus Busy Status
     While the SMBus Network Layer is processing an SMBus master/slave command the SMBus Busy
     Status bit will be asserted*/
-    uint8_t smb_enable:1,
-          smb_speed:1,
-          smb_fairness:1,
-          smb_status:1,
-          smb_rsvd:4;
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
+    uint8_t smbus_enable:1,
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
+          smbus_fairness:1,
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
+          smbus_status:1,
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
+          smbus_rsvd:4;
     /* Internal Flag to notify the Application the Discovery is done*/
     uint8_t mctp_discovery;
 
@@ -418,36 +438,15 @@ typedef struct MCTP_CONTEXT
 /* function declarations */
 void mctp_init_task(void);
 void mctp_event_task(void);
-void mctp_timer_task(void);
-#if SMB_SKERN
-void mctp_main_task(enum EVENT_TYPE call_type);
-#endif
-extern uint8_t mctp_base_packetizing_val_get();
-extern void mctp_base_packetizing_val_set(uint8_t val);
-void mctp_write_register(volatile uint16_t vreg_offset, volatile uint8_t value);
-void mctp_to_app_handler(uint8_t CommandCode, uint8_t status, MCTP_PKT_BUF *rx_buf);
-void mctp_free_txreqbuf(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_req_buf);
-uint8_t mctp_read_register(uint16_t vreg_offset);
-uint8_t mctp_packet_validation(uint8_t *pktbuf);
+extern bool mctp_base_packetizing_val_get(void);
+extern void mctp_base_packetizing_val_set(bool val);
+uint8_t mctp_packet_validation(uint8_t *pkt_buf);
 uint8_t mctp_get_packet_type(uint8_t *buffer_ptr);
-uint32_t mctp_timer_difference(uint32_t start_time);
+uint32_t mctp_timer_difference(uint32_t start_time_val);
 
-uint8_t app_to_mctp_packetXfer(uint8_t CommandCode, MCTP_PKT_BUF *pkt_buf, \
-                             uint8_t payload_len, uint8_t packet_type, uint8_t appl_tag);
-MCTP_PKT_BUF * app_to_mctp_getReqBuf(uint8_t CommandCode);
-
-void mctp_update_i2c_params(MCTP_CONTEXT* mctp_ctxt);
+void mctp_update_i2c_params(MCTP_CONTEXT* ret_mctp_ctxt);
 void mctp_i2c_update(uint8_t slv_addr, uint8_t freq);
-void sb_mctp_enable();
-
-/******************************************************************************/
-/** sb_mctp_enable_isr();
-* Enable mctp port using interrupt event.
-* This function should be called from ISR
-* @param None
-* @return None
-*******************************************************************************/
-void sb_mctp_enable_isr();
+void sb_mctp_enable(void);
 
 extern void mctp_rtupdate_current_eid(uint8_t i);
 extern void mctp_rtupdate_eid_type(uint8_t i);
@@ -459,8 +458,11 @@ extern void mctp_rtupdate_eid_state(uint8_t i);
 extern MCTP_BSS_ATTR struct MCTP_CFG_PARA mctp_cfg;
 extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_self;
 extern MCTP_BSS_ATTR uint8_t mctp_tx_state;
-//extern MCTP_BSS_ATTR uint8_t pldm_request_firmware_update;
-extern MCTP_BSS_ATTR TX_EVENT_FLAGS_GROUP    event_flags_1_skern; //Event flags used by thread_1
+extern MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
+extern MCTP_BSS_ATTR uint8_t store_msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+extern MCTP_BSS_ATTR uint8_t is_pldm_request_firmware_update;
+</#if>
 
 MCTP_CONTEXT* mctp_ctxt_get(void);
 #ifdef __cplusplus

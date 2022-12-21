@@ -55,17 +55,17 @@ extern "C" {
                   0 - 3E : read fixed number of bytes from 0 - 3Eh
                   3F     : read number of bytes indicated by first
                            byte of return string from SMB device. */
-#define I2C_OPER_NOP                                      0
-#define I2C_OPER_WRITE                                    1
-#define I2C_OPER_READ                                     2
-#define I2C_OPER_REPEAT                                   3
+#define I2C_OPER_NOP                                      0U
+#define I2C_OPER_WRITE                                    1U
+#define I2C_OPER_READ                                     2U
+#define I2C_OPER_REPEAT                                   3U
 
-#define SMB_PROTO_READ_BYTE                               ((I2C_OPER_REPEAT << 6) + 0x01)
-#define SMB_PROTO_READ_WORD                               ((I2C_OPER_REPEAT << 6) + 0x02)
-#define SMB_PROTO_PROCESS_CALL                            ((I2C_OPER_REPEAT << 6) + 0x02)
-#define SMB_PROTO_WRITE_BLOCK                             ((I2C_OPER_WRITE  << 6) + 0x00)
-#define SMB_PROTO_READ_BLOCK                              ((I2C_OPER_REPEAT << 6) + 0x3F)
-#define SMB_PROTO_BLOCK_WRITE_BLOCK_READ_PROCESS_CALL     ((I2C_OPER_REPEAT << 6) + 0x3F)
+#define SMB_PROTO_READ_BYTE                               ((I2C_OPER_REPEAT << 6) + 0x01U)
+#define SMB_PROTO_READ_WORD                               ((I2C_OPER_REPEAT << 6) + 0x02U)
+#define SMB_PROTO_PROCESS_CALL                            ((I2C_OPER_REPEAT << 6) + 0x02U)
+#define SMB_PROTO_WRITE_BLOCK                             ((I2C_OPER_WRITE  << 6) + 0x00U)
+#define SMB_PROTO_READ_BLOCK                              ((I2C_OPER_REPEAT << 6) + 0x3FU)
+#define SMB_PROTO_BLOCK_WRITE_BLOCK_READ_PROCESS_CALL     ((I2C_OPER_REPEAT << 6) + 0x3FU)
 
 /* Provide C++ Compatibility */
 #ifdef __cplusplus

@@ -60,11 +60,13 @@ extern "C" {
 #define MCTP_TASK1_BUF_MPU_ATTR 0U
 #define MCTP_TASK1_BUF_ALIGN __attribute__((aligned(MCTP_TASK1_BUF_SIZE)))
 
-#define MCTP_EVENT_BIT              (1 << 1u)
-#define MCTP_I2C_ENABLE_BIT         (1 << 0u)
-#define MCTP_SMB_RESPONSE_BIT       (2 << 1u)
-#define MCTP_WAIT_FOR_SPDM_DONE     (1u << 18)
-#define MCTP_WAIT_FOR_PLDM_DONE     (1u << 19)
+#define MCTP_EVENT_BIT              (1U << 1)
+#define MCTP_I2C_ENABLE_BIT         (1U << 0)
+#define MCTP_SMB_RESPONSE_BIT       (2U << 1)
+#define MCTP_WAIT_FOR_SPDM_DONE     (1U << 18)
+#define MCTP_WAIT_FOR_PLDM_DONE     (1U << 19)
+
+extern TaskHandle_t mctp_task1_get_handle(void);
 
 #ifdef __cplusplus
 }

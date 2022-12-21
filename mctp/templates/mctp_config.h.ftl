@@ -44,9 +44,9 @@ extern "C" {
 
 #include "mctp.h"
 
-#define HOST_SLAVE_ADDR                        0x${MCTP_EC_SLAVE_ADDR}
-#define MCTP_EC_EID                            0x${MCTP_EC_EID}
-#define MCTP_HOST_EID                          0x${MCTP_HOST_EID}
+#define HOST_SLAVE_ADDR                        0x${MCTP_EC_SLAVE_ADDR}U
+#define MCTP_EC_EID                            0x${MCTP_EC_EID}U
+#define MCTP_HOST_EID                          0x${MCTP_HOST_EID}U
 #define MCTP_TASK_PRIORITY                     ${MCTP_TASK_PRIORITY}U
 #define MCTP_I2C_PORT                          ${MCTP_I2C_PORT}U
 #define MCTP_I2C_CHANNEL                       ${MCTP_I2C_CONTROLLER}U

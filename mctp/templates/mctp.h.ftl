@@ -339,7 +339,8 @@ typedef struct I2C_BUFFER_INFO
  * ############################################################################
  * ############################################################################
 *******************************************************************************/
-typedef uint8_t (*I2C_SLAVE_FUNC_PTR)(I2C_BUFFER_INFO *, uint8_t);
+typedef uint8_t (*I2C_SLAVE_FUNC_PTR)(I2C_BUFFER_INFO *buffer_info, 
+                                      uint8_t slaveTransmitFlag);
 
 /******************************************************************************/
 /** I2C_MASTER_FUNC_PTR - Master transmit status function pointer
@@ -373,7 +374,10 @@ typedef uint8_t (*I2C_SLAVE_FUNC_PTR)(I2C_BUFFER_INFO *, uint8_t);
  * Refer mctp_i2c_tx interface function
  * ############################################################################
 *******************************************************************************/
-typedef uint8_t (*I2C_MASTER_FUNC_PTR)(uint8_t, uint8_t, uint8_t *, I2C_MAPP_CBK_NEW_TX *);
+typedef uint8_t (*I2C_MASTER_FUNC_PTR)(uint8_t channel, 
+                                       uint8_t status, 
+                                       uint8_t *buffer_ptr, 
+                                       I2C_MAPP_CBK_NEW_TX *newTxParams);
 
 /******************************************************************************/
 /** mctp_i2c_tx
@@ -641,6 +645,7 @@ extern uint8_t mctp_i2c_get_chan_busy_status(uint8_t channel);
  ******************************************************************************/
 extern uint16_t mctp_i2c_get_current_timestamp(void);
 
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 /******************************************************************************/
 /** mctp_wait_for_done_spdm(void)
  * MCTP wait for SPDM application to be done
@@ -656,7 +661,8 @@ extern uint16_t mctp_i2c_get_current_timestamp(void);
  * ############################################################################
 *******************************************************************************/
 extern void mctp_wait_for_done_spdm(void);
-
+</#if>
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true || MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
 /******************************************************************************/
 /** mctp_app_done_inform_i2c(void)
  * Inform I2C driver that MCTP has received SPDM response packet
@@ -676,7 +682,7 @@ extern void mctp_wait_for_done_spdm(void);
  * ############################################################################
 *******************************************************************************/
 extern void mctp_app_done_inform_i2c(void);
-
+</#if>
 /******************************************************************************/
 /** mctp_app_task_create(void)
  * Create MCTP FreeRTOS task

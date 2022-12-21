@@ -99,8 +99,6 @@ uint8_t mctp_packet_routing(I2C_BUFFER_INFO *buffer_info)
 *******************************************************************************/
 void mctp_ec_control_pkt_handler(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    uint8_t i;
-
     /* call appropriate function based on control command code */
     switch(rx_buf->pkt.data[MCTP_CNTL_PKT_CMDCODE_POS])
     {
@@ -148,8 +146,8 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
     }
     /* check if invalid data */
     else if((rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS] > MCTP_SET_EID_DISCOVERED) ||
-            (rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS+1] == 0xFF) ||
-            (rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS+1] == 0x00))
+            (rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS+1] == 0xFFU) ||
+            (rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS+1] == 0x00U))
     {
         /* invalid data. Send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_DATA, rx_buf, tx_resp_buf);
@@ -183,8 +181,8 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
             /* update byte count */
             tx_resp_buf->pkt.field.hdr.byte_cnt = MCTP_SET_EP_ID_RESP_SIZE;
 
-            mctp_rtupdate_eid_type(MCTP_RT_EC_INDEX);
-            mctp_rtupdate_eid_state(MCTP_RT_EC_INDEX);
+            mctp_rtupdate_eid_type((uint8_t)MCTP_RT_EC_INDEX);
+            mctp_rtupdate_eid_state((uint8_t)MCTP_RT_EC_INDEX);
 
             break;
 
@@ -214,9 +212,12 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
 
             /* update byte count */
             tx_resp_buf->pkt.field.hdr.byte_cnt = MCTP_SET_EP_ID_RESP_SIZE;
-            mctp_cfg.mctp_discovery = true;
+            mctp_cfg.mctp_discovery = (uint8_t)true;
             break;
 
+        default:
+            /* Invalid */;
+            break;
         } /* End switch */
     } /* End else */
 } /* End mctp_handle_set_endpoint_id_cmd() */
@@ -248,10 +249,10 @@ void mctp_handle_get_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
         mctp_fill_control_msg_header(rx_buf, tx_resp_buf);
 
         /* fill the payload/message data */
-        tx_resp_buf->pkt.data[MCTP_CNTL_TXPKT_CMPLCODE_POS]   = MCTP_CODE_SUCCESS;
+        tx_resp_buf->pkt.data[MCTP_CNTL_TXPKT_CMPLCODE_POS]   = (uint8_t)MCTP_CODE_SUCCESS;
         tx_resp_buf->pkt.data[MCTP_CNTL_TXPKT_CMPLCODE_POS+1] = mctp_rt.ep.ec.field.current_eid;
-        tx_resp_buf->pkt.data[MCTP_CNTL_TXPKT_CMPLCODE_POS+2] = (mctp_rt.ep.ec.byte[0] & 0x33);
-        tx_resp_buf->pkt.data[MCTP_CNTL_TXPKT_CMPLCODE_POS+3] = mctp_cfg.smb_fairness; /// Fairness Enable
+        tx_resp_buf->pkt.data[MCTP_CNTL_TXPKT_CMPLCODE_POS+2] = (uint8_t)(mctp_rt.ep.ec.byte[0] & 0x33U);
+        tx_resp_buf->pkt.data[MCTP_CNTL_TXPKT_CMPLCODE_POS+3] = (uint8_t)mctp_cfg.smbus_fairness; /// Fairness Enable
 
         /* update byte count */
         tx_resp_buf->pkt.field.hdr.byte_cnt = MCTP_GET_EP_ID_RESP_SIZE;
@@ -409,7 +410,7 @@ void mctp_handle_get_vndr_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BU
         /* update byte count */
         tx_resp_buf->pkt.field.hdr.byte_cnt = MCTP_CNTL_ERROR_RESP_SIZE;
     }    /* check if invalid data */
-    else if(vndr_id_sel) /*Check if Vendor ID select is not one of 0h*/
+    else if(0U != vndr_id_sel) /*Check if Vendor ID select is not one of 0h*/
     {
         /* invalid data. Send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_DATA, rx_buf, tx_resp_buf);
@@ -489,7 +490,6 @@ void mctp_fill_packet_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
     uint8_t rx_dst_addr;
     uint8_t rx_src_eid;
     uint8_t rx_msg_tag;
-    uint8_t rx_dst_eid;
 
     /* these intermediate varibles are required; since  rx_buf and
      * tx_resp_buf are now same buffers */
@@ -497,7 +497,6 @@ void mctp_fill_packet_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
     rx_dst_addr = rx_buf->pkt.field.hdr.dst_addr;
     rx_src_eid  = rx_buf->pkt.field.hdr.src_eid;
     rx_msg_tag  = rx_buf->pkt.field.hdr.msg_tag;
-    rx_dst_eid  = rx_buf->pkt.field.hdr.dst_eid;
 
     /* destination slave address */
     tx_resp_buf->pkt.field.hdr.dst_addr   = rx_src_addr;

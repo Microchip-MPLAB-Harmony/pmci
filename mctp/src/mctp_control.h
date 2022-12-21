@@ -64,14 +64,19 @@ enum MCTP_EID_STATE_VALUES
 typedef struct MCTP_RT_ENDPOINT_ENTRIES
 {
     /** EID TYPE */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
     uint8_t eid_type:2,
           /** EID STATE */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           eid_state:2,
           /** ENDPOINT TYPE */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           endpoint_type:2,
           /** DISCOVERED FLAG */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           disc:1,
           /** RESERVED */
+// coverity[misra_c_2012_rule_6_1_violation:FALSE]
           rsvd:1;
 
     /** DEFAULT EID  */
@@ -147,20 +152,20 @@ typedef union MCTP_ROUTING_TABLE
 #define MCTP_TOT_HDR_SZ     (MCTP_HEADER_SZ + MCTP_SMB_SLADDR_SZ)
 
 /*Expected Size for Request Control packets*/
-#define MCTP_SET_EP_ID_REQ      5
-#define MCTP_GET_EP_ID_REQ      3
-#define MCTP_GET_MCTP_VER_REG   4
-#define MCTP_GET_MSG_TYPE_REG   3
-#define MCTP_GET_VNDR_MSG_REG   4
+#define MCTP_SET_EP_ID_REQ      5U
+#define MCTP_GET_EP_ID_REQ      3U
+#define MCTP_GET_MCTP_VER_REG   4U
+#define MCTP_GET_MSG_TYPE_REG   3U
+#define MCTP_GET_VNDR_MSG_REG   4U
 
 /*Expected Size for Response Control Packets*/
-#define MCTP_SET_EP_ID_RESP     7
-#define MCTP_GET_EP_ID_RESP     7
-#define MCTP_GET_MCTP_VER_RESP  9
-#define MCTP_GET_MSG_TYPE_RESP  6
-#define MCTP_GET_VNDR_MSG_RESP  10
+#define MCTP_SET_EP_ID_RESP     7U
+#define MCTP_GET_EP_ID_RESP     7U
+#define MCTP_GET_MCTP_VER_RESP  9U
+#define MCTP_GET_MSG_TYPE_RESP  6U
+#define MCTP_GET_VNDR_MSG_RESP  10U
 
-#define MCTP_CNTL_ERROR_RESP    4
+#define MCTP_CNTL_ERROR_RESP    4U
 
 /** MCTP Request Byte Count Expected*/
 #define MCTP_SET_EP_ID_REQ_SIZE      (MCTP_TOT_HDR_SZ + MCTP_SET_EP_ID_REQ)     /// 10
@@ -195,7 +200,7 @@ typedef union MCTP_ROUTING_TABLE
 #define MCTP_SET_EID_NORMAL                0x00
 #define MCTP_SET_EID_FORCED                0x01
 #define MCTP_SET_EID_RESET                 0x02
-#define MCTP_SET_EID_DISCOVERED            0x03
+#define MCTP_SET_EID_DISCOVERED            0x03U
 #define MCTP_EID_ACCEPTED_AND_NO_EID_POOL  0x00
 #define MCTP_EID_REJECTED_AND_NO_EID_POOL  0x10
 #define MCTP_NO_DYNAMIC_EID_POOL           0x00
@@ -229,7 +234,6 @@ extern void mctp_fill_control_msg_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_
 extern uint8_t mctp_packet_routing(I2C_BUFFER_INFO *buffer_info);
 extern void mctp_clean_up_buffer_states(void);
 
-extern MCTP_BSS_ATTR MCTP_PKT_BUF mctp_pktbuf[MCTP_PKT_BUF_NUM]__attribute__ ((aligned(8)));
 extern MCTP_BSS_ATTR MCTP_ROUTING_TABLE mctp_rt;
 
 #ifdef __cplusplus

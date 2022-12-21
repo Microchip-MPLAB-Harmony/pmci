@@ -88,9 +88,6 @@ void mctp_base_packetizing_val_set(uint8_t val)
 *******************************************************************************/
 void mctp_rtupdate_current_eid(uint8_t i)
 {
-    trace0(0, MCTP, 0, "MTP rtupd_eid: Enter");
-    trace1(0, MCTP, 0, "MTP_rtupd_eid: i = %Xh", i);
-
     if(mctp_rt.epA.ep[i].field.default_eid != 0) /* means static eid config */
     {
         mctp_rt.epA.ep[i].field.current_eid = mctp_rt.epA.ep[i].field.default_eid;
@@ -105,9 +102,6 @@ void mctp_rtupdate_current_eid(uint8_t i)
 *******************************************************************************/
 void mctp_rtupdate_eid_type(uint8_t i)
 {
-    trace0(0, MCTP, 0, "mctp_rtupd_eid_type: Enter");
-    trace1(0, MCTP, 0, "mctp_rtupd_eid_type: i = %Xh", i);
-
     if(mctp_rt.epA.ep[i].field.default_eid == 0) /* means dynamic eid config */
     {
         mctp_rt.epA.ep[i].field.eid_type = MCTP_DYNAMIC_EID;
@@ -133,8 +127,6 @@ void mctp_rtupdate_eid_type(uint8_t i)
 *******************************************************************************/
 void mctp_rtupdate_eid_state(uint8_t i)
 {
-    trace1(0, MCTP, 0, "mctp_rtupd_eid_state: i = %Xh", i);
-
     if(mctp_rt.epA.ep[i].field.eid_type != MCTP_DYNAMIC_EID) /* means static */
     {
         mctp_rt.epA.ep[i].field.eid_state = MCTP_STATIC_ASSIGNED;
@@ -162,8 +154,6 @@ void mctp_rtupdate_eid_state(uint8_t i)
 *******************************************************************************/
 void mctp_init_task()
 {
-    trace0(0, MCTP, 0, "mctp_init_tsk: Enter");
-
     /* initialize mctp buffers */
     mctp_init_buffers();
     mctp_clean_up_buffer_states();
@@ -220,8 +210,6 @@ void mctp_init_buffers(void)
     uint8_t i = 0;
     uint8_t j = 0;
 
-    trace0(0, MCTP, 0, "mctp_init_bufs: Enter");
-
     for(i = 0; i < MCTP_PKT_BUF_NUM; i++)
     {
         for(j = 0; j < MCTP_PKT_BUF_DATALEN; j++)
@@ -237,8 +225,6 @@ void mctp_init_buffers(void)
         mctp_pktbuf[i].request_per_tx_timeout_count = 0;
         mctp_pktbuf[i].rx_smbus_timestamp = 0;
     }
-
-    trace0(0, MCTP, 0, "mctp_init_bufs: End");
 
 } /* End mctp_init_buffers() */
 
@@ -283,8 +269,6 @@ void mctp_event_tx_handler(void)
     uint8_t acquire_status = 0x00;
     uint8_t pkt_type = 0;
 
-    trace0(0, MCTP, 0, "mctp_evt_tx_hlr: Enter");
-
     switch(mctp_tx_state)
     {
     case MCTP_TX_IDLE:
@@ -292,27 +276,19 @@ void mctp_event_tx_handler(void)
         /* this will be only executed if there is mctp event set by rx;
          * nothing to be done here */
 
-        trace0(0, MCTP, 0, "mctp_evt_tx_hlr: MCTP_TX_IDLE");
-
         break;
 
     case MCTP_TX_NEXT:
-
-        trace0(0, MCTP, 0, "mctp_evt_tx_hlr: MCTP_TX_NEXT");
 
         for(index = 0; index < 5; index++)
         {
             /* check if that tx buffer is valid */
             if(MCTP_TX_PENDING == mctp_pktbuf[mctp_txbuf_index].buf_full)
             {
-                trace0(0, MCTP, 0, "mctp_evt_tx_hlr: Pedng tx buf found");
-
                 /* if TX buffer packet is response packet. As per the new spec,
                 * check timing only for response packet from EC or MC*/
                 if(mctp_txbuf_index == MCTP_BUF1 || mctp_txbuf_index == MCTP_BUF2 || mctp_txbuf_index == MCTP_BUF5)
                 {
-                    trace0(0, MCTP, 0, "mctp_evt_tx_hlr: ec tx rspse buf pendg");
-
                     /* get current TX buffer pointer */
                     tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
                     memset(&transmit_buf[0], 0, sizeof(MCTP_BUFDATA));
@@ -349,8 +325,6 @@ void mctp_event_tx_handler(void)
                         /* check timeout condition */
                        if(!mctp_tx_timeout(tx_buf))
                         {
-                            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: rspse 132ms");
-
                             /* change state to transmit it's data over smbus */
                             mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
 
@@ -361,8 +335,6 @@ void mctp_event_tx_handler(void)
                         /* if 135ms timeout */
                         else
                         {
-                            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: respse after 100ms");
-
                             /* drop packet, free that buffer */
                             mctp_smbdone_drop(tx_buf);
 
@@ -381,8 +353,6 @@ void mctp_event_tx_handler(void)
                 /* then no need to check 100ms timeout condition */
                 else
                 {
-                    trace0(0, MCTP, 0, "mctp_evt_tx_hlr: ec tx respse bufr");
-
                     /* change state to transmit it's data over smbus */
                     mctp_tx_state = MCTP_TX_SMBUS_ACQUIRE;
 
@@ -395,8 +365,6 @@ void mctp_event_tx_handler(void)
             }
             else
             {
-                trace0(0, MCTP, 0, "mctp_evt_tx_hlr: idexng next tx bufr");
-
                 /* for indexing to next tx buffer */
                 mctp_txbuf_index++;
 
@@ -410,8 +378,6 @@ void mctp_event_tx_handler(void)
         /* if no valid TX buffer is found */
         if(mctp_tx_state == MCTP_TX_NEXT)
         {
-            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: no pndng tx bufr found");
-
             /* change mctp tx state to idle */
             mctp_tx_state = MCTP_TX_IDLE;
 
@@ -425,9 +391,6 @@ void mctp_event_tx_handler(void)
      * fall-through to next state*/
 
     case MCTP_TX_SMBUS_ACQUIRE:
-
-        trace0(0, MCTP, 0, "mctp_evt_tx_hlr: MCTP_TX_SMBUS_ACQUIRE");
-
         /*Check if smbus can be acquired. We are not running preemptive
          * kernel. So status check and bus usage following that, are atomic
          * in nature*/
@@ -438,8 +401,6 @@ void mctp_event_tx_handler(void)
 
         if(I2C_MASTER_AVAILABLE == acquire_status)
         {
-            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: I2C_MASTER_AVAILABLE");
-
             /*smbus is available, start transmission*/
             mctp_wait_smbus_callback = 0x0;
 
@@ -448,15 +409,10 @@ void mctp_event_tx_handler(void)
         }
         else if(I2C_MASTER_BUSY == acquire_status)
         {
-            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: I2C_MASTER_BUSY");
-
-
             interval = mctp_timer_difference(start_time);
 
             if(interval >= (uint32_t) MCTP_SMBUS_AQ_TIMEOUT )//135000 = 135ms
             {
-                trace0(0, MCTP, 0, "mctp_evt_tx_hlr: SB mstr busy retry cnt exhstd");
-
                 /* update buffer parameters and configure events */
                 mctp_smbdone_handler(tx_buf);
 
@@ -476,23 +432,15 @@ void mctp_event_tx_handler(void)
     /*Fall thorugh to the next state MCTP_TX_IN_PROGRESS*/
 
     case MCTP_TX_IN_PROGRESS:
-
-        trace0(0, MCTP, 0, "mctp_evt_tx_hlr: MCTP_TX_IN_PROGRESS");
-
         if(0x0 == mctp_wait_smbus_callback)
         {
             mctp_wait_smbus_callback = 1;
-
-            trace0(0, MCTP, 0, "mctp_evt_tx_hlr: init tx SB");
 
             mctp_transmit_smbus(tx_buf);
         }
         break;
 
     default:
-
-        trace0(0, MCTP, 0, "mctp_evt_tx_hlr: default");
-
         break;
     }
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
@@ -502,8 +450,6 @@ void mctp_event_tx_handler(void)
         mctp_pktbuf[mctp_txbuf_index].buf_full = MCTP_EMPTY;
     }
 </#if>
-    trace0(0, MCTP, 0, "mctp_evt_tx_hlr: End");
-
 } /* End mctp_event_tx_handler() */
 
 /******************************************************************************/
@@ -514,8 +460,6 @@ void mctp_event_tx_handler(void)
 *******************************************************************************/
 void mctp_event_rx_handler(void)
 {
-    trace0(0, MCTP, 0, "mctp_evt_rx_hlr: Enter");
-
     // EC RX REQUEST HANDLER - checks if EC RX REQUEST pkt is pending, and processes it.
     mctp_handle_ec_rx_request_pkt();
 
@@ -537,8 +481,6 @@ void mctp_handle_ec_rx_request_pkt(void)
     MCTP_PKT_BUF *pldm_msg_rx_buf;
 </#if>
 
-    trace0(0, MCTP, 0, "mctp_handle_ec_rx_rqst_pkt: Enter");
-
     /* get pointer of ec rx request buffer */
     rx_buf      = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF1];
     /* get pointer of ec tx response buffer */
@@ -554,13 +496,10 @@ void mctp_handle_ec_rx_request_pkt(void)
     /* if ec rx request buffer has valid packet */
     if(rx_buf->buf_full == MCTP_RX_PENDING)
     {
-        trace0(0, MCTP, 0, "mctp_hdle_ec_rx_rqst_pkt: ec rx rqst bufr vld pkt");
-
         /* if packet type is control */
         if(rx_buf->pkt.field.hdr.msg_type == MCTP_MSGTYPE_CONTROL)
         {
             /// There will be a message availabe for the control message type eithe Valid or error
-            trace0(0, MCTP, 0, "mctp_hdle_ec_rx_rqst_pkt: pkt type ctrl");
             if((0 == mctp_rt.ep.mc.field.current_eid )|| ( 0 == mctp_rt.ep.mc.field.smb_address))
             {
                 mctp_rt.ep.mc.field.current_eid = rx_buf->pkt.field.hdr.src_eid;
@@ -596,19 +535,16 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
 {
     uint8_t buf_size = 0x00;
     uint8_t iter = 0x00;
-    trace0(0, MCTP, 0, "mctp pkt val:Etr");
 
     //Check this checking
     if (!((pkt_buf[MCTP_PKT_BYTE_CNT_POS] >= MCTP_BYTECNT_MIN) &&
             (pkt_buf[MCTP_PKT_BYTE_CNT_POS] <= MCTP_BYTECNT_MAX)))
     {
-        trace0(0, MCTP, 0, "mctp pkt val:Ivld Byte Cnt");
         return MCTP_FALSE;
     }
 
     if (pkt_buf[MCTP_PKT_HDR_VER_POS] != MCTP_HDR_VER_REF)
     {
-        trace0(0, MCTP, 0, "mctp pkt val:Ivld Rsvd/Hdr Ver");
         return MCTP_FALSE;
     }
 
@@ -617,7 +553,6 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
         if (!((pkt_buf[MCTP_PKT_DST_EID_POS] == mctp_rt.ep.ec.field.current_eid) ||
                 (pkt_buf[MCTP_PKT_DST_EID_POS] == MCTP_NULL_EID)))
         {
-            trace0(0, MCTP, 0, "mctp pkt val:Ivld Dst EID Cntrl Msg");
             return MCTP_FALSE;
         }
         if (MCTP_OTHER_PKT == mctp_get_packet_type(pkt_buf)
@@ -626,7 +561,6 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
 </#if>
                 )
         {
-            trace0(0, MCTP, 0, "mctp pkt val:Pkt neither req nor resp");
             return MCTP_FALSE;
         }
         mctp_self.message_type = pkt_buf[MCTP_PKT_IC_MSGTYPE_POS];
@@ -638,7 +572,6 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
         if (!((pkt_buf[MCTP_PKT_DST_EID_POS] == mctp_rt.ep.ec.field.current_eid) ||
                 (pkt_buf[MCTP_PKT_DST_EID_POS] == MCTP_NULL_EID)))
         {
-            trace0(0, MCTP, 0, "mctp pkt val:Ivld Dst EID Ctl Msg");
             return MCTP_FALSE;
         }
 
@@ -650,7 +583,6 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
 </#if>
                     )
             {
-                trace0(0, MCTP, 0, "mctp pkt val:Mul pkt neither req nor resp");
                 return MCTP_FALSE;
             }
         }
@@ -664,19 +596,16 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
         }
         else if ((pkt_buf[MCTP_PKT_TO_MSGTAG_POS] & MCTP_MSG_TAG_REF_MASK) != store_msg_tag)
         {
-            trace0(0, MCTP, 0, "mctp pkt val:Msg Tag Mismatch");
             return MCTP_FALSE;
         }
 
         if (out_of_seq_detected)
         {
-            trace0(0, MCTP, 1, "mctp pkt val:Out of seq, dropng msg");
             return MCTP_FALSE;
         }
 
         if (!(((pkt_buf[MCTP_PKT_TO_MSGTAG_POS] & MCTP_MSG_PKSEQ_REF_MASK) >> MCTP_MSG_PKSEQ_SHIFT) == pkt_seq_num))
         {
-            trace0(0, MCTP, 1, "mctp pkt val:Pkt Seq Msmth");
             out_of_seq_detected = true;
             return MCTP_FALSE;
         }
@@ -694,14 +623,9 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
     }
     else
     {
-        trace0(0, MCTP, 0, "mctp pkt val:Ivld Pkt");
-        trace1(0, MCTP, 0, "Packet 7 MCTP_SOM_EOM_REF     = 0x%X ; ", pkt_buf[MCTP_PKT_TO_MSGTAG_POS]);
-        trace1(0, MCTP, 0, "Packet 8 MCTP_IC_MSGTYPE_VNDR = 0x%X ; ", pkt_buf[MCTP_PKT_IC_MSGTYPE_POS]);
         mctp_base_packetizing_val_set(false);
         return MCTP_FALSE;
     }
-
-    trace0(0, MCTP, 0, "mctp pkt val:Pkt fnd vld");
 
     return MCTP_TRUE;
 
@@ -720,12 +644,8 @@ uint8_t mctp_tx_timeout(MCTP_PKT_BUF *tx_buf)
 
     uint16_t max_tick_count = 0x00;
 
-    trace0(0, MCTP, 0, "mctp_tx_TO: nter");
-
     /* get current request_per_tx_timeout_count */
     processing_time = mctp_timer_difference(tx_buf->rx_smbus_timestamp);
-
-    trace1(0, MCTP, 0, "mctp_tx_TO: proc_time = %04Xh", processing_time);
 
     if (store_msg_type_tx == MCTP_MSGTYPE_CONTROL)
     {
@@ -746,14 +666,10 @@ uint8_t mctp_tx_timeout(MCTP_PKT_BUF *tx_buf)
     /* check for timeout condition */
     if(processing_time <= max_tick_count)
     {
-        trace0(0, MCTP, 0, "mctp_tx_TO: rspse 135ms");
-
         return MCTP_FALSE;
     }
     else
     {
-        trace0(0, MCTP, 0, "mctp_tx_TO: rspse after 135ms");
-
         return MCTP_TRUE;
     }
 
@@ -794,8 +710,6 @@ uint8_t mctp_get_packet_type(uint8_t *buffer_ptr)
     uint8_t req_field;
     uint8_t dtgram_field;
 
-    trace0(0, MCTP, 0, "mctp_get_pkt_type: nter");
-
     tag_owner_field = (buffer_ptr[MCTP_PKT_TO_MSGTAG_POS] & MCTP_HDR_MASK_TO) >> 3;
     req_field       = (buffer_ptr[MCTP_PKT_RQ_D_POS] & MCTP_HDR_MASK_RQ) >> 7;
     dtgram_field    = (buffer_ptr[MCTP_PKT_RQ_D_POS] & MCTP_HDR_MASK_D) >> 6;
@@ -803,21 +717,15 @@ uint8_t mctp_get_packet_type(uint8_t *buffer_ptr)
     /* if request packet */
     if((tag_owner_field == 1) && (req_field == 1) && (dtgram_field == 0))
     {
-        trace0(0, MCTP, 0, "mctp_get_pkt_type: rqt pkt");
-
         return MCTP_REQ_PKT;
     }    /* else if response packet */
     else if((tag_owner_field == 0) && (req_field == 0) && (dtgram_field == 0))
     {
-        trace0(0, MCTP, 0, "mctp_get_pkt_type: rspse pkt");
-
         return MCTP_RESP_PKT;
     }
     /* else neither request nor response */
     else
     {
-        trace0(0, MCTP, 0, "mctp_get_pkt_type: other pkt");
-
         return MCTP_OTHER_PKT;
     }
 

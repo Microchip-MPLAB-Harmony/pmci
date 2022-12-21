@@ -67,28 +67,23 @@ uint8_t mctp_packet_routing(I2C_BUFFER_INFO *buffer_info)
 
     ret_value = MCTP_SUCCESS ;
     message_type = mctp_self.message_type;
-    trace1(0, MCTP, 0, "mctp_packet_routing: message_type = %d", message_type);
 
     switch(message_type)
     {
     case MCTP_IC_MSGTYPE_CONTROL:
-        trace0(0, MCTP, 0, "mctp pkt rtng:rcvd pkt EC");
         ret_value = mctp_copy_rxpkt_for_ec(buffer_info);
         break;
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     case MCTP_IC_MSGTYPE_SPDM:
-        trace0(0, MCTP, 0, "mctp pkt rtng:rcvd pkt SPDM mod EC");
         ret_value = mctp_copy_rx_for_spdm_for_ec(buffer_info);
         break;
 </#if>
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     case MCTP_IC_MSGTYPE_PLDM:
-        trace0(0, MCTP, 3, "mctp pkt rtng:rcvd pkt frm PLDM mod EC");
         ret_value = mctp_copy_rx_for_pldm_for_ec(buffer_info);
         break;
 </#if>
     default:
-        trace0(0, MCTP, 0, "mctp pkt rtng:Shd not reach here");
         ret_value = MCTP_FAILURE;
         break;
     }
@@ -106,46 +101,32 @@ void mctp_ec_control_pkt_handler(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf
 {
     uint8_t i;
 
-    trace0(0, MCTP, 0, "mctp_ec_ctrl_pkt_hlr: nter");
-
     /* call appropriate function based on control command code */
     switch(rx_buf->pkt.data[MCTP_CNTL_PKT_CMDCODE_POS])
     {
     case MCTP_SET_EP_ID: /// 01
-        trace0(0, MCTP, 0, "mctp_ec_ctrl_pkt_hlr: MCTP_SET_EP_ID");
         mctp_handle_set_endpoint_id_cmd(rx_buf, tx_resp_buf);
         break;
 
     case MCTP_GET_EP_ID: /// 02
-        trace0(0, MCTP, 0, "mctp_ec_ctrl_pkt_hlr: MCTP_GET_EP_ID");
         mctp_handle_get_endpoint_id_cmd(rx_buf, tx_resp_buf);
         break;
 
     case MCTP_GET_MCTP_VER_SUPPORT: /// 04
-        trace0(0, MCTP, 0, "mctp_ec_ctrl_pkt_hlr: MCTP_GET_MCTP_VER_SUPPORT");
         mctp_handle_get_mctp_version_cmd(rx_buf, tx_resp_buf);
         break;
 
     case MCTP_GET_MSG_TYPE_SUPPORT: /// 05
-        trace0(0, MCTP, 0, "mctp_ec_ctrl_pkt_hlr: MCTP_GET_MSG_TYPE_SUPPORT");
         mctp_handle_get_msg_type_support_cmd(rx_buf, tx_resp_buf);
         break;
 
     case MCTP_GET_VNDR_MSG_SUPPORT: /// 06
-        trace0(0, MCTP, 0, "mctp_ec_ctrl_pkt_hdlr: MCTP_GET_VNDR_MSG_SUPPORT");
         mctp_handle_get_vndr_msg_type_support_cmd(rx_buf, tx_resp_buf);
         break;
     default:
-        trace0(0, MCTP, 0, "mctp_ec_ctrl_pkt_hdlr: unsupported_cmd");
         mctp_handle_unsupported_cmd(rx_buf, tx_resp_buf);
         break;
     }
-
-    for(i = 0; i < (tx_resp_buf->pkt.field.hdr.byte_cnt + 3); i++)
-    {
-        trace2(0, MCTP, 0, "mctp_ec_ctrl_pkt_hlr: tx_resp_buf[%02Xh] = %02Xh", i, (uint16_t) tx_resp_buf->pkt.data[i]);
-    }
-
 } /* End mctp_ec_control_pkt_handler() */
 
 /******************************************************************************/
@@ -156,13 +137,9 @@ void mctp_ec_control_pkt_handler(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf
 *******************************************************************************/
 void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    trace0(0, MCTP, 0, "mctp_hdle_set_EP_id_cmd: Enter");
-
     /* validate length of control command packet */
     if((rx_buf->pkt.field.hdr.byte_cnt) != MCTP_SET_EP_ID_REQ_SIZE)
     {
-        trace0(0, MCTP, 0, "mctp_hdle_set_EP_id_cmd: ivld length");
-
         /* invalid length. send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_LENGTH, rx_buf, tx_resp_buf);
 
@@ -174,8 +151,6 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
             (rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS+1] == 0xFF) ||
             (rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS+1] == 0x00))
     {
-        trace0(0, MCTP, 0, "mctp_hle_set_EP_id_cmd: invalid data");
-
         /* invalid data. Send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_DATA, rx_buf, tx_resp_buf);
 
@@ -185,14 +160,10 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
     /* process control command */
     else
     {
-        trace0(0, MCTP, 0, "mctp_hle_set_EP_id_cmd: vld len and data");
-
         switch(rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS])
         {
         case MCTP_SET_EID_NORMAL:
         case MCTP_SET_EID_FORCED:
-
-            trace0(0, MCTP, 0, "mctp_hde_set_EP_id_cmd: MCTP_SET_EID_NORMAL/FORCED");
 
             /* set self EC eid */
             mctp_rt.ep.ec.field.current_eid = rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS+1];
@@ -219,8 +190,6 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
 
         case MCTP_SET_EID_RESET:
 
-            trace0(0, MCTP, 0, "mctp_hle_set_EP_id_cmd: MCTP_SET_EID_RESET");
-
             /* invalid data. Send the reply packet with error code. */
             mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_DATA, rx_buf, tx_resp_buf);
 
@@ -230,8 +199,6 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
             break;
 
         case MCTP_SET_EID_DISCOVERED:
-
-            trace0(0, MCTP, 0, "mctp_hle_set_EP_id_cmd: MCTP_SET_EID_DISCOVERED");
 
             /* fill mctp header */
             mctp_fill_packet_header(rx_buf, tx_resp_buf);
@@ -262,13 +229,9 @@ void mctp_handle_set_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
 *******************************************************************************/
 void mctp_handle_get_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    trace0(0, MCTP, 0, "mctp_hle_get_EP_id_cmd: nter");
-
     /* validate length of control command packet */
     if((rx_buf->pkt.field.hdr.byte_cnt) != MCTP_GET_EP_ID_REQ_SIZE)
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_EP_id_cmd: ivld len");
-
         /* invalid length. send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_LENGTH, rx_buf, tx_resp_buf);
 
@@ -278,9 +241,6 @@ void mctp_handle_get_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
     /* process control command */
     else
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_EP_id_cmd: vld len");
-        trace0(0, MCTP, 0, "mctp_hle_get_EP_id_cmd: prs eid cmd");
-
         /* fill mctp header */
         mctp_fill_packet_header(rx_buf, tx_resp_buf);
 
@@ -306,13 +266,9 @@ void mctp_handle_get_endpoint_id_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp
 *******************************************************************************/
 void mctp_handle_get_mctp_version_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    trace0(0, MCTP, 0, "mctp_hle_get_mctp_ver_cmd: nter");
-
     /* validate length of control command packet */
     if((rx_buf->pkt.field.hdr.byte_cnt) != MCTP_GET_MCTP_VER_REQ_SIZE)
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_mctp_ver_cmd: ivld len");
-
         /* invalid length. send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_LENGTH, rx_buf, tx_resp_buf);
 
@@ -322,14 +278,9 @@ void mctp_handle_get_mctp_version_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_res
     /* process control command */
     else
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_mctp_ver_cmd: vld len");
-
         switch(rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS])
         {
         case MCTP_BASE_VERSION:
-
-            trace0(0, MCTP, 0, "mctp_hle_get_mctp_ver_cmd: MCTP_BASE_VERSION");
-
             /* fill mctp header */
             mctp_fill_packet_header(rx_buf, tx_resp_buf);
 
@@ -350,9 +301,6 @@ void mctp_handle_get_mctp_version_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_res
             break;
 
         case MCTP_CONTROL_MSG_VERSION:
-
-            trace0(0, MCTP, 0, "mctp_hle_get_mctp_ver_cmd: MCTP_CONTROL_MSG_VERSION");
-
             /* fill mctp header */
             mctp_fill_packet_header(rx_buf, tx_resp_buf);
 
@@ -373,9 +321,6 @@ void mctp_handle_get_mctp_version_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_res
             break;
 
         case MCTP_VNDR_VERSION:
-
-            trace0(0, MCTP, 0, "mctp_hle_get_mctp_ver_cmd: MCTP_VNDR_VERSION");
-
             /* fill mctp header */
             mctp_fill_packet_header(rx_buf, tx_resp_buf);
 
@@ -396,9 +341,6 @@ void mctp_handle_get_mctp_version_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_res
             break;
 
         default:
-
-            trace0(0, MCTP, 0, "mctp_hle_get_mctp_ver_cmd: message type not suprted");
-
             /* send the reply packet with error code: message type not supported */
             mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_DATA, rx_buf, tx_resp_buf);
 
@@ -418,13 +360,9 @@ void mctp_handle_get_mctp_version_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_res
 *******************************************************************************/
 void mctp_handle_get_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    trace0(0, MCTP, 0, "mctp_hle_get_msg_type_suprt_cmd: Enter");
-
     /* validate length of control command packet */
     if((rx_buf->pkt.field.hdr.byte_cnt) != MCTP_GET_MSG_TYPE_REQ_SIZE)
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_msg_type_suprt_cmd: ivld len");
-
         /* invalid length. send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_LENGTH, rx_buf, tx_resp_buf);
 
@@ -434,8 +372,6 @@ void mctp_handle_get_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx
     /* process control command */
     else
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_msg_type_suprt_cmd: valid len");
-
         /* fill mctp header */
         mctp_fill_packet_header(rx_buf, tx_resp_buf);
 
@@ -464,13 +400,9 @@ void mctp_handle_get_vndr_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BU
 
     vndr_id_sel = rx_buf->pkt.data[MCTP_CNTL_RXPKT_MSGDATA_POS];
 
-    trace0(0, MCTP, 0, "mctp_hle_get_vndr_msg_type_suprt_cmd: Enter");
-
     /* validate length of control command packet */
     if((rx_buf->pkt.field.hdr.byte_cnt) != MCTP_GET_VNDR_MSG_REQ_SIZE)
     {
-        trace0(0, MCTP, 0, "mctp_hdle_get_vndr_msg_type_suprt_cmd: ivld len");
-
         /* invalid length. send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_LENGTH, rx_buf, tx_resp_buf);
 
@@ -479,8 +411,6 @@ void mctp_handle_get_vndr_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BU
     }    /* check if invalid data */
     else if(vndr_id_sel) /*Check if Vendor ID select is not one of 0h*/
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_vndr_msg_type_support_cmd: ivld data");
-
         /* invalid data. Send the reply packet with error code. */
         mctp_fill_error_packet(MCTP_CODE_ERROR_INVALID_DATA, rx_buf, tx_resp_buf);
 
@@ -490,8 +420,6 @@ void mctp_handle_get_vndr_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BU
     /* process control command */
     else
     {
-        trace0(0, MCTP, 0, "mctp_hle_get_vndr_msg_type_suprt_cmd: vld len");
-
         /* fill mctp header */
         mctp_fill_packet_header(rx_buf, tx_resp_buf);
 
@@ -520,8 +448,6 @@ void mctp_handle_get_vndr_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BU
 *******************************************************************************/
 void mctp_handle_unsupported_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    trace0(0, MCTP, 0, "mctp_hle_unsuprtd_cmd: nter");
-
     /* unsupported command. send the reply packet with error code. */
     mctp_fill_error_packet(MCTP_CODE_ERROR_UNSUPPORTED_CMD, rx_buf, tx_resp_buf);
 
@@ -540,8 +466,6 @@ void mctp_handle_unsupported_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf
 *******************************************************************************/
 void mctp_fill_error_packet(uint8_t error_type, MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    trace0(0, MCTP, 0, "mctp_fill_err_pkt: Enter");
-
     /* Fill the mctp header */
     mctp_fill_packet_header(rx_buf, tx_resp_buf);
 
@@ -566,8 +490,6 @@ void mctp_fill_packet_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
     uint8_t rx_src_eid;
     uint8_t rx_msg_tag;
     uint8_t rx_dst_eid;
-
-    trace0(0, MCTP, 0, "mctp_fill_pkt_hdr: Enter");
 
     /* these intermediate varibles are required; since  rx_buf and
      * tx_resp_buf are now same buffers */
@@ -613,8 +535,6 @@ void mctp_fill_packet_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 *******************************************************************************/
 void mctp_fill_control_msg_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf)
 {
-    trace0(0, MCTP, 0, "mctp_fill_cntrl_msg_hdr: Enter");
-
     /* integrity check */
     tx_resp_buf->pkt.field.hdr.integrity_check = 0;
     /* control message type */
@@ -639,8 +559,6 @@ void mctp_fill_control_msg_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_bu
 *******************************************************************************/
 void mctp_clean_up_buffer_states(void)
 {
-    trace0(0, MCTP, 0, "mctp_clean_up_bufr_states: Enter");
-
     mctp_self.buf_size = 0;
     mctp_self.message_tag = 0;
     mctp_self.message_type = MCTP_IC_MSGTYPE_UNKNWN;

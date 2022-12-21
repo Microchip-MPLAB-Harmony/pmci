@@ -40,10 +40,6 @@ extern "C" {
 
 #define MCTP_BSS_ATTR                                     __attribute__((section("mctp_bss")))
 
-#define trace0(nbr, cat, lvl, str)                        { }
-#define trace1(nbr, cat, lvl, str, p1)                    { }
-#define trace2(nbr, cat, lvl, str, p1, p2)                { }
-
 /* -------------------- SMB Protocol Type --------------------------------------
    SMB table PROTOCOL TYPE
 

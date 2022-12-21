@@ -68,8 +68,6 @@ uint8_t mctp_smbus_init(void)
     uint8_t ret_val;
     uint8_t status_init;
 
-    trace0(0, MCTP, 0, "mctp_SB_int: nter");
-
     ret_val = MCTP_FALSE;
 
     /* register with smbus */
@@ -79,12 +77,8 @@ uint8_t mctp_smbus_init(void)
     /* smbus slave registration successful */
     if(status_init == I2C_SLAVE_APP_STATUS_OK)
     {
-        trace0(0, MCTP, 0, "mctp_SB_int: SB slave regist sucs");
         ret_val = MCTP_TRUE;
     }
-
-    trace1(0, MCTP, 0, "mctp_SB_int: rtn value = %04Xh", ret_val);
-    trace0(0, MCTP, 0, "mctp_SB_int: End");
 
     return ret_val;
 
@@ -113,29 +107,17 @@ uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFl
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
 </#if>
-    trace0(0, MCTP, 0, "mctp_rcve_SB: Enter");
-
     pkt_buf = (MCTP_PKT_BUF *)((void *)&buffer_info->buffer_ptr[0]);
 
-#if SMB_DEBUG
-    for(i = 0; i < buffer_info->DataLen; i++)
-    {
-        trace2(0, MCTP, 0, "mctp_rcv_SB: buffer_info->buffer_ptr[%02Xh] = %02Xh", i, buffer_info->buffer_ptr[i]);
-    }
-#endif
     /* if PEC not valid, drop packet */
     if (buffer_info->pecFlag == false)
     {
-        trace0(0, MCTP, 0, "mctp_rcv_SB: PEC not vld");
-
         /* inform smbus layer to free it's buffer */
         return I2C_STATUS_BUFFER_DONE;
     }
     /* Check Total packet received if more than 73 Bytes*/
     if(buffer_info->DataLen > (MCTP_PACKET_MAX))
     {
-        trace0(0, MCTP, 0, "mctp_rcv_SB: return(ERROR_ENTRY_NUM_INVALID)");
-
         return I2C_STATUS_BUFFER_ERROR;
     }
     /* check if MCTP packet */
@@ -145,33 +127,24 @@ uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFl
             (pkt_buf->pkt.field.hdr.byte_cnt < MCTP_BYTECNT_MIN) ||
             (buffer_info->DataLen < MCTP_PACKET_MIN))
     {
-        trace0(0, MCTP, 0, "mctp_rcv_SB: pkt type is not MCTP");
-
         return I2C_STATUS_BUFFER_ERROR;
     }
 
-    trace1(0, MCTP, 0, "mctp_rcv_SB: buffer_info->DataLen = %02Xh", buffer_info->DataLen);
     pkt_len = ( buffer_info->buffer_ptr[MCTP_PKT_BYTE_CNT_POS] + \
                 MCTP_BYTECNT_OFFSET + \
                 MCTP_PEC_BYTE );
-    trace1(0, MCTP, 0, "mctp_receive_SB: pkt_len = %02Xh", pkt_len);
 
     if(buffer_info->DataLen != pkt_len)
     {
-        trace0(0, MCTP, 0, "mctp_rcv_SB: pkt_len != Overall len");
         return I2C_STATUS_BUFFER_ERROR;
     }
 
     /* MCTP doesn't support slave transmit protocol, drop packet */
     if (slaveTransmitFlag == I2C_SLAVE_TRANSMIT_TRUE)
     {
-        trace0(0, MCTP, 0, "mctp_rcv_SB: SLAVE_TRANSMIT not supported");
-
         /* inform smbus layer to free it's buffer */
         return I2C_STATUS_BUFFER_DONE;
     }
-
-    trace0(0, MCTP, 0, "mctp_rcv_SB: call mctp_pkt_vld");
 
     get_packet_len = (buffer_info->buffer_ptr[MCTP_PKT_BYTE_CNT_POS]) + 3;
 
@@ -207,7 +180,6 @@ uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFl
         mctp_clean_up_buffer_states();
         return I2C_STATUS_BUFFER_ERROR;
     }
-    trace0(0, MCTP, 0, "mctp_rcv_SB: End");
 
     /* inform smbus layer to free it's buffer */
     return I2C_STATUS_BUFFER_DONE;
@@ -231,14 +203,12 @@ uint8_t packetize_data(uint8_t get_packet_len, I2C_BUFFER_INFO *buffer_info, MCT
 
     if (smb_rx_index > INPUT_BUF_MAX_BYTES)//if no of bytes received cross max input buffer size of 1023
     {
-        trace0(0, MCTP, 0, "mctp_pkt_vld: Bufr OF");
         smb_rx_index = 0;
         mctp_base_packetizing_val_set(false);
         ret_val = MCTP_FAILURE;
     }
     else if((buffer_info->buffer_ptr[MCTP_PKT_TO_MSGTAG_POS]& MCTP_EOM_REF_MSK) == MCTP_EOM_REF)
     {
-        trace0(0, MCTP, 0, "mctp_pkt_vld: last pkt rcvd");
         smb_rx_index = 0;
         mctp_base_packetizing_val_set(false);
     }
@@ -259,8 +229,6 @@ UINT8 mctp_copy_rx_for_pldm_for_ec(BUFFER_INFO *buffer_info)
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     UINT8 is_packetizing = 0x00;
     is_packetizing = mctp_base_packetizing_val_get();
-
-    trace0(0, MCTP, 0, "mctp pldm ec:enter");
 
     msg_type = mctp_self.message_type;
 
@@ -289,7 +257,6 @@ UINT8 mctp_copy_rx_for_pldm_for_ec(BUFFER_INFO *buffer_info)
             }
             else
             {
-                trace0(0, MCTP, 0, "mctp pldm ec:rx req buf avlble");
                 /* copy packet from smbus buffer to pldm ec rcv buffer */
                 for(i = 0; i < buffer_info->DataLen; i++)
                 {
@@ -307,7 +274,6 @@ UINT8 mctp_copy_rx_for_pldm_for_ec(BUFFER_INFO *buffer_info)
         }
     }
 
-    trace0(0, MCTP, 3, "mctp pldm ec:end");
     return ret_val;
 } /* End mctp_copy_rx_for_pldm_for_ec */
 </#if>
@@ -334,7 +300,6 @@ uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info)
     is_packetizing = mctp_base_packetizing_val_get();
     msg_type = mctp_self.message_type;
     spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
-    trace0(0, MCTP, 0, "mctp_copy_rxpkt_for_ec: MCTP_REQ_PKT");
 
     if (msg_type == MCTP_IC_MSGTYPE_SPDM)
     {
@@ -391,7 +356,6 @@ uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info)
     uint8_t msg_type;
     uint8_t ret_val = MCTP_SUCCESS;
     MCTP_PKT_BUF *mctp_msg_rx_buf = NULL;
-    trace0(0, MCTP, 0, "mctp_copy_rxpkt_for_ec: Enter");
 
     msg_type = mctp_self.message_type;
 
@@ -409,9 +373,6 @@ uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info)
         {
             if(MCTP_EMPTY == mctp_msg_rx_buf->buf_full)
             {
-                trace0(0, MCTP, 0, "mctp_copy_rxpkt_for_ec: EC rx rqst bufr avlbe");
-
-
                 /* copy packet from smbus buffer to spdm ec rcv buffer */
                 for(i = 0; i < buffer_info->DataLen; i++)
                 {
@@ -422,8 +383,6 @@ uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info)
                  * received by smbus */
                 mctp_msg_rx_buf->rx_smbus_timestamp = buffer_info->TimeStamp;
 
-                trace0(0, MCTP, 0, "mctp_copy_rxpkt_for_ec: mark ec rx rqst bufr pedng");
-
                 /* mark ec rx buffer pending for further processing */
                 mctp_msg_rx_buf->buf_full = MCTP_RX_PENDING;
                 SET_MCTP_EVENT_TASK(mctp);
@@ -431,7 +390,6 @@ uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info)
         }
     }
 
-    trace0(0, MCTP, 0, "mctp_copy_rxpkt_for_ec: End");
     return ret_val;
 } /* End mctp_copy_rxpkt_for_ec */
 
@@ -443,8 +401,6 @@ uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info)
 void mctp_transmit_smbus(MCTP_PKT_BUF *tx_buf)
 {
     uint8_t status_tx;
-
-    trace0(0, MCTP, 0, "mctp_transmit_SB: Enter");
 
     if (tx_buf == NULL)
     {
@@ -462,15 +418,12 @@ void mctp_transmit_smbus(MCTP_PKT_BUF *tx_buf)
 
     if(status_tx)
     {
-        trace0(0, MCTP, 0, "mctp_xmt_SB: ERROR");
+        /* MCTP Xmit ERROR */
     }
     else
     {
-        trace0(0, MCTP, 0, "mctp_xmt_SB: OK");
+        /* MCTP Xmit OK */
     }
-    
-    trace0(0, MCTP, 0, "mctp_xmt_SB: End");
-
 } /* End mctp_transmit_smbus() */
 
 /******************************************************************************/
@@ -493,9 +446,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     uint8_t pldm_pend = 0x00;
 </#if>
-
-    trace0(0, MCTP, 0, "mctp_smbmaster_done: Enter");
-    trace1(0, MCTP, 0, "mctp_smbmaster_done: status = %04Xh", status);
 
     /* get current TX buffer pointer */
     tx_buf = (MCTP_PKT_BUF *)((void *) buffer_ptr);
@@ -531,9 +481,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
     {
     /* packet was transmitted successfully over smbus */
     case I2C_SUCCESS_TX:
-
-        trace0(0, MCTP, 0, "mctp_smbmaster_done: SUCS_TX");
-
         /* update buffer parameters and configure events */
         mctp_smbdone_handler(tx_buf);
 
@@ -551,16 +498,12 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 
     /* lost arbitration */
     case I2C_ERROR_LAB:
-
-        trace0(0, MCTP, 0, "mctp_smbmaster_done: LAB");
-
         /* increment lab retry count */
         tx_buf->smbus_lab_retry_count++;
 
         /* if lost arbitration retry count is exhausted */
         if(tx_buf->smbus_lab_retry_count > MCTPSMBLBRET)
         {
-            trace0(0, MCTP, 0, "mctp_smbmaster_done: LAB: lab retry cnt exhausted");
             /* update buffer parameters and configure events */
             mctp_smbdone_handler(tx_buf);
 
@@ -578,8 +521,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
         /* else if lost arbitration retry count is not exhausted */
         else
         {
-            trace0(0, MCTP, 0, "mctp_smbmaster_done: LAB: lab retry cnt is not exhausted");
-
             ret_val = I2C_APP_RETVAL_RETRY;
         }
 
@@ -588,9 +529,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
     /* nack condition */
     case I2C_ERROR_MADDR_NAKX:
     case I2C_ERROR_MDATA_NAKX:
-
-        trace0(0, MCTP, 0, "mctp_smbmaster_done: NACK");
-
         /* increment nack retry count */
         tx_buf->smbus_nack_retry_count++;
 
@@ -600,7 +538,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
         /* if nack retry count is exhausted */
         if(tx_buf->smbus_nack_retry_count > MCTPSMBNKRET)
         {
-            trace0(0, MCTP, 0, "mctp_smbmaster_done: NACK: nck retry cnt is exhstd");
             /* update buffer parameters and configure events */
             mctp_smbdone_handler(tx_buf);
 
@@ -618,8 +555,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
         /* else if nack retry count is not exhausted */
         else
         {
-            trace0(0, MCTP, 0, "mctp_smbmaster_done: NACK: nack retry cnt not exhstd");
-
             ret_val = I2C_APP_RETVAL_RETRY;
         }
 
@@ -629,9 +564,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
     case I2C_ERROR_BER_TIMEOUT:
     case I2C_ERROR_BER_NON_TIMEOUT:
     default:
-
-        trace0(0, MCTP, 0, "mctp_smbmaster_done: BER / UNKNOWN");
-
         /* update buffer parameters and configure events */
         mctp_smbdone_handler(tx_buf);
 
@@ -650,10 +582,6 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 
     } /* end of switch */
 
-    trace1(0, MCTP, 0, "mctp_smbmaster_done: mctp_tx_state = %04Xh", mctp_tx_state);
-    trace1(0, MCTP, 0, "mctp_smbmaster_done: ret_val = %04Xh", ret_val);
-    trace0(0, MCTP, 0, "mctp_smbmaster_done: End");
-
     return ret_val;
 
 }  /* End mctp_smbmaster_done */
@@ -669,14 +597,8 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 *******************************************************************************/
 void mctp_smbdone_handler(MCTP_PKT_BUF *tx_buf)
 {
-    trace0(0, MCTP, 0, "mctp_smbdone_hlr: Enter");
-
-    trace0(0, MCTP, 0, "mctp_smbdone_hlr: rspse pkt");
     /* drop packet buffer */
     mctp_smbdone_drop(tx_buf);
-
-    trace0(0, MCTP, 0, "mctp_smbdone_hlr: End");
-
 } /* End mctp_smbdone_handler */
 
 /******************************************************************************/
@@ -687,8 +609,6 @@ void mctp_smbdone_handler(MCTP_PKT_BUF *tx_buf)
 *******************************************************************************/
 void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf)
 {
-    trace0(0, MCTP, 0, "mctp_smbdone_drop: Enter");
-
     /* packet is dropped; mark that buffer available */
     pkt_buf->buf_full = MCTP_EMPTY;
     /* clear buffer parameters */
@@ -699,8 +619,6 @@ void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf)
     pkt_buf->request_per_tx_timeout_count = 0;
     pkt_buf->rx_smbus_timestamp = 0;
     mctp_clean_up_buffer_states();
-    trace0(0, MCTP, 0, "mctp_smbdone_drop: End");
-
 } /* End mctp_smbdone_drop */
 
 /******************************************************************************/
@@ -712,8 +630,6 @@ void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf)
 *******************************************************************************/
 void mctp_txpktready_init(MCTP_PKT_BUF *tx_buf)
 {
-    trace0(0, MCTP, 0, "mctp_txpktready_init: Enter");
-
     /* configure/initialize tx packet buffer parameters */
     tx_buf->smbus_nack_retry_count = 0;
     tx_buf->smbus_lab_retry_count = 0;
@@ -727,15 +643,11 @@ void mctp_txpktready_init(MCTP_PKT_BUF *tx_buf)
      * MCTP_TX_NEXT after completing current tx */
     if(mctp_tx_state == MCTP_TX_IDLE)
     {
-        trace0(0, MCTP, 0, "mctp_txpktready_init: mctp_tx_state = IDLE");
-
         mctp_tx_state = MCTP_TX_NEXT;
 
         /* set mctp event task */
         SET_MCTP_EVENT_TASK(mctp);
     }
-
-    trace1(0, MCTP, 0, "mctp_txpktready_init: mctp_tx_state = %04Xh", mctp_tx_state);
 
 } /* End mctp_txpktready_init */
 
@@ -746,13 +658,10 @@ void mctp_smbaddress_update(uint8_t smb_address, uint8_t mctp_port)
 {
     uint8_t smbus_config;
 
-    trace0(0, MCTP, 0, "mctp_smbaddr_update: Entry");
-
     mctp_rt.ep.ec.field.smb_address     = smb_address;
     mctp_cfg.smb_enable = 1;
 
     smbus_config = (mctp_cfg.smb_fairness << 2 | mctp_cfg.smb_enable);
-    trace1(0, MCTP, 0, "mctp_smbaddr_update: = %02Xh", smbus_config);
 
     mctp_i2c_configure_and_enable(MCTP_I2C_CHANNEL, 
 								smb_address, 

@@ -17,7 +17,8 @@
       
 ### Known Issues
     
-    - None
+    - MISRA-C 2012, Rule 6.1 has been suppressed for structure with bitfields
+    - MISRA-C 2012, Rule 11.3 has been suppressed for casting of uint32_t* to MCTP_CONTEXT*
     
 ### Development Tools
     

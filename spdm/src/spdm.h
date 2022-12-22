@@ -81,7 +81,7 @@ extern void get_cert2_base_address(uint32_t *cert_ptr);
 /** spdm_get_measurements
  * This function can be used to get hash of measurement data. 
  * @param buff_ptr         Pointer to hold the measurement data
- * @param index            measurement id i.e. 0,1,2,3
+ * @param index            measurement id i.e. 1,2,3,4
  * @return                 None
  * @note
  * ############################################################################
@@ -98,17 +98,17 @@ extern void get_cert2_base_address(uint32_t *cert_ptr);
  * {
  *      switch(index)
  *      {
- *          case 0:
- *              get_measurement_0_data(buffer_ptr);
- *              break;
  *          case 1:
  *              get_measurement_1_data(buffer_ptr);
  *              break;
- *           case 2:
+ *          case 2:
  *              get_measurement_2_data(buffer_ptr);
  *              break;
  *          case 3:
  *              get_measurement_3_data(buffer_ptr);
+ *              break;
+ *          case 4:
+ *              get_measurement_4_data(buffer_ptr);
  *              break;
  *          default:
  *              break;
@@ -166,22 +166,22 @@ extern uint8_t spdm_read_certificate(uint32_t address,
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module generate signature.
+ * This function is called by the SPDM module to generate signature.
  * pvt_key array - must have the private key 
  * hash_of_req_buffer - must have the hash of the data
  * random_no - must have the random number for signature generation
  * ecdsa_signature.ecdsa_signature - will have the signature generated
  *  typedef union
-    {
-        struct
-        {
-            uint8_t signature_r_term[CURVE_384_SZ];
-            uint8_t signature_s_term[CURVE_384_SZ];
-        };
-        uint8_t ecdsa_signature[CURVE_384_SZ*2];
-    } ecdsa_signature_t;
-
-    #define CURVE_384_SZ 48
+ *  {
+ *     struct
+ *      {
+ *          uint8_t signature_r_term[CURVE_384_SZ];
+ *          uint8_t signature_s_term[CURVE_384_SZ];
+ *      };
+ *      uint8_t ecdsa_signature[CURVE_384_SZ*2];
+ *  } ecdsa_signature_t;
+ *
+ *  #define CURVE_384_SZ 48
  * -----------------------
  * Example:
  * -----------------------
@@ -308,7 +308,7 @@ extern void spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr, uint32_t length,
  * This function can be used to generate random number.
  * @param  buff           Pointer to hold the generated random number
  * @param  bytes          Length of random number
- * @return                 None
+ * @return                None
  * @note
  * ############################################################################
  * -----------------------
@@ -348,7 +348,6 @@ extern uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint8_t bytes);
  * -----------------------
  * int main ( void )
  * {
- *    
  *    SYS_Initialize ( NULL );
  *    
  *    if(spdm_app_task_create((void*)NULL) < 0)
@@ -382,3 +381,4 @@ int spdm_app_task_create(void *pvParams);
 
 /**   @}
  */
+

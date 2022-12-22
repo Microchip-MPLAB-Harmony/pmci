@@ -2,6 +2,8 @@
 <Package name="pmci">
     <Dependencies>
         <Dependency name="csp" version="v3.14.0"/>
+        <Dependency name="dev_packs" version="v3.14.0"/>
+        <Dependency name="core" version="v3.11.0"/>
         <Dependency name="CMSIS-FreeRTOS" version="v10.4.6"/>
 </Dependencies>
 </Package>

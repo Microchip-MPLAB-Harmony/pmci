@@ -69,21 +69,6 @@ union
  * portMPU_REGION_CACHEABLE_BUFFERABLE
  * portMPU_REGION_EXECUTE_NEVER
  */
-/*
- * FreeRTOS TaskParameters_t structure contains two constant items:
- * type * const objname.
- * The C standard states these items are immutable and can only be
- * set at initialization not run time assignment.
- * Therefore we must create a TaskParameters_t as a static global to
- * initialize the pcName and pxTaskBuffer objects.
- * We can intialize all other items in the task creation function.
- */
-// static const TaskParameters_t spdm_def =
-// {
-//     .pcName = "spdm_main",
-//     .pxTaskBuffer = &spdm_tcb
-// };
-
 TaskHandle_t spdm_get_handle(void)
 {
     return spdm_handle;
@@ -134,7 +119,7 @@ int spdm_app_task_create(void *pvParams)
     spdmContext->xSPDMEventGroupHandle = xEventGroupCreateStatic(&spdmContext->xSPDMCreatedEventGroup);
 <#else>
     spdmContext->xSPDMEventGroupHandle = xEventGroupCreate();
-</#if>   
+</#if> 
     return 0;
 }
 

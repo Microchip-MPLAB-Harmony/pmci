@@ -53,7 +53,7 @@ extern "C" {
 /* Stack size must be a power of 2 if the task is restricted */
 #define MCTP_TASK1_STACK_SIZE 1024U       // 2 * configMINIMAL_STACK_SIZE (120)
 #define MCTP_TASK1_STACK_WORD_SIZE ((MCTP_TASK1_STACK_SIZE) / 4U)
-	
+    
 #define MCTP_TASK1_STACK_ALIGN __attribute__ ((aligned(MCTP_TASK1_STACK_SIZE)))
 
 #define MCTP_TASK1_BUF_SIZE		512U

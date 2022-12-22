@@ -655,10 +655,10 @@ void mctp_smbaddress_update(uint8_t smb_address, uint8_t mctp_port)
     smbus_config = (mctp_cfg.smbus_fairness << 2 | mctp_cfg.smbus_enable);
 
     mctp_i2c_configure_and_enable(MCTP_I2C_CHANNEL, 
-								smb_address, 
-								mctp_cfg.smbus_speed, 
-								mctp_port, 
-								smbus_config);
+                                    smb_address, 
+                                    mctp_cfg.smbus_speed, 
+                                    mctp_port, 
+                                    smbus_config);
 
 } /* End mctp_smbaddress_update */
 

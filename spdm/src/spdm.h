@@ -328,6 +328,52 @@ extern void spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr, uint32_t length,
  * ############################################################################
 *******************************************************************************/
 extern uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint8_t bytes);
+
+/******************************************************************************/
+/** spdm_app_task_create(void)
+ * Create SPDM FreeRTOS task
+ * @param pvParams  This parameter is not used
+ * @return -1 :Fail, 0: Pass
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function creates and prepares the SPDM task to be run by the FreeRTOS
+ * task scheduler. The user is expected to call this function in their main
+ * function along with any other application task creation routines and start
+ * the FreeRTOS scheduler. Make sure that all necessary peripheral initializations
+ * have been completed before calling this function
+ * -----------------------
+ * Example:
+ * -----------------------
+ * int main ( void )
+ * {
+ *    
+ *    SYS_Initialize ( NULL );
+ *    
+ *    if(spdm_app_task_create((void*)NULL) < 0)
+ *    {
+ *        while(1);
+ *    }
+ * 
+ *    if(mctp_app_task_create((void*)NULL) < 0)
+ *    {
+ *        while(1);
+ *    }
+ *    
+ *    if(smb_drv_task_create((void*)NULL) < 0)
+ *    {
+ *        while(1);
+ *    }
+ *    
+ *    vTaskStartScheduler();
+ *    
+ *    return ( EXIT_FAILURE );
+ * }
+ * ############################################################################
+*******************************************************************************/
+int spdm_app_task_create(void *pvParams);
+
 #ifdef __cplusplus
 }
 #endif

@@ -21,151 +21,6 @@
 * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *****************************************************************************"""
-#Constants
-# NO_OF_CERTIFICATE_MIN_COUNT = 0
-# NO_OF_CERTIFICATE_MAX_COUNT = 8
-
-# CERTIFICATE_NO_MIN = 0
-# CERTIFICATE_NO_MAX = 63
-
-# Chain0CertificateX= []
-# Chain1Certificates= []
-# Chain2CertificateX= []
-# Chain3CertificateX= []
-# Chain4CertificateX= []
-# Chain5CertificateX= []
-# Chain6CertificateX= []
-# Chain7CertificateX= []
-
-# # def destroyComponent(spdmComponent):
-# #     Database.sendMessage("MCTP", "SPDM_DISCONNECTED", None)
-
-# def updateChain0CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN0")
-
-# def updateChain1CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN1")
-
-# def updateChain2CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN2")
-
-# def updateChain3CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN3")
-
-# def updateChain4CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN4")
-
-# def updateChain5CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN5")
-
-# def updateChain6CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN6")
-
-# def updateChain7CertificateListVisibility(symbol, event):
-#     symbol.setVisible(event["symbol"].getSelectedKey() == "CHAIN7")
-
-# def Chain0CertificateXEnableConfig(symbol, event):
-#     MaxCertificate = event["value"]
-#     print("Start Chain0CertificateXEnableConfig")
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_0_CERTIFICATE"))
-#     # print("Snmp Index: " + str(CertificateIndex) )
-#     print(MaxCertificate)
-#     print(CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def Chain1CertificateXEnableConfig(symbol, event):
-#     # global certindex
-#     MaxCertificate = event["value"]
-#     print("max",MaxCertificate)
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_ONE_CERTIFICATE"))
-#     print("Start Chain1CertificateXEnableConfig")
-#     print("current index", CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def Chain2CertificateXEnableConfig(symbol, event):
-#     MaxCertificate = event["value"]
-#     print("Start Chain2CertificateXEnableConfig")
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_2_CERTIFICATE"))
-#     # print("Snmp Index: " + str(CertificateIndex) )
-#     print(MaxCertificate)
-#     print(CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def Chain3CertificateXEnableConfig(symbol, event):
-#     MaxCertificate = event["value"]
-#     print("Start Chain3CertificateXEnableConfig")
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_3_CERTIFICATE"))
-#     # print("Snmp Index: " + str(CertificateIndex) )
-#     print(MaxCertificate)
-#     print(CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def Chain4CertificateXEnableConfig(symbol, event):
-#     MaxCertificate = event["value"]
-#     print("Start Chain4CertificateXEnableConfig")
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_4_CERTIFICATE"))
-#     # print("Snmp Index: " + str(CertificateIndex) )
-#     print(MaxCertificate)
-#     print(CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def Chain5CertificateXEnableConfig(symbol, event):
-#     MaxCertificate = event["value"]
-#     print("Start Chain5CertificateXEnableConfig")
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_5_CERTIFICATE"))
-#     # print("Snmp Index: " + str(CertificateIndex) )
-#     print(MaxCertificate)
-#     print(CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def Chain6CertificateXEnableConfig(symbol, event):
-#     MaxCertificate = event["value"]
-#     print("Start Chain6CertificateXEnableConfig")
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_6_CERTIFICATE"))
-#     # print("Snmp Index: " + str(CertificateIndex) )
-#     print(MaxCertificate)
-#     print(CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def Chain7CertificateXEnableConfig(symbol, event):
-#     MaxCertificate = event["value"]
-#     print("Start Chain7CertificateXEnableConfig")
-#     CertificateIndex = int(symbol.getID().strip("CHAIN_7_CERTIFICATE"))
-#     # print("Snmp Index: " + str(CertificateIndex) )
-#     print(MaxCertificate)
-#     print(CertificateIndex)
-#     if(CertificateIndex < MaxCertificate):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
-
-# def spdmSlotEnable(symbol, event):
-#     # enable = event["value"]
-#     if (event["value"] == True):
-#         symbol.setVisible(True)
-#     else:
-#         symbol.setVisible(False)
 def destroyComponent(spdmCoreComponent):
     Database.sendMessage("MCTP", "SPDM_CONNECTED", {"isConnected":False})
 
@@ -350,23 +205,24 @@ def instantiateComponent(spdmComponent):
     spdmTailPointerCertificate60616263.setDefaultValue(0xFFFFFFFF)
     spdmTailPointerCertificate60616263.setVisible(True)
 
+    configName = Variables.get("__CONFIGURATION_NAME")
     #Add spdm_config.h
     spdmConfigHeaderFtl = spdmComponent.createFileSymbol(None, None)
-    spdmConfigHeaderFtl.setSourcePath("spdm/src/spdm_config.h.ftl")
+    spdmConfigHeaderFtl.setSourcePath("spdm/templates/spdm_config.h.ftl")
     spdmConfigHeaderFtl.setOutputName("spdm_config.h")
-    spdmConfigHeaderFtl.setDestPath("../../spdm/")
-    spdmConfigHeaderFtl.setProjectPath("spdm/")
+    spdmConfigHeaderFtl.setDestPath("spdm/")
+    spdmConfigHeaderFtl.setProjectPath("config/" + configName + "/spdm/")
     spdmConfigHeaderFtl.setOverwrite(True)
     spdmConfigHeaderFtl.setType("HEADER")
-    spdmConfigHeaderFtl.setMarkup(True)
+    spdmConfigHeaderFtl.setMarkup(True) 
     
     #Add interface files to project
     #Add spdm.h
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm.h")
     spdmIfaceHeaderFile.setOutputName("spdm.h")
-    spdmIfaceHeaderFile.setDestPath("../../spdm/")
-    spdmIfaceHeaderFile.setProjectPath("spdm/")
+    spdmIfaceHeaderFile.setDestPath("spdm/")
+    spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceHeaderFile.setOverwrite(True)
     spdmIfaceHeaderFile.setType("HEADER")
     spdmIfaceHeaderFile.setMarkup(False)
@@ -375,8 +231,8 @@ def instantiateComponent(spdmComponent):
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_common.h")
     spdmIfaceHeaderFile.setOutputName("spdm_common.h")
-    spdmIfaceHeaderFile.setDestPath("../../spdm/")
-    spdmIfaceHeaderFile.setProjectPath("spdm/")
+    spdmIfaceHeaderFile.setDestPath("spdm/")
+    spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceHeaderFile.setOverwrite(True)
     spdmIfaceHeaderFile.setType("HEADER")
     spdmIfaceHeaderFile.setMarkup(False)
@@ -385,8 +241,8 @@ def instantiateComponent(spdmComponent):
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_common.c")
     spdmIfaceHeaderFile.setOutputName("spdm_common.c")
-    spdmIfaceHeaderFile.setDestPath("../../spdm/")
-    spdmIfaceHeaderFile.setProjectPath("spdm/")
+    spdmIfaceHeaderFile.setDestPath("spdm/")
+    spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceHeaderFile.setOverwrite(True)
     spdmIfaceHeaderFile.setType("SOURCE")
     spdmIfaceHeaderFile.setMarkup(False)
@@ -396,8 +252,8 @@ def instantiateComponent(spdmComponent):
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_pkt_prcs.h")
     spdmIfaceHeaderFile.setOutputName("spdm_pkt_prcs.h")
-    spdmIfaceHeaderFile.setDestPath("../../spdm/")
-    spdmIfaceHeaderFile.setProjectPath("spdm/")
+    spdmIfaceHeaderFile.setDestPath("spdm/")
+    spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceHeaderFile.setOverwrite(True)
     spdmIfaceHeaderFile.setType("HEADER")
     spdmIfaceHeaderFile.setMarkup(False)
@@ -406,8 +262,8 @@ def instantiateComponent(spdmComponent):
     spdmIfaceSourceFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceSourceFile.setSourcePath("spdm/src/spdm_pkt_prcs.c")
     spdmIfaceSourceFile.setOutputName("spdm_pkt_prcs.c")
-    spdmIfaceSourceFile.setDestPath("../../spdm/")
-    spdmIfaceSourceFile.setProjectPath("spdm/")
+    spdmIfaceSourceFile.setDestPath("spdm/")
+    spdmIfaceSourceFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceSourceFile.setOverwrite(True)
     spdmIfaceSourceFile.setType("SOURCE")
     spdmIfaceSourceFile.setMarkup(False)
@@ -416,8 +272,8 @@ def instantiateComponent(spdmComponent):
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_crypto_ops.h")
     spdmIfaceHeaderFile.setOutputName("spdm_crypto_ops.h")
-    spdmIfaceHeaderFile.setDestPath("../../spdm/")
-    spdmIfaceHeaderFile.setProjectPath("spdm/")
+    spdmIfaceHeaderFile.setDestPath("spdm/")
+    spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceHeaderFile.setOverwrite(True)
     spdmIfaceHeaderFile.setType("HEADER")
     spdmIfaceHeaderFile.setMarkup(False)
@@ -426,8 +282,8 @@ def instantiateComponent(spdmComponent):
     spdmIfaceSourceFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceSourceFile.setSourcePath("spdm/src/spdm_crypto_ops.c")
     spdmIfaceSourceFile.setOutputName("spdm_crypto_ops.c")
-    spdmIfaceSourceFile.setDestPath("../../spdm/")
-    spdmIfaceSourceFile.setProjectPath("spdm/")
+    spdmIfaceSourceFile.setDestPath("spdm/")
+    spdmIfaceSourceFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceSourceFile.setOverwrite(True)
     spdmIfaceSourceFile.setType("SOURCE")
     spdmIfaceSourceFile.setMarkup(False)
@@ -436,18 +292,18 @@ def instantiateComponent(spdmComponent):
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_task.h")
     spdmIfaceHeaderFile.setOutputName("spdm_task.h")
-    spdmIfaceHeaderFile.setDestPath("../../spdm/")
-    spdmIfaceHeaderFile.setProjectPath("spdm/")
+    spdmIfaceHeaderFile.setDestPath("spdm/")
+    spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceHeaderFile.setOverwrite(True)
     spdmIfaceHeaderFile.setType("HEADER")
     spdmIfaceHeaderFile.setMarkup(False)
     
     #Add spdm_task.c
     spdmIfaceSourceFileFtl = spdmComponent.createFileSymbol(None, None)
-    spdmIfaceSourceFileFtl.setSourcePath("spdm/src/spdm_task.c")
+    spdmIfaceSourceFileFtl.setSourcePath("spdm/templates/spdm_task.c.ftl")
     spdmIfaceSourceFileFtl.setOutputName("spdm_task.c")
-    spdmIfaceSourceFileFtl.setDestPath("../../spdm/")
-    spdmIfaceSourceFileFtl.setProjectPath("spdm/")
+    spdmIfaceSourceFileFtl.setDestPath("spdm/")
+    spdmIfaceSourceFileFtl.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceSourceFileFtl.setOverwrite(True)
     spdmIfaceSourceFileFtl.setType("SOURCE")
-    spdmIfaceSourceFileFtl.setMarkup(False)
+    spdmIfaceSourceFileFtl.setMarkup(True)

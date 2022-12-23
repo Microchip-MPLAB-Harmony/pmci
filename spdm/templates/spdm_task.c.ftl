@@ -45,8 +45,8 @@ static void spdm_main(void *pvParameters);
 static StaticTask_t spdm_tcb;
 
 SPDM_BSS0_ATTR static uint32_t spdm_stack[SPDM_STACK_WORD_SIZE] SPDM_STACK_ALIGN;
-SPDM_BSS2_ATTR TaskHandle_t spdm_handle = NULL;
-SPDM_BSS2_ATTR SPDM_CONTEXT *spdmContext = NULL;
+SPDM_BSS2_ATTR static TaskHandle_t spdm_handle;
+SPDM_BSS2_ATTR SPDM_CONTEXT *spdmContext;
 
 union
 {
@@ -213,48 +213,4 @@ void SET_SPDM_EVENT_FLAG(void)
     }
     trace1(0, SPDM_TSK, 0, "[%s]: set SPDM event", __FUNCTION__);
     xEventGroupSetBits( spdmContext->xSPDMEventGroupHandle, SPDM_EVENT_BIT );
-}
-
-/******************************************************************************/
-/** pldm_response_timeout_start
-* Start the software PLDMResponse timer
-* @param void
-* @return void
-*******************************************************************************/
-void pldm_response_timeout_start(void)
-{
-    spdmContext = spdm_ctxt_get();
-    if (NULL != spdmContext)
-    {
-        if (NULL != spdmContext->xPLDMRespTimer)
-        {
-            if (xTimerStart(spdmContext->xPLDMRespTimer, 0) != pdPASS)
-            {
-                trace0(1, SPDM_TSK, 1, "Err:PLDMResp tmr could not set to active state");
-                return;
-            }
-        }
-    }
-}
-
-/******************************************************************************/
-/** pldm_response_timeout_stop
-* Stop the software PLDMResponse timer
-* @param void
-* @return void
-*******************************************************************************/
-void pldm_response_timeout_stop(void)
-{
-    spdmContext = spdm_ctxt_get();
-    if (NULL != spdmContext)
-    {
-        if (NULL != spdmContext->xPLDMRespTimer)
-        {
-            if (xTimerStop(spdmContext->xPLDMRespTimer, 0) != pdPASS)
-            {
-                trace0(1, SB_MONITOR, 1, "Err:PLDMResp timer stop fail");
-                return;
-            }
-        }
-    }
 }

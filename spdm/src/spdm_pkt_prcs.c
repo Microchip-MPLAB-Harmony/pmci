@@ -1,5 +1,5 @@
 /*****************************************************************************
- * ï¿½ 2021 Microchip Technology Inc. and its subsidiaries.
+ * Copyright (c) 2022 Microchip Technology Inc.
  * You may use this software and any derivatives exclusively with
  * Microchip products.
  * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -19,9 +19,7 @@
  *****************************************************************************/
 
 /** @file spdm_pkt_prcs.c
- * MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
+ * Source file for SPDM packet processing
  */
 
 /*******************************************************************************
@@ -42,17 +40,10 @@
 #include "../mctp/mctp_base.h"
 #include "spdm_pkt_prcs.h"
 #include "spdm.h"
-// #include "../secure_boot/sb_qmspi/sb_qmspi.h"
-// #include "../secure_boot/sb_core/sb_common.h"
-// #include "../secure_boot/sb_core/sb_ecfw_auth.h"
-// #include "../secure_boot/sb_modules/sb_mem_map.h"
-// #include "../secure_boot/sb_modules/sb_apcfg_info.h"
-// #include "spdm_data_iso.h"
-// #include "pldm_pkt_prcs.h"
 #include "spdm_common.h"
 
 
-#define SPI_DATA_MAX_BUFF 4096
+#define SPI_DATA_MAX_BUFF 4096U
 
 // extern SPDM_BSS1_ATTR DI_CONTEXT_SPDM *spdm_di_context;
 extern SPDM_BSS1_ATTR uint8_t curr_ec_id;
@@ -66,11 +57,11 @@ SPDM_BSS1_ATTR uint8_t spdm_tx_state;
 SPDM_BSS1_ATTR bool pldm_first_pkt;
 
 SPDM_BSS0_ATTR uint8_t spi_data[SPI_DATA_MAX_BUFF] __attribute__((aligned(8))); // This buffer is externed and used to read/Write certificate
-SPDM_BSS1_ATTR VERSION_NUM_ENTRY_TABLE version_tbl_buf[2 * SPDM_VER_NUM_ENTRY_COUNT] = {0};
+SPDM_BSS1_ATTR VERSION_NUM_ENTRY_TABLE version_tbl_buf[2 * SPDM_VER_NUM_ENTRY_COUNT];
 SPDM_BSS1_ATTR REQ_BASE_ASYM_ALG struct_algo;
-SPDM_BSS1_ATTR uint8_t spdm_rqst_cur_state = 0x00;
-SPDM_BSS1_ATTR MCTP_PKT_BUF *mctp_buf_tx = MCTP_NULL;
-SPDM_BSS1_ATTR MCTP_PKT_BUF *spdm_buf_tx = MCTP_NULL;
+SPDM_BSS1_ATTR uint8_t spdm_rqst_cur_state;
+SPDM_BSS1_ATTR MCTP_PKT_BUF *mctp_buf_tx;
+SPDM_BSS1_ATTR MCTP_PKT_BUF *spdm_buf_tx;
 SPDM_BSS1_ATTR uint32_t packet_sz;
 SPDM_BSS1_ATTR uint8_t pkt_seq_mctp;
 SPDM_BSS1_ATTR uint8_t first_pkt;
@@ -81,7 +72,7 @@ SPDM_BSS1_ATTR uint32_t cert_len;
 
 SPDM_BSS1_ATTR uint32_t cert2_base_addr;
 SPDM_BSS1_ATTR uint8_t chain_avail_bits_mask;
-SPDM_BSS1_ATTR uint8_t slot_position = 0x00;
+SPDM_BSS1_ATTR uint8_t slot_position;
 
 SPDM_BSS1_ATTR CERT_SLOT slot_buf[MAX_SLOTS]; // 8 slots structure; each slot containing a chain
 
@@ -97,7 +88,7 @@ SPDM_BSS1_ATTR ecdsa_signature_t ecdsa_signature __attribute__((aligned(8)));
 SPDM_BSS0_ATTR uint8_t random_no[CURVE_384_SZ];
 //--GET CERTIFICATE RELATED VARIABLES AND BUFFERS ---//
 extern SPDM_BSS1_ATTR uint8_t AP_CFG_cert_buffer[sizeof(CFG_CERT)];
-SPDM_BSS1_ATTR CFG_CERT *ptr_cert_buffer = NULL;
+SPDM_BSS1_ATTR CFG_CERT *ptr_cert_buffer;
 
 SPDM_BSS1_ATTR uint8_t requested_slot;
 SPDM_BSS1_ATTR uint16_t cert_offset_to_sent;
@@ -106,9 +97,9 @@ SPDM_BSS1_ATTR uint16_t PortionLength;
 SPDM_BSS1_ATTR uint16_t opaq_size_remaining;
 SPDM_BSS1_ATTR volatile uint8_t first_get_cert_response_sent;
 SPDM_BSS1_ATTR volatile uint16_t bytes_sent_over_mctp_for_cert;
-SPDM_BSS1_ATTR volatile uint16_t remaining_bytes_to_sent = 0x00;
-SPDM_BSS1_ATTR uint16_t pending_bytes = 0x00;
-SPDM_BSS1_ATTR uint16_t global_offset_for_pending_bytes = 0x00;
+SPDM_BSS1_ATTR volatile uint16_t remaining_bytes_to_sent;
+SPDM_BSS1_ATTR uint16_t pending_bytes;
+SPDM_BSS1_ATTR uint16_t global_offset_for_pending_bytes;
 
 // CHALLENGE COMMAND RELATED VARIABLES AND BUFFERS//
 
@@ -200,7 +191,6 @@ uint8_t spdm_pkt_update_cert_data_len(uint32_t offset, uint32_t *update_cert_siz
         if ((cert_sz > 1024) || (cert_sz == CERT_BYTE0_BYTE3_COUNT))
         {
             cert_sz = 1024;
-            trace0(0, SPDM_TSK, 3, "Ivld certi");
             ret_sts = CERT_CHAIN_INVALID; // Invalid Cert
         }
 
@@ -687,8 +677,6 @@ void spdm_init_task(SPDM_CONTEXT *spdmContext)
 {
     uint8_t iter = 0;
     uint8_t j = 0;
-
-    trace0(0, SPDM_TSK, 0, "spdm_init_bufs: Enter");
 
     if (NULL == spdmContext)
     {
@@ -2744,6 +2732,10 @@ uint8_t spdm_pkt_process_get_cert_cmd(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *s
                         spdmContext->cert_bytes_to_sent_curr[requested_slot] = slot_buf[requested_slot].chain.chain_length - local_offset_in_cert_req;
                         // RemainderLength
                         spdmContext->cert_bytes_pending_to_sent[requested_slot] = 0U;
+                    }
+                    else
+                    {
+                        // invalid length
                     }
                 }
             }

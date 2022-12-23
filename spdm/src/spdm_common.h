@@ -32,19 +32,22 @@
 extern "C" {
 #endif
 
-#define PVT_KEY_CODE_LENGTH                        (96)
 #define SPDM_BSS0_ATTR                                     __attribute__((section("spdm_bss0")))
 #define SPDM_BSS1_ATTR                                     __attribute__((section("spdm_bss1")))
 #define SPDM_BSS2_ATTR                                     __attribute__((section("spdm_bss2")))
 
+#define PVT_KEY_CODE_LENGTH               (96U)
+
 /* Attestation - Hasd Pointer for Chain */
-#define MAXIMUM_HEAD_PTR_CHAIN             8
+#define MAXIMUM_HEAD_PTR_CHAIN             8U
+
+/* Attestation certificate Maximum*/
+#define MAXIMUM_CERTIFICATE                64U
+
+#define STATUS_OK 0U
+
 #define is_add_safe(sum, aug_or_add) ((sum) < (aug_or_add) ? 0 : 1) // Coverity INT30-C Postcondition Test
 #define is_sub_safe(ui_a, ui_b) ((ui_a) < (ui_b) ? 0 : 1) // Coverity INT30-C Precondition Test
-/* Attestation certificate Maximum*/
-#define MAXIMUM_CERTIFICATE                64
-
-#define STATUS_OK 0
 
 typedef struct CFG_CERT
 {

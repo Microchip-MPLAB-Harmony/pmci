@@ -206,7 +206,12 @@ def instantiateComponent(spdmComponent):
     spdmTailPointerCertificate60616263.setDefaultValue(0xFFFFFFFF)
     spdmTailPointerCertificate60616263.setVisible(True)
 
+    ############################################################################
+    #### Code Generation ####
+    ############################################################################
+
     configName = Variables.get("__CONFIGURATION_NAME")
+
     #Add spdm_config.h
     spdmConfigHeaderFtl = spdmComponent.createFileSymbol(None, None)
     spdmConfigHeaderFtl.setSourcePath("spdm/templates/spdm_config.h.ftl")

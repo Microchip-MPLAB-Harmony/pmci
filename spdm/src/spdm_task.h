@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#define configSPDM_PRIORITY 2U
+#define configSPDM_PRIORITY (MCTP_TASK_PRIORITY - 1)
 #define SPDM_PRIORITY ((tskIDLE_PRIORITY + configSPDM_PRIORITY) % configMAX_PRIORITIES)
 
 /* Stack size must be a power of 2 if the task is restricted */
@@ -42,19 +42,14 @@ extern "C" {
 #define SPDM_TASK_BUF_MPU_ATTR 0U
 #define SPDM_TASK_BUF_ALIGN
 
-#define SPDM_EVENT_BIT 					(1 << 0u)
-#define SPDM_GET_FROM_APCFG_EVENT_BIT 	(1 << 1u)
-#define SPDM_POST_AUTH_DONE_BIT 		(1 << 2u)
+#define SPDM_EVENT_BIT                  (1 << 0u)
+#define SPDM_GET_FROM_APCFG_EVENT_BIT   (1 << 1u)
+#define SPDM_POST_AUTH_DONE_BIT         (1 << 2u)
 #define PLDM_EVENT_BIT                  (1 << 3u)
 #define SPDM_I2C_EVENT_BIT              (1 << 4u)
 #define PLDM_RESP_EVENT_BIT             (1 << 5u)
 
-#ifdef config_CEC_AHB_PROTECTION_ENABLE
-int spdm_task_create(void *pvParams, CEC_AHB_PRIV_REGS_VALUES *pTaskPrivRegValues);
-#else
-/* Function Prototypes */
 int spdm_task_create(void *pvParams);
-#endif
 
 #define SPDM_TASK_LOG_MBOX_SIZE                    0x2000u
 #define SPDM_TASK_LOG_MBOX_START_ADDR              0x126000u
@@ -182,22 +177,6 @@ SPDM_CONTEXT* spdm_ctxt_get(void);
 * @return void
 *******************************************************************************/
 void spdm_wait_post_auth_completion(SPDM_CONTEXT *spdmContext);
-
-/******************************************************************************/
-/** pldm_response_timeout_start
-* Start the software PLDMResponse timer
-* @param void
-* @return void
-*******************************************************************************/
-void pldm_response_timeout_start(void);
-
-/******************************************************************************/
-/** pldm_response_timeout_stop
-* Stop the software PLDMResponse timer
-* @param void
-* @return void
-*******************************************************************************/
-void pldm_response_timeout_stop(void);
 
 #ifdef __cplusplus
 }

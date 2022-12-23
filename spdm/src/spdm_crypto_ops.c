@@ -1,5 +1,5 @@
 /*****************************************************************************
-* � 2021 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -19,9 +19,7 @@
 *****************************************************************************/
 
 /** @file spdm_crypto_ops.c
- * MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
+ * File for SPDM crytpo operations
  */
 
 /*******************************************************************************
@@ -37,12 +35,8 @@
  ***********************************************************************************
 */
 
-// #include "../common/include/Glacier_bootrom_symbol_definitions.h"
 #include "spdm_crypto_ops.h"
 #include "spdm_common.h"
-// #include "../secure_boot/sb_core/sb_dgst.h"
-// #include "../secure_boot/sb_modules/sb_mem_map.h"
-// #include "spdm_data_iso.h"
 
 extern SPDM_BSS1_ATTR uint8_t pvt_key[PVT_KEY_CODE_LENGTH];
 

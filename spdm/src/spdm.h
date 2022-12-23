@@ -18,14 +18,14 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-/** @file spdm_iface.h
+/** @file spdm.h
  * Interface header file for applications of SPDM
  */
 /** @defgroup SPDM interface
  */
 
-#ifndef SPDM_IFACE_H
-#define SPDM_IFACE_H
+#ifndef SPDM_H
+#define SPDM_H
 
 #include "definitions.h"
 
@@ -43,7 +43,7 @@ extern "C" {
  * -----------------------
  * Certificate 0 Base Address
  * -----------------------
- * Configure Certificate 0 Base Address here, Certificate 1 will be at a offset
+ * Configure Certificate 0 Base Address here, Certificate 1 has be at an offset
  * 0x400 from Certificate 0.
  * ############################################################################
 *******************************************************************************/
@@ -59,8 +59,20 @@ extern "C" {
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by SPDM module to get the Certificate 2 base address.
- * Remaining certificates 3 to 63 are at offset 0x400 from previous certificate.
+ * Currently we are supporting only 64 certificates. This function is called
+ * by SPDM module to get the Certificate 2 base address.
+ * Certificates 3 to 63 have to be placed at an offset 0x400 from previous
+ * certificate. Certificate 0 and 1 addresses are configurable via macro
+ * CERTIFICATE_START_ADDRESS.
+ * _______________________________________________________________________
+ * |           |            |           |            |     |             |
+ * | Cert 0    | Cert 1     | Cert 2    | Cert 3     |     | Cert 63     |
+ * | offset 0  |offset 0x400| offset 0  |offst 0x400 |     |offset 0xF400|
+ * |___________|____________|___________|____________|_____|_____________|
+ * ^^                       ^^
+ * |                        |____________________________
+ * CERTIFICATE_START_ADDRESS                           get_cert2_base_address()
+ * 
  * -----------------------
  * Example:
  * -----------------------
@@ -132,10 +144,10 @@ extern void spdm_get_measurements(uint8_t *buffer_ptr,
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to read certificate data. Root 
- * certificate of size 1KB is read, other certificates read length are 
- * decided by the size specified in the header. Certificate number passed can
- * be used to read certificate from corresponding peripherals.
+ * This function is called by the SPDM module to read certificate data.
+ * Root certificate of size 1KB is read, other certificates read length are
+ * decided by the size specified in the certificate header. Certificate number
+ * passed can be used to read certificate data from corresponding peripherals.
  * -----------------------
  * Example:
  * -----------------------
@@ -168,7 +180,8 @@ extern uint8_t spdm_read_certificate(uint32_t address,
  * -----------------------
  * This function is called by the SPDM module to generate signature.
  * pvt_key array - must have the private key 
- * hash_of_req_buffer - must have the hash of the data
+ * hash_of_req_buffer - will have the hash of data, filled by SPDM stack
+ *                      (no action needed from user)
  * random_no - must have the random number for signature generation
  * ecdsa_signature.ecdsa_signature - will have the signature generated
  *  typedef union
@@ -185,17 +198,18 @@ extern uint8_t spdm_read_certificate(uint32_t address,
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_crypto_ops_gen_signature()
+ * uint8_t spdm_crypto_ops_gen_signature(void)
  * {
  *      fill_pvt_key(&pvt_key[0]);
  * 
  *      generate_random_number(&random_no);
  * 
- *      ecdsa_gen_sig(&pvt_key[0], &hash_of_req_buffer[0], &random_no[0], &ecdsa_signature.ecdsa_signature[0]);
+ *      ecdsa_gen_sig(&pvt_key[0], &hash_of_req_buffer[0], &random_no[0],
+ *                     &ecdsa_signature.ecdsa_signature[0]);
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint32_t spdm_crypto_ops_gen_signature();
+extern uint32_t spdm_crypto_ops_gen_signature(void);
 
 /******************************************************************************/
 /** spdm_crypto_ops_calc_hash
@@ -204,29 +218,26 @@ extern uint32_t spdm_crypto_ops_gen_signature();
  * @param  length          Length of data to be hashed
  * @param  spdmContext     Holds the stage of hashing in case of intermediate
  *                         hashing
- * @return                 None
+ * @return                 success or failure
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to calculate hash of data. 
- * Based on select value, hashing can be either single shot or intermediate
- * hashing.
- * spdmContext->get_requests_state will hold the hashing state in case of 
- * intermediate hashing.
- * The resultant hash has to be stored in spdmContext->sha_digest
+ * This function is called by the SPDM module to calculate hash of data at
+ * single shot.
+ * The resultant hash has to be stored in spdmContext->sha_digest.
  * -----------------------
  * Example:
  * -----------------------
  * uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length, 
  *                                  SPDM_CONTEXT *spdmContext)
  * {
- *      
+ *      crypto_calc_hash(buff_ptr, length, &spdmContext->sha_digest[0]);
  * }
  * ############################################################################
 *******************************************************************************/
-extern void spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length, 
+extern uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
                                     SPDM_CONTEXT *spdmContext);
 
 
@@ -243,10 +254,15 @@ extern void spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to calculate hash of data. 
- * Based on select value, hashing can be either single shot or intermediate
- * hashing.
+ * This function is called by the SPDM module to calculate hash of data at
+ * runtime.
+ * Data to be hashed has to be fed into crypto engine in chunks with engine
+ * saving the intermediate result till hash finalize is issued.
  * spdmContext->get_requests_state will hold the hashing state.
+ * HASH_INIT_MODE - initialize the memory for hash context saving
+ * RUN_TIME_HASH_MODE - feed chunks of data and hash the same
+ * END_OF_HASH - get the finalized hash of all chunks passed to engine for
+ *               hashing
  * The resultant hash has to be stored in spdmContext->sha_digest.
  * -----------------------
  * Example:
@@ -275,7 +291,8 @@ extern void spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
  *       break;
  *   case RUN_TIME_HASH_MODE:
  *       //populate internal buffer (128 bytes) upto 128 (block size)
- *       //feed to hash engine and calculate intermediate hash if internal buffer reaches max 128 bytes
+ *       //feed to hash engine and calculate intermediate hash if internal
+ *       //buffer reaches max 128 bytes
  *       rc = spdm_crypto_ops_hash_ctx_update_buf(buff, &ctx_ptr, length);
  *       if (rc != OK)
  *       {
@@ -283,7 +300,8 @@ extern void spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
  *       }
  *       break;
  *   case END_OF_HASH:
- *       rc = spdm_crypto_ops_hash_ctx_final(&ctx_ptr, &spdmContext->sha_digest[0]);
+ *       rc = spdm_crypto_ops_hash_ctx_final(&ctx_ptr,
+ *                                           &spdmContext->sha_digest[0]);
  *       if (rc != OK)
  *       {
  *           return rc;
@@ -300,8 +318,9 @@ extern void spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
  * }
  * ############################################################################
 *******************************************************************************/
-extern void spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr, uint32_t length,
-                                    SPDM_CONTEXT *spdmContext);
+extern uint8_t spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr,
+                                                uint32_t length,
+                                                SPDM_CONTEXT *spdmContext);
 
 /******************************************************************************/
 /** spdm_crypto_ops_gen_random_no
@@ -377,7 +396,7 @@ int spdm_app_task_create(void *pvParams);
 }
 #endif
 
-#endif /* SPDM_IFACE_H */
+#endif /* SPDM_H */
 
 /**   @}
  */

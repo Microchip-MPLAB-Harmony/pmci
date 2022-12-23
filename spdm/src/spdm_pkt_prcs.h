@@ -1,5 +1,5 @@
 /*****************************************************************************
-* � 2021 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -19,9 +19,7 @@
 *****************************************************************************/
 
 /** @file spdm_pkt_prcs.h
- *  MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
+ *  Source file for SPDM packet processing
  */
 
 /*******************************************************************************

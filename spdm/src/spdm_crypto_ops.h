@@ -1,5 +1,5 @@
 /*****************************************************************************
-* � 2021 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -19,9 +19,7 @@
 *****************************************************************************/
 
 /** @file spdm_crypto_ops.h
- *  MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
+ *  Header file for SPDM crypto operations
  */
 
 /*******************************************************************************
@@ -43,8 +41,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define SHA384_BYTES                                   48u
-#define CURVE_384_SZ                                   48
+#define SHA384_BYTES                                   48U
+#define CURVE_384_SZ                                   48U
 
 enum SPDM_RQS_STATE
 {
@@ -60,7 +58,7 @@ typedef union
         uint8_t signature_r_term[CURVE_384_SZ];
         uint8_t signature_s_term[CURVE_384_SZ];
     };
-    uint8_t ecdsa_signature[CURVE_384_SZ*2];
+    uint8_t ecdsa_signature[CURVE_384_SZ*2U];
 } ecdsa_signature_t;
 
 #endif

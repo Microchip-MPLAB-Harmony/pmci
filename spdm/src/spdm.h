@@ -43,7 +43,7 @@ extern "C" {
  * -----------------------
  * Certificate 0 Base Address
  * -----------------------
- * Configure Certificate 0 Base Address here, Certificate 1 has be at an offset
+ * Configure Certificate 0 Base Address here, Certificate 1 has to be at an offset
  * 0x400 from Certificate 0.
  * ############################################################################
 *******************************************************************************/
@@ -59,7 +59,7 @@ extern "C" {
  * -----------------------
  * Usage notes:
  * -----------------------
- * Currently we are supporting only 64 certificates. This function is called
+ * Currently the SPDM module supports only 64 certificates. This function is called
  * by SPDM module to get the Certificate 2 base address.
  * Certificates 3 to 63 have to be placed at an offset 0x400 from previous
  * certificate. Certificate 0 and 1 addresses are configurable via macro
@@ -69,7 +69,7 @@ extern "C" {
  * | Cert 0    | Cert 1     | Cert 2    | Cert 3     |     | Cert 63     |
  * | offset 0  |offset 0x400| offset 0  |offst 0x400 |     |offset 0xF400|
  * |___________|____________|___________|____________|_____|_____________|
- * ^^                       ^^
+ * ^                        ^
  * |                        |____________________________
  * CERTIFICATE_START_ADDRESS                           get_cert2_base_address()
  * 
@@ -101,8 +101,8 @@ extern void get_cert2_base_address(uint32_t *cert_ptr);
  * Usage notes:
  * -----------------------
  * This function is called by the SPDM module to get hash of measurement data.
- * Currently 4 measurements are supported, unused measurement should be filled with
- * zero's.
+ * Currently SPDM module supports 4 measurements. User is expected to fill 
+ * unused measurement with zero's.
  * -----------------------
  * Example:
  * -----------------------
@@ -179,11 +179,14 @@ extern uint8_t spdm_read_certificate(uint32_t address,
  * Usage notes:
  * -----------------------
  * This function is called by the SPDM module to generate signature.
- * pvt_key array - must have the private key 
+ * The SPDM module is designed for ECDSA384 calculations.
+ * pvt_key array - User is expected to fill the private key.
  * hash_of_req_buffer - will have the hash of data, filled by SPDM stack
- *                      (no action needed from user)
- * random_no - must have the random number for signature generation
- * ecdsa_signature.ecdsa_signature - will have the signature generated
+ *                      (no action needed from user).
+ * random_no - User is expected to fill the random number for signature generation.
+ * ecdsa_signature.ecdsa_signature - User is expected to fill with generated
+ * signature.
+ *
  *  typedef union
  *  {
  *     struct
@@ -226,7 +229,8 @@ extern uint32_t spdm_crypto_ops_gen_signature(void);
  * -----------------------
  * This function is called by the SPDM module to calculate hash of data at
  * single shot.
- * The resultant hash has to be stored in spdmContext->sha_digest.
+ * The SPDM module is designed for SHA384 hash calculations.
+ * The user is expected to store the resultant hash in spdmContext->sha_digest.
  * -----------------------
  * Example:
  * -----------------------
@@ -334,7 +338,8 @@ extern uint8_t spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr,
  * Usage notes:
  * -----------------------
  * This function is called by the SPDM module to generate random number.
- * Resultant random number is stored in the address pointed by buff.
+ * User is expected to store the generated random number in the address pointed
+ * by buff.
  * -----------------------
  * Example:
  * -----------------------

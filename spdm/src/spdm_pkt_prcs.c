@@ -46,7 +46,7 @@
 #define SPI_DATA_MAX_BUFF 4096U
 
 // extern SPDM_BSS1_ATTR DI_CONTEXT_SPDM *spdm_di_context;
-extern SPDM_BSS1_ATTR uint8_t curr_ec_id;
+SPDM_BSS1_ATTR uint8_t curr_ec_id;
 
 SPDM_BSS1_ATTR uint8_t get_mctp_pld[MAX_SIZE_CERTIFICATE] __attribute__((aligned(8)));
 SPDM_BSS1_ATTR MCTP_PKT_BUF mctp_pktbuf_tx;
@@ -87,7 +87,7 @@ SPDM_BSS1_ATTR ecdsa_signature_t ecdsa_signature __attribute__((aligned(8)));
 // end of challenge authentication, required buffers
 SPDM_BSS0_ATTR uint8_t random_no[CURVE_384_SZ];
 //--GET CERTIFICATE RELATED VARIABLES AND BUFFERS ---//
-extern SPDM_BSS1_ATTR uint8_t AP_CFG_cert_buffer[sizeof(CFG_CERT)];
+SPDM_BSS1_ATTR uint8_t AP_CFG_cert_buffer[sizeof(CFG_CERT)];
 SPDM_BSS1_ATTR CFG_CERT *ptr_cert_buffer;
 
 SPDM_BSS1_ATTR uint8_t requested_slot;
@@ -213,7 +213,6 @@ uint8_t spdm_pkt_update_cert_data_len(uint32_t offset, uint32_t *update_cert_siz
  *******************************************************************************/
 void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
 {
-    uint16_t rtval = 0x00;
     uint8_t slot = 0;
     uint8_t current_cert_ptr = 0;
     uint8_t get_tail_ptr = 0;
@@ -332,7 +331,6 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                         get_mem = cert_buf[current_cert_ptr].mem_addr;
                         if (spdm_read_certificate(get_mem, &spi_data[offset], cert_buf[current_cert_ptr].cert_size, current_cert_ptr))
                         {
-                            // spdmContext->spdm_state_info = SPDM_IDLE;
                             return;
                         }
 
@@ -549,8 +547,9 @@ void spdm_pkt_init_hwconfig(SPDM_CONTEXT *spdmContext)
             num_of_bytes_in_current_block = (uint8_t)(msr_block_buffer[indx].msr_size[0] + MSR_BLOCK_SPEC_FLDS_SZ);
         }
         // concatenate third block
-        memcpy(&concat_msrment_blocks[measurement_var.msr_record_size], &msr_block_buffer[indx], num_of_bytes_in_current_block);
-
+        if (num_of_bytes_in_current_block > 0) {
+            memcpy(&concat_msrment_blocks[measurement_var.msr_record_size], &msr_block_buffer[indx], num_of_bytes_in_current_block);
+        }
         measurement_var.msr_record_size = measurement_var.msr_record_size + num_of_bytes_in_current_block;
         if (is_add_safe(measurement_var.msr_record_size, num_of_bytes_in_current_block) == 0)
         {
@@ -919,8 +918,10 @@ void spdm_pkt_fill_spdm_buf_digest(MCTP_PKT_BUF *spdm_buf_tx)
                     bytes_to_transfer = vacancy;
                 }
             }
-            memcpy(&spdm_buf_tx->pkt.data[offset],
-                   &hash_of_chains[(slot_position * SHA384_BYTES) + global_offset_for_pending_bytes], bytes_to_transfer);
+            if (bytes_to_transfer > 0) {
+                memcpy(&spdm_buf_tx->pkt.data[offset],
+                       &hash_of_chains[(slot_position * SHA384_BYTES) + global_offset_for_pending_bytes], bytes_to_transfer);
+            }
             vacancy -= bytes_to_transfer; // Decrement vacancy by bytes_transferred
             offset  = offset + bytes_to_transfer; // Incremenet offset
             if(is_add_safe(offset, bytes_to_transfer) == 0)
@@ -1073,8 +1074,9 @@ void spdm_pkt_fill_spdm_buf_certificate(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT 
                 spdmContext->get_requests_state = RUN_TIME_HASH_MODE;
                 spdm_get_len_for_runtime_hash(spdmContext);
                 spdm_crypto_ops_run_time_hashing(&spi_data[0], length, spdmContext);
-
-                memcpy(&temp[size_available_in_buffer], &spi_data[0], pending_size); // Get rest of data into temp buffer from spi_data buffer
+                if (pending_size > 0) {
+                    memcpy(&temp[size_available_in_buffer], &spi_data[0], pending_size); // Get rest of data into temp buffer from spi_data buffer
+                }
                 memcpy(&spdm_buf_tx->pkt.data[SPDM_MSG_TYPE_POS], &temp[0], size_to_be_transferred); // Copy temp to spdm pkt data
             }
             else
@@ -2146,7 +2148,7 @@ void spdm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *spdm_buf_tx, MCTP_PKT_
     mctp_buf->pkt.field.hdr.dst_eid = spdmContext->host_eid;
     /* source eid = eid of self/EC */
     //        mctp_buf->pkt.field.hdr.src_eid   = mctp_rt.ep.ec.field.current_eid;
-    mctp_buf->pkt.field.hdr.src_eid = curr_ec_id;
+    mctp_buf->pkt.field.hdr.src_eid = spdmContext->ec_eid;
     /* message tag */
     /* for response packet */
     mctp_buf->pkt.field.hdr.tag_owner = 0;
@@ -2204,6 +2206,7 @@ void spdm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *spdm_buf_tx, MCTP_PKT_
         }
         break;
     default:
+        /* Invalid case */
         break;
     }
 
@@ -2619,6 +2622,7 @@ void read_chain_from_offset(uint16_t start_offset, uint16_t end_offset, uint32_t
         }
         else
         {
+            /* Invalid case for size */
             ;
         }
         spi_read_size = (spi_read_size > size_to_read) ?  size_to_read : spi_read_size; // Limit spi_read_size based on length to read
@@ -2661,12 +2665,7 @@ void read_chain_from_offset(uint16_t start_offset, uint16_t end_offset, uint32_t
  *******************************************************************************/
 uint8_t spdm_pkt_process_get_cert_cmd(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *spdmContext)
 {
-    uint8_t current_cert_ptr = 0;
-    uint8_t iter = 0;
-    uint8_t get_tail_ptr = 0;
     uint16_t cert_chain_frmt_tbl_sz = 0x00;
-    uint32_t get_mem = 0x00;
-    uint32_t offset = ROOT_START_OFFSET;
     uint32_t local_offset_in_cert_req = 0;
 
     if (NULL == spdmContext)
@@ -3512,7 +3511,6 @@ void spdm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *tx_buf)
 void spdm_pkt_tx_packet()
 {
     uint8_t cmd_resp = 0;
-    uint8_t error = false;
     SPDM_CONTEXT *spdmContext = NULL;
     spdmContext = spdm_ctxt_get();
     if (NULL == spdmContext)

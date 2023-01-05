@@ -58,6 +58,12 @@ static union
 
 #define MCTP_TASK1_BUF_ADDR &mctp_task1_buf.w[0]
 
+/****************************************************************/
+/** mctp_task1_get_handle
+* Get the MCTP task handle
+* @param  void
+* @return TaskHandle_t - MCTP task handle
+*****************************************************************/
 TaskHandle_t mctp_task1_get_handle(void)
 {
     return mctp_task1_handle;
@@ -68,7 +74,7 @@ TaskHandle_t mctp_task1_get_handle(void)
 * Function to Create the freertos task for mctp
 * @param  pvParams
 * @return none
-**********************************************************************/
+*****************************************************************/
 int mctp_app_task_create(void *pvParams)
 {
 <#if (MCTP_IS_RTOS_COMPONENT_CONNECTED == true && FreeRTOS.FREERTOS_STATIC_ALLOC == true) || MCTP_IS_RTOS_COMPONENT_CONNECTED == false>
@@ -112,12 +118,12 @@ int mctp_app_task_create(void *pvParams)
     return 0;
 }
 
-/******************************************************************************/
+/****************************************************************/
 /** mctp_ctxt_get()
 * Get the MCTP Context
 * @param void
 * @return MCTP_context
-*******************************************************************************/
+*****************************************************************/
 MCTP_CONTEXT* mctp_ctxt_get(void)
 {
     MCTP_CONTEXT* ret_mctp_ctxt;
@@ -128,13 +134,13 @@ MCTP_CONTEXT* mctp_ctxt_get(void)
     return ret_mctp_ctxt;
 }
 
-/******************************************************************************/
+/****************************************************************/
 /** mctp_main()
 * main process of MCTP task
 * @param  pvParameters - Pointer that will be used as the parameter for the task
 * being created.
 * @return none
-********************************************************************************/
+*****************************************************************/
 static void mctp_main(void* pvParameters)
 {
     EventBits_t uxBits;
@@ -173,11 +179,11 @@ static void mctp_main(void* pvParameters)
 }
 
 /****************************************************************/
-/** SET_MCTP_EVENT_FLAG()
+/** SET_MCTP_EVENT_FLAG
 * Set event flag to trigger MCTP task to process
-* @param  none
-* @return none
-**********************************************************************/
+* @param  void
+* @return void
+*****************************************************************/
 void SET_MCTP_EVENT_FLAG(void)
 {
     mctpContext = mctp_ctxt_get();
@@ -188,6 +194,12 @@ void SET_MCTP_EVENT_FLAG(void)
     (void)xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_EVENT_BIT );
 }
 
+/****************************************************************/
+/** mctp_i2c_update
+* Updates I2C bus parameters
+* @param void
+* @return void
+*****************************************************************/
 void mctp_i2c_update(uint8_t slv_addr, uint8_t freq)
 {
     mctpContext = mctp_ctxt_get();
@@ -199,6 +211,12 @@ void mctp_i2c_update(uint8_t slv_addr, uint8_t freq)
     mctpContext->i2c_slave_addr = slv_addr;
 }
 
+/****************************************************************/
+/** mctp_update_eid
+* Updates the endopoint ID
+* @param eid - Endpoint ID value
+* @return void
+*****************************************************************/
 void mctp_update_eid(uint8_t eid)
 {
     mctpContext = mctp_ctxt_get();
@@ -209,6 +227,12 @@ void mctp_update_eid(uint8_t eid)
     mctpContext->eid = eid;
 }
 
+/****************************************************************/
+/** sb_mctp_enable
+* Enable MCTP module
+* @param void
+* @return void
+*****************************************************************/
 void sb_mctp_enable(void)
 {
     mctpContext = mctp_ctxt_get();

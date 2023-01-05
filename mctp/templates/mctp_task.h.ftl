@@ -66,6 +66,12 @@ extern "C" {
 #define MCTP_WAIT_FOR_SPDM_DONE     (1U << 18)
 #define MCTP_WAIT_FOR_PLDM_DONE     (1U << 19)
 
+/****************************************************************/
+/** mctp_task1_get_handle
+* Get the MCTP task handle
+* @param  void
+* @return TaskHandle_t - MCTP task handle
+**********************************************************************/
 extern TaskHandle_t mctp_task1_get_handle(void);
 
 #ifdef __cplusplus

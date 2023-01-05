@@ -181,7 +181,11 @@ void mctp_init_task(void)
 
 } /* End mctp_init_task(void) */
 
-
+/******************************************************************************/
+/** Store I2C parameters into MCTP context structure
+* @param void
+* @return void
+*******************************************************************************/
 void mctp_update_i2c_params(MCTP_CONTEXT* ret_mctp_ctxt)
 {
     uint8_t i;
@@ -742,6 +746,18 @@ uint8_t mctp_get_packet_type(uint8_t *buffer_ptr)
     }
 
 } /* End mctp_get_packet_type */
+
+/****************************************************************/
+/** SET_MCTP_TX_STATE
+* Set MCTP module to state machine to process tx of next
+* available packet
+* @param  void
+* @return void
+/****************************************************************/
+void SET_MCTP_TX_STATE(void)
+{
+    mctp_tx_state = (uint8_t)MCTP_TX_NEXT;
+}
 
 /**   @}
  */

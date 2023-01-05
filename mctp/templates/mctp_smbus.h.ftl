@@ -47,34 +47,115 @@ extern "C" {
 #endif
 
 /* Supported SMBus Speed*/
-#define SMBUS_AT_400_KHZ    1U
-#define SMBUS_AT_100_KHZ    0U
+#define SMBUS_AT_400_KHZ       1U
+#define SMBUS_AT_100_KHZ       0U
 /* Config Speed for Smbus either 400 or 100 Khz*/
-#define SMBUS_SPEED_CONFIG  SMBUS_AT_400_KHZ
+#define SMBUS_SPEED_CONFIG     SMBUS_AT_400_KHZ
 
 #define MCTP_SMBUS_AQ_TIMEOUT  100000U
 
 /*MCTP Retry Couners */
-#define MCTPSMBNKRET  0x08U
-#define MCTPSMBLBRET  0x0FU
-#define MCTPREQTOUT   0x0CU
-#define MCTPREQRET    0x03U
+#define MCTPSMBNKRET           0x08U
+#define MCTPSMBLBRET           0x0FU
+#define MCTPREQTOUT            0x0CU
+#define MCTPREQRET             0x03U
 
-#define INPUT_BUF_MAX_BYTES 1224U
+#define INPUT_BUF_MAX_BYTES    1224U
 
-/* function declarations */
+/******************************************************************************/
+/** Initializes mctp-smbus interface. It calls smb_slave _register for
+* registration with smbus.
+* @param void
+* @return MCTP_TRUE if success, else MCTP_FALSE.
+*******************************************************************************/
 uint8_t mctp_smbus_init(void);
+
+/******************************************************************************/
+/** This is called when MCTP packet is to be transmitted over smbus.
+* @param *tx_buf Pointer to TX packet buffer
+* @return void
+*******************************************************************************/
 void mctp_transmit_smbus(MCTP_PKT_BUF *tx_buf);
+
+/******************************************************************************/
+/** This is called when packet is received over smbus.
+* @param *buffer_info Pointer to I2C_BUFFER_INFO structure of smbus layer
+* @param slaveTransmitFlag Slave Transmit Flag
+* @return I2C_STATUS_BUFFER_DONE / I2C_STATUS_BUFFER_ERROR to smbus layer
+*******************************************************************************/
 uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFlag);
+
+/******************************************************************************/
+/** Once the packet trasmission is initiated over smbus, this function will be
+* called by smbus layer to return the status code to mctp layer.
+* Based on status code, mctp layer will schedule re-transmission of packet or
+* drop the packet / mark buffer available.
+* @param status Status code returned by smbus layer
+* @param *buffer_ptr Pointer to packet buffer
+* @param *newTxParams Pointer to structure for new SMBus Tx - Not Used
+* @return Release or Retry code to smbus layer.
+*******************************************************************************/
 uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr, I2C_MAPP_CBK_NEW_TX *newTxParams);
+
+/******************************************************************************/
+/** This will be called when smbus tx status is success, nack retry exhaust,
+* lab retry exhaust, bus error, or busy retry exhaust. This will configure
+* buffer parameters and configure events based on packet type (req or response).
+* @param *tx_buf Pointer to TX packet buffer
+* @param pkt_type Packet type (request or response packet)
+* @param status Smbus transaction status
+* @return void
+*******************************************************************************/
 void mctp_smbdone_handler(MCTP_PKT_BUF *tx_buf);
+
+/******************************************************************************/
+/** This will be called when TX packet buffer is dropped or abandoned.
+* This will clear buffer parameters to mark that TX buffer available.
+* @param *tx_buf Pointer to TX packet buffer
+* @return void
+*******************************************************************************/
 void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf);
+
+/******************************************************************************/
+/** Once any handler writes valid packet in TX buffer; it will call this
+* function to configure/initialize tx buffer parameters and handle tx state
+* for scheduling packet transmission over smbus.
+* @param *tx_buf Pointer to TX packet buffer
+* @return void
+*******************************************************************************/
 void mctp_txpktready_init(MCTP_PKT_BUF *tx_buf);
+
+/******************************************************************************/
+/** This is called when packet received over smbus is targeted for EC.
+* @param *buffer_info Pointer to I2C_BUFFER_INFO structure of smbus layer
+* @return void
+*******************************************************************************/
 uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info);
+
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+/******************************************************************************/
+/** This is called when packet received over smbus is targeted for EC and 
+* message type is for spdm.
+* @param *buffer_info Pointer to BUFFER_INFO structure of smbus layer
+* @return void
+*******************************************************************************/
 uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info);
 </#if>
+/******************************************************************************/
+/** This is called by smbus module whenever SMBUS address is updated.
+* @param smb_address - Bus address
+* @return mctp_port - I2C controller port 
+*******************************************************************************/
 extern void mctp_smbaddress_update(uint8_t smb_address, uint8_t mctp_port);
+
+/******************************************************************************/
+/** This is called when packet received over smbus and the packet is 
+* meant for SPDM or PLDM modules
+* @param rx_packet_len - length of the received packet
+* @param buffer_info - pointer to store the packetized data
+* @param rx_buf - pointer to the received data
+* @return void
+*******************************************************************************/
 uint8_t packetize_data(uint8_t rx_packet_len, I2C_BUFFER_INFO *buffer_info, MCTP_PKT_BUF *rx_buf);
 
 #define SET_MCTP_EVENT_TASK(mctp)   SET_MCTP_EVENT_FLAG()
@@ -88,11 +169,12 @@ void SET_PLDM_EVENT_FLAG(void);
 #define SET_EVENT_PLDM_TASK(pldm)   SET_PLDM_EVENT_FLAG()
 </#if>
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
-/**********************************************************************************************/
-/** This is called when packet received over smbus is targeted for EC and message type is PLDM.
+/******************************************************************************/
+/** This is called when packet received over smbus is targeted for 
+* EC and message type is PLDM.
 * @param *buffer_info Pointer to I2C_BUFFER_INFO structure of smbus layer
 * @return void
-***********************************************************************************************/
+*******************************************************************************/
 uint8_t mctp_copy_rx_for_pldm_for_ec(I2C_BUFFER_INFO *buffer_info);
 </#if>
 

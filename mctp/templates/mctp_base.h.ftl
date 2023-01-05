@@ -435,30 +435,114 @@ typedef struct MCTP_CONTEXT
 } MCTP_CONTEXT;
 
 
-/* function declarations */
+/******************************************************************************/
+/** Initializes the mctp module.
+* Mainly does initialization specific to mctp buffers, buffer parameters,
+* variables and mctp-smbus/emi interface.
+* @param void
+* @return void
+*******************************************************************************/
 void mctp_init_task(void);
+
+/******************************************************************************/
+/** This is called whenever kernel schedules mctp event task.
+* Mctp module calls SET_MCTP_EVENT_TASK(mctp) for scheduling mctp event task.
+* This event task is called whenever packet is received over smbus, or
+* packet is to be transmitted over smbus.
+* @param void
+* @return void
+*******************************************************************************/
 void mctp_event_task(void);
+
+/******************************************************************************/
+/** UPDATES packetizing variable to check if input data spans more than one 
+* mctp packet
+* @param NULL
+* @return true/false
+*******************************************************************************/
 extern bool mctp_base_packetizing_val_get(void);
+
+/******************************************************************************/
+/** UPDATES packetizing variable to check if input data spans more than one
+* mctp packet
+* @param val = true/false
+* @return None
+*******************************************************************************/
 extern void mctp_base_packetizing_val_set(bool val);
+
+/******************************************************************************/
+/** Validates packet received over smbus.
+* @param *pktbuf Pointer to smbus layer packet buffer
+* @return MCTP_TRUE if packet is found valid, else return MCTP_FALSE
+*******************************************************************************/
 uint8_t mctp_packet_validation(uint8_t *pkt_buf);
+
+/******************************************************************************/
+/** Get packet type - response or request or other.
+* @param *buffer_ptr Pointer to packet buffer
+* @return Packet type - request, response or other.
+*******************************************************************************/
 uint8_t mctp_get_packet_type(uint8_t *buffer_ptr);
+
+/******************************************************************************/
+/** For Calculating the time difference between current and the time given
+* @param start_time_val Start time counter value
+* @return Return the difference between start and end timing
+*******************************************************************************/
 uint32_t mctp_timer_difference(uint32_t start_time_val);
 
+/******************************************************************************/
+/** Store I2C parameters into MCTP context structure
+* @param void
+* @return void
+*******************************************************************************/
 void mctp_update_i2c_params(MCTP_CONTEXT* ret_mctp_ctxt);
+
+/****************************************************************/
+/** mctp_i2c_update
+* Updates I2C bus parameters
+* @param void
+* @return void
+*****************************************************************/
 void mctp_i2c_update(uint8_t slv_addr, uint8_t freq);
+
+/****************************************************************/
+/** sb_mctp_enable
+* Enable MCTP module
+* @param void
+* @return void
+*****************************************************************/
 void sb_mctp_enable(void);
 
+/******************************************************************************/
+/** UPDATES CURRENT_EID FIELD OF RESPECTIVE ENDPOINT OF MCTP BRIDGE ROUTING TABLE
+* @param i Endpoint entry id
+* @return void
+*******************************************************************************/
 extern void mctp_rtupdate_current_eid(uint8_t i);
+
+/******************************************************************************/
+/** UPDATES EID_TYPE FIELD OF RESPECTIVE ENDPOINT OF MCTP BRIDGE ROUTING TABLE
+* @param i Endpoint entry id
+* @return void
+*******************************************************************************/
 extern void mctp_rtupdate_eid_type(uint8_t i);
+
+/******************************************************************************/
+/** UPDATES EID_STATE FIELD OF RESPECTIVE ENDPOINT OF MCTP BRIDGE ROUTING TABLE
+* @param i Endpoint entry id
+* @return void
+*******************************************************************************/
 extern void mctp_rtupdate_eid_state(uint8_t i);
 
-/* port to Glacier to get system tick account */
-
-//extern struct MCTP_CFG_PARA mctp_cfg;
 extern MCTP_BSS_ATTR struct MCTP_CFG_PARA mctp_cfg;
+
 extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_self;
+
 extern MCTP_BSS_ATTR uint8_t mctp_tx_state;
+
 extern MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
+
 extern MCTP_BSS_ATTR uint8_t store_msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
 extern MCTP_BSS_ATTR uint8_t is_pldm_request_firmware_update;

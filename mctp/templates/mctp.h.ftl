@@ -723,6 +723,29 @@ extern void mctp_app_done_inform_i2c(void);
 *******************************************************************************/
 int mctp_app_task_create(void *pvParams);
 
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true || MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+/******************************************************************************/
+/** SET_MCTP_TX_STATE()
+ * Set MCTP module to state machine to process tx of next
+ * available packet
+ * @param  none
+ * @return none
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function should be called by SPDM module when an SPDM response packet
+ * has been populated in mctp_pktbuf[MCTP_BUF2] and ready to be processed
+ * by MCTP module, before calling SET_MCTP_EVENT_FLAG interface function
+ * -----------------------
+ * Example:
+ * -----------------------
+ * Refer SET_MCTP_EVENT_FLAG interface function
+ * ############################################################################
+*******************************************************************************/
+void SET_MCTP_TX_STATE(void);
+</#if>
 /******************************************************************************/
 /** SET_MCTP_EVENT_FLAG()
  * Set event flag to trigger MCTP packet processing
@@ -735,7 +758,7 @@ int mctp_app_task_create(void *pvParams);
  * -----------------------
  * This function should be called by SPDM module when an SPDM response packet
  * has been populated in mctp_pktbuf[MCTP_BUF2] and ready to be processed
- * by MCTP module
+ * by MCTP module, after calling SET_MCTP_TX_STATE interface function
  * -----------------------
  * Example:
  * -----------------------
@@ -746,6 +769,7 @@ int mctp_app_task_create(void *pvParams);
  *      spdm_buf_rx = mctp_pktbuf[MCTP_BUF3];
  *      spdm_buf_tx = mctp_pktbuf[MCTP_BUF2];
  *      spdm_populate_reponse(spdm_buf_rx, spdm_buf_tx);
+ *      SET_MCTP_TX_STATE();
  *      SET_MCTP_EVENT_FLAG();
  * }
  * ############################################################################

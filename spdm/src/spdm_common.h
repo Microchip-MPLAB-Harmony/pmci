@@ -37,6 +37,8 @@ extern "C" {
 #define SPDM_BSS2_ATTR                                     __attribute__((section("spdm_bss2")))
 
 #define PVT_KEY_CODE_LENGTH               (96U)
+#define SPDM_SHA384_LEN                   (48U)
+#define CURVE_384_SZ                      (48U)
 
 /* Attestation - Hasd Pointer for Chain */
 #define MAXIMUM_HEAD_PTR_CHAIN             8U
@@ -48,6 +50,16 @@ extern "C" {
 
 #define is_add_safe(sum, aug_or_add) ((sum) < (aug_or_add) ? 0 : 1) // Coverity INT30-C Postcondition Test
 #define is_sub_safe(ui_a, ui_b) ((ui_a) < (ui_b) ? 0 : 1) // Coverity INT30-C Precondition Test
+
+typedef union
+{
+    struct
+    {
+        uint8_t signature_r_term[CURVE_384_SZ];
+        uint8_t signature_s_term[CURVE_384_SZ];
+    };
+    uint8_t ecdsa_signature[CURVE_384_SZ*2];
+} ecdsa_signature_t;
 
 typedef struct CFG_CERT
 {
@@ -71,6 +83,7 @@ typedef struct CFG_CERT
 * @return uint8_t  - 0 success
 *******************************************************************************/
 uint8_t safe_subraction_16(uint16_t minuend, uint16_t subtrahend, uint16_t * rslt);
+
 #ifdef __cplusplus
 }
 #endif

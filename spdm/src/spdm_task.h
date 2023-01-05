@@ -24,6 +24,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "spdm_common.h"
+#include "mctp_config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,13 +35,12 @@ extern "C" {
 
 /* Stack size must be a power of 2 if the task is restricted */
 #define SPDM_STACK_SIZE 1024U       // 2 * configMINIMAL_STACK_SIZE (120)
-#define SPDM_STACK_WORD_SIZE ((SPDM_STACK_SIZE) / 4U)
+#define SPDM_STACK_WORD_SIZE ((SPDM_STACK_SIZE) / 2U)
 
 #define SPDM_STACK_ALIGN __attribute__ ((aligned(SPDM_STACK_SIZE)))
 
 #define SPDM_TASK_BUF_SIZE 512U
 #define SPDM_TASK_BUF_MPU_ATTR 0U
-#define SPDM_TASK_BUF_ALIGN
 
 #define SPDM_EVENT_BIT                  (1 << 0u)
 #define SPDM_GET_FROM_APCFG_EVENT_BIT   (1 << 1u)
@@ -55,7 +55,6 @@ int spdm_task_create(void *pvParams);
 #define SPDM_TASK_LOG_MBOX_START_ADDR              0x126000u
 #define SPDM_TASK_LOG_MBOX_MPU_ATTRIB              (portMPU_REGION_READ_ONLY | portMPU_REGION_EXECUTE_NEVER)
 
-#undef SPDM_TASK_BUF_ALIGN
 #define SPDM_TASK_BUF_ALIGN __attribute__((aligned(SPDM_TASK_BUF_SIZE)))
 
 /** SPDM Task Modes */

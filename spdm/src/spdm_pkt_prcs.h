@@ -35,10 +35,9 @@
  ***********************************************************************************
 */
 
+#include "mctp.h"
 #include "../mctp/mctp_control.h"
 #include "spdm_task.h"
-#include "spdm_crypto_ops.h"
-
 #include "spdm_common.h"
 
 #define MAX_SHA384_BUF_SIZE                            384 // 48 bytes * 8 chains
@@ -68,7 +67,7 @@ typedef struct CERTIFICATE
 typedef struct CERT_CHAIN
 {
     uint8_t head_ptr_val; //head pointer for the chain
-    uint8_t root_cert_hash[SHA384_BYTES];
+    uint8_t root_cert_hash[SPDM_SHA384_LEN];
     uint32_t chain_length;
 
 } __attribute__((packed)) CERT_CHAIN;
@@ -122,7 +121,7 @@ typedef struct MEASUREMENT_FRMT
 {
     uint8_t dmtf_msr_val_type;
     uint8_t dmtf_msr_val_size[2];
-    uint8_t dmtf_msr_val[SHA384_BYTES];
+    uint8_t dmtf_msr_val[SPDM_SHA384_LEN];
 
 } __attribute__((packed)) MEASUREMENT_FRMT;
 
@@ -196,7 +195,7 @@ typedef struct MEASUREMENT_BLOCK
 //As per certificate chain format table offset
 #define SPDM_CERT_CHAIN_TBL_OFFSET              10
 
-#define SPDM_CHALLENGE_AUTH_NONCE_OFFSET        (4 + SHA384_BYTES)
+#define SPDM_CHALLENGE_AUTH_NONCE_OFFSET        (4 + SPDM_SHA384_LEN)
 
 #define NOUNCE_DATA_SIZE                        32
 
@@ -480,7 +479,7 @@ typedef struct GET_CERTIFICATE_FIELDS
     uint8_t remain_len[2];
     uint8_t len_of_cert_chain[2];
     uint8_t reserved1[2];
-    uint8_t root_cert_hash[SHA384_BYTES];
+    uint8_t root_cert_hash[SPDM_SHA384_LEN];
 
 } __attribute__((packed)) GET_CERTIFICATE_FIELDS;
 
@@ -495,7 +494,7 @@ typedef struct CHALLENGE_FIELDS
     uint8_t resp_code;
     uint8_t resp_attr;
     uint8_t slot_mask;
-    uint8_t hash_of_cert_chain[SHA384_BYTES];
+    uint8_t hash_of_cert_chain[SPDM_SHA384_LEN];
     uint8_t random_val[32];
     uint8_t opaq_len[2];
     uint8_t opaq_data[2];

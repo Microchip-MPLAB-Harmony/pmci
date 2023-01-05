@@ -156,11 +156,9 @@ static void spdm_main(void* pvParameters)
     }
 
     spdmContext->spdm_state_info = SPDM_IDLE;
-    trace1(0, SPDM_TSK, 0, "[%s]: SPDM tsk main proc", __FUNCTION__);
     spdm_init_task(spdmContext);
     while(1)
     {
-        trace0(0, SPDM_TSK, 0, "spdm_main: Loop");
         uxBits = xEventGroupWaitBits(spdmContext->xSPDMEventGroupHandle,
                                      (SPDM_EVENT_BIT),
                                      pdTRUE,
@@ -211,6 +209,5 @@ void SET_SPDM_EVENT_FLAG(void)
     {
         return;
     }
-    trace1(0, SPDM_TSK, 0, "[%s]: set SPDM event", __FUNCTION__);
     xEventGroupSetBits( spdmContext->xSPDMEventGroupHandle, SPDM_EVENT_BIT );
 }

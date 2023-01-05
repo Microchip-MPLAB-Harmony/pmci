@@ -22,19 +22,6 @@
  * Source file for SPDM packet processing
  */
 
-/*******************************************************************************
- *  MCHP version control information (Perforce):
- *
- *  FILE:     $ $
- *  REVISION: $Revision: #79 $
- *  DATETIME: $DateTime: 2022/11/30 05:24:03 $
- *  AUTHOR:   $Author: i53517 $
- *
- *  Revision history (latest first):
- *      # 1: Initial revision for the SPDM porting
- ***********************************************************************************
- */
-
 #include "spdm_task.h"
 #include "../mctp/mctp_smbus.h"
 #include "../mctp/mctp_base.h"
@@ -109,7 +96,7 @@ SPDM_BSS1_ATTR uint8_t digest_state_machine;
 SPDM_BSS1_ATTR uint8_t nonce_offset;
 SPDM_BSS1_ATTR uint16_t signature_offset;
 
-SPDM_BSS1_ATTR uint8_t hash_of_req_buffer[SHA384_BYTES] __attribute__((aligned(8)));
+SPDM_BSS1_ATTR uint8_t hash_of_req_buffer[SPDM_SHA384_LEN] __attribute__((aligned(8)));
 SPDM_BSS1_ATTR uint8_t hash_of_chains[MAX_SHA384_BUF_SIZE] __attribute__((aligned(8)));
 
 SPDM_BSS1_ATTR uint16_t req_and_response_sz[2];
@@ -142,10 +129,10 @@ SPDM_BSS2_ATTR uint8_t measurement_response_buff[sizeof(MEASUREMENT_FIELDS) - OP
 SPDM_BSS1_ATTR MEASUREMENT_BLOCK msr_block_buffer[NO_OF_MSR_INDICES];
 
 // hash of all msr block
-SPDM_BSS1_ATTR uint8_t hash_concat_msrments_val[SHA384_BYTES];
+SPDM_BSS1_ATTR uint8_t hash_concat_msrments_val[SPDM_SHA384_LEN];
 
 // hash of all msr block
-SPDM_BSS1_ATTR uint8_t hash_concat_tcb_msrments_val[SHA384_BYTES];
+SPDM_BSS1_ATTR uint8_t hash_concat_tcb_msrments_val[SPDM_SHA384_LEN];
 
 // will have all msr blocks concatenated for sending in response
 SPDM_BSS1_ATTR uint8_t concat_msrment_blocks[SIZE_OF_ONE_MSR_BLOCK * NO_OF_MSR_INDICES];
@@ -261,8 +248,8 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                         {
                             // calculate hash of the root certificate and store it in spi_data
                             spdm_crypto_ops_calc_hash(&spi_data[offset], cert_buf[current_cert_ptr].cert_size, spdmContext);
-                            memcpy(&slot_buf[slot].chain.root_cert_hash[0], &spdmContext->sha_digest[0], SHA384_BYTES);
-                            memcpy(&spi_data[ROOTHASH_OFFSET_IN_CERT_CHAIN], &slot_buf[slot].chain.root_cert_hash[0], SHA384_BYTES);
+                            memcpy(&slot_buf[slot].chain.root_cert_hash[0], &spdmContext->sha_digest[0], SPDM_SHA384_LEN);
+                            memcpy(&spi_data[ROOTHASH_OFFSET_IN_CERT_CHAIN], &slot_buf[slot].chain.root_cert_hash[0], SPDM_SHA384_LEN);
                         }
                         else
                         {
@@ -292,7 +279,7 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                     cert_chain_valid_status |= spdm_pkt_update_cert_data_len(offset, &cert_buf[current_cert_ptr].cert_size);
                 }
                 // Refer Certificate chain format in spdm spec, chain length includes length, reserved, hash bytes
-                slot_buf[slot].chain.chain_length = cert_len + 2U + 2U + SHA384_BYTES;
+                slot_buf[slot].chain.chain_length = cert_len + 2U + 2U + SPDM_SHA384_LEN;
                 spi_data[0] = slot_buf[slot].chain.chain_length & 0xFF;           // Length of certificate chain - Byte 0
                 spi_data[1] = (slot_buf[slot].chain.chain_length & 0xFF00) >> 8U; // Length of certificate chain - Byte 1 (Little Endian)
 
@@ -360,7 +347,7 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                     }
                     spdmContext->get_requests_state = END_OF_HASH;
                     spdm_crypto_ops_run_time_hashing(NULL, 0, spdmContext);
-                    memcpy(&hash_of_chains[SHA384_BYTES * slot], &spdmContext->sha_digest[0], SHA384_BYTES);
+                    memcpy(&hash_of_chains[SPDM_SHA384_LEN * slot], &spdmContext->sha_digest[0], SPDM_SHA384_LEN);
                 }
                 else
                 {
@@ -402,10 +389,10 @@ void spdm_pkt_init_immutable_rom_block(SPDM_CONTEXT *spdmContext)
     if (((msr_block_buffer[indx].msr_frmt.dmtf_msr_val_type & RAW_BIT_STEAM_SELECT_VALUE) == 0x00))
     {
         // size of measurement record
-        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SHA384_BYTES;
+        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SPDM_SHA384_LEN;
 
         // size of dmtf measurement value
-        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SHA384_BYTES;
+        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SPDM_SHA384_LEN;
         spdm_get_measurements(&msr_block_buffer[indx].msr_frmt.dmtf_msr_val[0], INDEX1);
 
         uint8_t num_of_bytes_in_current_block = msr_block_buffer[indx].msr_size[0] + MSR_BLOCK_SPEC_FLDS_SZ;
@@ -449,10 +436,10 @@ void spdm_pkt_init_mutable_fw(SPDM_CONTEXT *spdmContext)
     if ((msr_block_buffer[indx].msr_frmt.dmtf_msr_val_type & RAW_BIT_STEAM_SELECT_VALUE) == 0x00)
     {
         // size of measurement record
-        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SHA384_BYTES;
+        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SPDM_SHA384_LEN;
 
         // size of dmtf measurement value
-        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SHA384_BYTES;
+        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SPDM_SHA384_LEN;
 
         spdm_get_measurements(&msr_block_buffer[indx].msr_frmt.dmtf_msr_val[0], INDEX2);
 
@@ -504,10 +491,10 @@ void spdm_pkt_init_hwconfig(SPDM_CONTEXT *spdmContext)
     if ((msr_block_buffer[indx].msr_frmt.dmtf_msr_val_type & RAW_BIT_STEAM_SELECT_VALUE) == 0x00)
     {
         // size of measurement
-        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SHA384_BYTES;
+        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SPDM_SHA384_LEN;
 
         // size of dmtf measurement value
-        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SHA384_BYTES;
+        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SPDM_SHA384_LEN;
 
         // store the hash
         spdm_get_measurements(&msr_block_buffer[indx].msr_frmt.dmtf_msr_val[0], INDEX3);
@@ -582,15 +569,15 @@ void spdm_pkt_init_ecfwconfig(SPDM_CONTEXT *spdmContext)
     uint8_t num_of_bytes_in_current_block = 0x0U;
     memset(msr_block_buffer[indx].msr_size, 0, 2);
 
-    memset(&msr_block_buffer[indx].msr_frmt.dmtf_msr_val[0], 0, SHA384_BYTES); // setting to 0; future support
+    memset(&msr_block_buffer[indx].msr_frmt.dmtf_msr_val[0], 0, SPDM_SHA384_LEN); // setting to 0; future support
 
     if ((msr_block_buffer[indx].msr_frmt.dmtf_msr_val_type & RAW_BIT_STEAM_SELECT_VALUE) == 0x00)
     {
         // size of measurement
-        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SHA384_BYTES;
+        msr_block_buffer[indx].msr_size[0] = MSR_BLOCK_DMTF_FLDS_SZ + SPDM_SHA384_LEN;
 
         // size of dmtf measurement value
-        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SHA384_BYTES;
+        msr_block_buffer[indx].msr_frmt.dmtf_msr_val_size[0] = SPDM_SHA384_LEN;
 
         spdm_get_measurements(&msr_block_buffer[indx].msr_frmt.dmtf_msr_val[0], INDEX4);
     }
@@ -648,7 +635,7 @@ void spdm_pkt_init_measurement_block(SPDM_CONTEXT *spdmContext)
 
     spdmContext->get_requests_state = END_OF_HASH;
     spdm_crypto_ops_run_time_hashing(NULL, 0, spdmContext);
-    memcpy(&hash_concat_msrments_val[0], &spdmContext->sha_digest, SHA384_BYTES);
+    memcpy(&hash_concat_msrments_val[0], &spdmContext->sha_digest, SPDM_SHA384_LEN);
 
     // calculate hash of tcb blocks alone: immutable rom and hw config
     tcb0_len = MSR_BLOCK_DMTF_FLDS_SZ + msr_block_buffer[(INDEX1 - 1)].msr_frmt.dmtf_msr_val_size[1];
@@ -664,7 +651,7 @@ void spdm_pkt_init_measurement_block(SPDM_CONTEXT *spdmContext)
     memcpy(&tcb_buff[0], (uint8_t *)&msr_block_buffer[(INDEX1 - 1)].msr_frmt, tcb0_len);
     memcpy(&tcb_buff[tcb0_len], (uint8_t *)&msr_block_buffer[(INDEX3 - 1)].msr_frmt, tcb1_len);
     spdm_crypto_ops_calc_hash(&tcb_buff[0], (tcb0_len + tcb1_len), spdmContext);
-    memcpy(&hash_concat_tcb_msrments_val[0], &spdmContext->sha_digest, SHA384_BYTES);
+    memcpy(&hash_concat_tcb_msrments_val[0], &spdmContext->sha_digest, SPDM_SHA384_LEN);
 }
 
 /******************************************************************************/
@@ -883,14 +870,14 @@ void spdm_pkt_fill_spdm_buf_digest(MCTP_PKT_BUF *spdm_buf_tx)
         {
             if (pending_bytes) // the slot's digest is not completely sent, some bytes are pending to be transferred
             {
-                if (is_sub_safe(SHA384_BYTES, pending_bytes) == 0)
+                if (is_sub_safe(SPDM_SHA384_LEN, pending_bytes) == 0)
                 {
                     // Handle Error
                     break;
                 }
                 else
                 {
-                    global_offset_for_pending_bytes = SHA384_BYTES - pending_bytes;
+                    global_offset_for_pending_bytes = SPDM_SHA384_LEN - pending_bytes;
                 }
                 bytes_to_transfer = pending_bytes;
                 if(bytes_to_transfer > vacancy)
@@ -908,7 +895,7 @@ void spdm_pkt_fill_spdm_buf_digest(MCTP_PKT_BUF *spdm_buf_tx)
             }
             else // No pending bytes in current slot, the slot needs to be sent completely from Offset 0
             {
-                bytes_to_transfer = SHA384_BYTES;
+                bytes_to_transfer = SPDM_SHA384_LEN;
                 global_offset_for_pending_bytes = 0U;
                 /* If bytes_to_transfer > vacancy, transfer only what can be transferred
                     update pending_bytes so that it can be transferred in the next transaction */
@@ -920,7 +907,7 @@ void spdm_pkt_fill_spdm_buf_digest(MCTP_PKT_BUF *spdm_buf_tx)
             }
             if (bytes_to_transfer > 0) {
                 memcpy(&spdm_buf_tx->pkt.data[offset],
-                       &hash_of_chains[(slot_position * SHA384_BYTES) + global_offset_for_pending_bytes], bytes_to_transfer);
+                       &hash_of_chains[(slot_position * SPDM_SHA384_LEN) + global_offset_for_pending_bytes], bytes_to_transfer);
             }
             vacancy -= bytes_to_transfer; // Decrement vacancy by bytes_transferred
             offset  = offset + bytes_to_transfer; // Incremenet offset
@@ -1150,12 +1137,12 @@ void spdm_pkt_fill_spdm_buf_challenge_auth_resp(MCTP_PKT_BUF *spdm_buf_tx, SPDM_
     {
     case TXSTATE_1:
         // add 64 - 53 = 11 bytes of nonce_data
-        for (uint8_t i = 0; i < (MAX_NUM_BYTES_PLD - (5 + SHA384_BYTES)); i++)
+        for (uint8_t i = 0; i < (MAX_NUM_BYTES_PLD - (5 + SPDM_SHA384_LEN)); i++)
         {
-            spdm_buf_tx->pkt.data[SPDM_HEADER_DATA_POS + 2 + SHA384_BYTES + i] = nonce_data[NOUNCE_DATA_SIZE - 1 - i];
+            spdm_buf_tx->pkt.data[SPDM_HEADER_DATA_POS + 2 + SPDM_SHA384_LEN + i] = nonce_data[NOUNCE_DATA_SIZE - 1 - i];
         }
 
-        nonce_offset = (MAX_NUM_BYTES_PLD - (5 + SHA384_BYTES)); // 11 bytes copied
+        nonce_offset = (MAX_NUM_BYTES_PLD - (5 + SPDM_SHA384_LEN)); // 11 bytes copied
 
         // 32 - 11 = 21 bytes of nonce to sent
         remaining_bytes_to_sent = NOUNCE_DATA_SIZE - nonce_offset;
@@ -1189,7 +1176,7 @@ void spdm_pkt_fill_spdm_buf_challenge_auth_resp(MCTP_PKT_BUF *spdm_buf_tx, SPDM_
             measurement_var.msr_hash_sum_offset = MAX_NUM_BYTES_PLD - remaining_bytes_to_sent;
 
             // 48-43 = 5 bytes of msr hash summary remaining
-            remaining_bytes_to_sent = SHA384_BYTES - (measurement_var.msr_hash_sum_offset);
+            remaining_bytes_to_sent = SPDM_SHA384_LEN - (measurement_var.msr_hash_sum_offset);
             first_challenge_resp_sent = TXSTATE_3;
         }
         else
@@ -2429,7 +2416,7 @@ void spdm_pkt_process_get_digest_cmd(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *sp
     spdm_buf_tx->pkt.data[SPDM_HEADER_DATA_POS + 1] = chain_avail_bits_mask;
     get_digest_resp_object.slot_mask = chain_avail_bits_mask;
 
-    packet_sz = SPDM_GET_DIGEST_RESPONSE_SIZE + ((spdmContext->no_of_chains_avail) * SHA384_BYTES); // pkt size updated here
+    packet_sz = SPDM_GET_DIGEST_RESPONSE_SIZE + ((spdmContext->no_of_chains_avail) * SPDM_SHA384_LEN); // pkt size updated here
     spdmContext->current_resp_cmd = SPDM_GET_DIGEST_RESPONSE;
 
     memcpy(get_digest_response, (uint8_t *)&get_digest_resp_object, sizeof(GET_DIGEST_FIELDS));
@@ -2455,10 +2442,10 @@ void spdm_pkt_process_get_digest_cmd(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *sp
         }
         if (is_chain_available_in_slot & 0x01)
         {
-            req_and_response_sz[1] = SHA384_BYTES;
+            req_and_response_sz[1] = SPDM_SHA384_LEN;
             spdmContext->get_requests_state = RUN_TIME_HASH_MODE;
             spdm_get_len_for_runtime_hash(spdmContext);
-            spdm_crypto_ops_run_time_hashing(&hash_of_chains[(iter * SHA384_BYTES)], length, spdmContext);
+            spdm_crypto_ops_run_time_hashing(&hash_of_chains[(iter * SPDM_SHA384_LEN)], length, spdmContext);
         }
     }
     digest_state_machine = TXSTATE_1;
@@ -2576,7 +2563,7 @@ void read_chain_from_offset(uint16_t start_offset, uint16_t end_offset, uint32_t
         // Store first 52 bytes into temp buffer
         temp[0] = (slot_buf[slot].chain.chain_length & 0xff);
         temp[1] = (slot_buf[slot].chain.chain_length >> 8);
-        memcpy(&temp[4], &slot_buf[slot].chain.root_cert_hash[0], SHA384_BYTES);
+        memcpy(&temp[4], &slot_buf[slot].chain.root_cert_hash[0], SPDM_SHA384_LEN);
 
         // Now copy bytes from temp to spi_data
         copy_bytes = limit_end_offset - start_offset + 1;
@@ -2751,7 +2738,7 @@ uint8_t spdm_pkt_process_get_cert_cmd(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *s
 
             RemainderLength = spdmContext->cert_bytes_pending_to_sent[requested_slot];
 
-            cert_chain_frmt_tbl_sz = PortionLength + 4 + SHA384_BYTES;
+            cert_chain_frmt_tbl_sz = PortionLength + 4 + SPDM_SHA384_LEN;
 
             spdm_buf_tx->pkt.data[SPDM_HEADER_DATA_POS] = requested_slot;
             get_cert_resp_object.slot_no = requested_slot;
@@ -2790,8 +2777,8 @@ uint8_t spdm_pkt_process_get_cert_cmd(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *s
             get_cert_resp_object.len_of_cert_chain[0] = slot_buf[requested_slot].chain.chain_length & 0xff;
 
             // fill response buffer with root hash
-            memcpy(get_cert_resp_object.root_cert_hash, &slot_buf[requested_slot].chain.root_cert_hash[0], SHA384_BYTES);
-            memcpy(&spi_data[4], &slot_buf[requested_slot].chain.root_cert_hash[0], SHA384_BYTES);
+            memcpy(get_cert_resp_object.root_cert_hash, &slot_buf[requested_slot].chain.root_cert_hash[0], SPDM_SHA384_LEN);
+            memcpy(&spi_data[4], &slot_buf[requested_slot].chain.root_cert_hash[0], SPDM_SHA384_LEN);
 
             memcpy(get_cert_response, (uint8_t *)&get_cert_resp_object, sizeof(GET_CERTIFICATE_FIELDS));
 
@@ -2879,14 +2866,14 @@ uint8_t spdm_pkt_challenge_auth(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *spdmCon
 
             // at offset 4:
             // Hash of the certificate chain
-            for (iter = 0; iter < SHA384_BYTES; iter++)
+            for (iter = 0; iter < SPDM_SHA384_LEN; iter++)
             {
-                spdm_buf_tx->pkt.data[SPDM_HEADER_DATA_POS + 2 + iter] = hash_of_chains[(SHA384_BYTES * requested_slot) + iter];
+                spdm_buf_tx->pkt.data[SPDM_HEADER_DATA_POS + 2 + iter] = hash_of_chains[(SPDM_SHA384_LEN * requested_slot) + iter];
             }
 
-            memcpy(challenge_resp_object.hash_of_cert_chain, &hash_of_chains[(requested_slot * SHA384_BYTES)], SHA384_BYTES);
+            memcpy(challenge_resp_object.hash_of_cert_chain, &hash_of_chains[(requested_slot * SPDM_SHA384_LEN)], SPDM_SHA384_LEN);
 
-            // at offset 4 + SHA384_BYTES
+            // at offset 4 + SPDM_SHA384_LEN
             // random value of 256 bit as nonce generated by TRNG each time a response sent:
             ret_val = spdm_crypto_ops_gen_random_no(&nonce_data[0], NOUNCE_DATA_SIZE);
 
@@ -2955,7 +2942,7 @@ uint8_t spdm_pkt_challenge_auth(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *spdmCon
 
             spdmContext->get_requests_state = END_OF_HASH;
             spdm_crypto_ops_run_time_hashing(NULL, 0, spdmContext);
-            memcpy(&hash_of_req_buffer[0], &spdmContext->sha_digest, SHA384_BYTES);
+            memcpy(&hash_of_req_buffer[0], &spdmContext->sha_digest, SPDM_SHA384_LEN);
 
             // generate signature for the response using AK pvt key
             spdm_crypto_ops_gen_signature(); 
@@ -3009,7 +2996,7 @@ uint8_t spdm_pkt_get_measurements(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *spdmC
 
     measurement_var.msr_operation = (get_mctp_pld[3] & 0xff); // param2 for the measurement operation
 
-    MCTP_PKT_BUF *spdm_msg_rx_buf = (MCTP_PKT_BUF *)&spdm_pktbuf_rx;
+    MCTP_PKT_BUF *spdm_msg_rx_buf = &mctp_pktbuf[MCTP_BUF3];
 
     if ((spdm_msg_rx_buf->pkt.data[MCTP_BYTE_CNT_OFFSET] -
             NO_OF_MCTP_HDR_BYTES_FRM_BYTE_CNT_OFFSET) > UINT8_MAX) // Coverity INT31-C Fix
@@ -3169,7 +3156,7 @@ uint8_t spdm_pkt_get_measurements(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT *spdmC
     {
         spdmContext->get_requests_state = END_OF_HASH;
         spdm_crypto_ops_run_time_hashing(NULL, 0, spdmContext);
-        memcpy(&hash_of_req_buffer[0], &spdmContext->sha_digest, SHA384_BYTES);
+        memcpy(&hash_of_req_buffer[0], &spdmContext->sha_digest, SPDM_SHA384_LEN);
 
         // generate signature for the response using AK pvt key
         spdm_crypto_ops_gen_signature(); // return value is purposely ignored, Failure case is handled inside the function
@@ -3406,7 +3393,6 @@ uint8_t spdm_pkt_validate_and_process_spdm_msg(uint8_t get_cmd, MCTP_PKT_BUF *sp
     default:
         // invalid request command code
         error_handle = SPDM_ERROR_INVLD_RQ;
-        trace0(0, SPDM_TSK, 0, "spdm_evt_tsk: IVLD CMND rcvd!");
         break;
     }
     // if any reported error scenario; fill tx buffer with error response
@@ -3442,8 +3428,6 @@ uint8_t spdm_pkt_validate_and_process_spdm_msg(uint8_t get_cmd, MCTP_PKT_BUF *sp
  *******************************************************************************/
 void spdm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *tx_buf)
 {
-    trace0(0, MCTP, 0, "mctp_txpktready_init: Enter");
-
     /* configure/initialize tx packet buffer parameters */
     tx_buf->smbus_nack_retry_count = 0;
     tx_buf->smbus_lab_retry_count = 0;
@@ -3462,6 +3446,7 @@ void spdm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *tx_buf)
     /* If tx state is MCTP_IDLE; then switch to MCTP_TX_NEXT. Else if tx state
      * is not MCTP_IDLE; then tx state machine will automatically switch to
      * MCTP_TX_NEXT after completing current tx */
+    mctp_tx_state = MCTP_TX_NEXT;
     if (tx_buf->pkt.field.hdr.eom != 1)
     {
         spdm_tx_state = SPDM_TX_IN_PROGRESS;
@@ -3522,7 +3507,7 @@ void spdm_pkt_tx_packet()
     case SPDM_TX_IDLE:
         break;
     case SPDM_TX_IN_PROGRESS:
-        mctp_buf_tx = &mctp_pktbuf_tx;
+        mctp_buf_tx  = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF2];
         memset(mctp_buf_tx, 0, sizeof(MCTP_PKT_BUF));
         // handle packet to mctp layer for multiple or single packet response
         spdm_buf_tx = (MCTP_PKT_BUF *)&spdm_pktbuf[0];
@@ -3531,7 +3516,6 @@ void spdm_pkt_tx_packet()
         spdm_pkt_msg_ready_trigger_mctp(mctp_buf_tx);
         break;
     default:
-        trace0(0, MCTP, 0, "spdm_tx_pkt: default");
         break;
     }
 }
@@ -3599,8 +3583,7 @@ void spdm_pkt_rcv_packet()
         return;
     }
     MCTP_PKT_BUF *spdm_msg_rx_buf = NULL;
-    //    spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
-    spdm_msg_rx_buf = (MCTP_PKT_BUF *)&spdm_pktbuf_rx;
+    spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
 
     // access mctp buffer for spdm only if mctp receive buffer is available
     if (MCTP_RX_PENDING == spdm_msg_rx_buf->buf_full)
@@ -3670,12 +3653,11 @@ void spdm_pkt_rcv_packet()
             ret_sts = spdm_pkt_validate_and_process_spdm_msg(get_cmd, spdm_buf_tx, spdmContext);
             if (ret_sts)
             {
-                trace0(0, SPDM_TSK, 0, "spdm_evt_tsk: Ivld SPDM rqst rcvd!");
-                trace0(0, SPDM_TSK, 0, "spdm_evt_tsk: Sending SPDM err respse!");
+               /* Invalid SPDM req rcvd */
             }
             else
             {
-                trace0(0, SPDM_TSK, 0, "spdm_evt_tsk: Vld SPDM rqst rcvd");
+               /* Valid SPDM req rcvd */
             }
             spdm_tx_state = SPDM_TX_IN_PROGRESS;
         }
@@ -3713,7 +3695,6 @@ void spdm_event_task(SPDM_CONTEXT *spdmContext)
         spdm_pkt_rcv_packet();
         spdm_pkt_tx_packet();
     }
-    trace0(0, SPDM_TSK, 0, "spdm_evt_tsk: End");
 
 } /* End spdm_event_task() */
 
@@ -3751,7 +3732,8 @@ void spdm_pkt_get_cert_from_apcfg(SPDM_CONTEXT *spdmContext)
     // (void)di_sb_apcfg_cert_data_request();
     fill_cert_buffer();
     /* Move to idle state and wait for response */
-    spdmContext->spdm_state_info = SPDM_IDLE;
+    spdmContext->spdm_state_info = SPDM_COPY_CERT_DATA_TO_BUF;
+    SET_SPDM_EVENT_FLAG();
 }
 
 /******************************************************************************/
@@ -3865,10 +3847,10 @@ void fill_cert_buffer()
 {
     ptr_cert_buffer = (CFG_CERT *)&AP_CFG_cert_buffer[0];
 
-    ptr_cert_buffer->head_ptr_chain[0] = SPDM_SLOT_CERT_CHAIN01;
-    ptr_cert_buffer->head_ptr_chain[1] = SPDM_SLOT_CERT_CHAIN23;
-    ptr_cert_buffer->head_ptr_chain[2] = SPDM_SLOT_CERT_CHAIN45;
-    ptr_cert_buffer->head_ptr_chain[3] = SPDM_SLOT_CERT_CHAIN67;
+    ptr_cert_buffer->certificate_chain_slot[0] = SPDM_SLOT_CERT_CHAIN01;
+    ptr_cert_buffer->certificate_chain_slot[1] = SPDM_SLOT_CERT_CHAIN23;
+    ptr_cert_buffer->certificate_chain_slot[2] = SPDM_SLOT_CERT_CHAIN45;
+    ptr_cert_buffer->certificate_chain_slot[3] = SPDM_SLOT_CERT_CHAIN67;
 
     ptr_cert_buffer->head_ptr_chain[0] = SPDM_HEAD_POINTER_0;
     ptr_cert_buffer->head_ptr_chain[1] = SPDM_HEAD_POINTER_1;

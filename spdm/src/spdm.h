@@ -28,30 +28,16 @@
 #define SPDM_H
 
 #include "definitions.h"
+#include "spdm_common.h"
+#include "spdm_task.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /******************************************************************************/
-/** Macro to define Certificate 0 Base Address
- * @note
- * ############################################################################
- * -----------------------
- * Usage notes:
- * -----------------------
- * -----------------------
- * Certificate 0 Base Address
- * -----------------------
- * Configure Certificate 0 Base Address here, Certificate 1 has to be at an offset
- * 0x400 from Certificate 0.
- * ############################################################################
-*******************************************************************************/
-#define CERTIFICATE_START_ADDRESS 0x126800
-
-/******************************************************************************/
 /** get_cert2_base_address
- * This function is to get Certificate 2 Address
+ * This function is to get SPDM Certificate 2 Address
  * @param cert_ptr         Pointer to hold certificate 2 address
  * @return                 None
  * @note
@@ -59,11 +45,14 @@ extern "C" {
  * -----------------------
  * Usage notes:
  * -----------------------
- * Currently the SPDM module supports only 64 certificates. This function is called
- * by SPDM module to get the Certificate 2 base address.
+ * Currently the SPDM module supports only 64 certificates. 
+ * This function is called by SPDM module to get the Certificate 2 base address.
  * Certificates 3 to 63 have to be placed at an offset 0x400 from previous
- * certificate. Certificate 0 and 1 addresses are configurable via macro
- * CERTIFICATE_START_ADDRESS.
+ * certificate. User can have these certificates 3 to 63 in any peripheral as
+ * per the system design.
+ * Certificate 0 and 1 addresses are configurable via macro
+ * CERTIFICATE_START_ADDRESS, and this can be placed in same peripheral of
+ * certificate 3 to 63, or can be any other peripheral as per design.
  * _______________________________________________________________________
  * |           |            |           |            |     |             |
  * | Cert 0    | Cert 1     | Cert 2    | Cert 3     |     | Cert 63     |
@@ -76,7 +65,7 @@ extern "C" {
  * -----------------------
  * Example:
  * -----------------------
- * spdm_pkt_initialize_cert_params_to_default
+ * void spdm_pkt_initialize_cert_params_to_default(SPDM_CONTEXT *spdmContext)
  * {
  *     get_cert2_base_address(&cert2_base_addr);
  * }
@@ -90,6 +79,23 @@ extern "C" {
 extern void get_cert2_base_address(uint32_t *cert_ptr);
 
 /******************************************************************************/
+/** CERTIFICATE_START_ADDRESS
+ * Macro to define Certificate 0 Base Address
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * -----------------------
+ * Certificate 0 Base Address
+ * -----------------------
+ * Configure SPDM Certificate 0 Base Address here, Certificate 1 has to be at an 
+ * offset 0x400 from Certificate 0.
+ * ############################################################################
+*******************************************************************************/
+#define CERTIFICATE_START_ADDRESS 0x126800
+
+/******************************************************************************/
 /** spdm_get_measurements
  * This function can be used to get hash of measurement data. 
  * @param buff_ptr         Pointer to hold the measurement data
@@ -101,12 +107,12 @@ extern void get_cert2_base_address(uint32_t *cert_ptr);
  * Usage notes:
  * -----------------------
  * This function is called by the SPDM module to get hash of measurement data.
- * Currently SPDM module supports 4 measurements. User is expected to fill 
- * unused measurement with zero's.
+ * Currently SPDM module supports 4 measurements of data hash. User is 
+ * expected to fill unused measurements with zeros.
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_get_measurements(uint8_t *buffer_ptr, uint8_t index)
+ * void spdm_get_measurements(uint8_t *buffer_ptr, uint8_t index)
  * {
  *      switch(index)
  *      {
@@ -154,11 +160,15 @@ extern void spdm_get_measurements(uint8_t *buffer_ptr,
  * uint8_t spdm_read_certificate(uint32_t address, uint8_t *buffer_ptr, uint8_t length
  *                              uint8_t certificate_no)
  * {
- *      if (certificate_no == 0) {
- *          read_certificate_from_flash(address, buffer_ptr, length);
- *      } else if (certificate_no == 1) {
- *          read_certificate_from_ram(address, buffer_ptr, length);
+ *      uint8_t ret_val = FAILURE;
+ * 
+ *      if (certificate_no == 0 || certificate_no == 1) {
+ *          ret_val = read_certificate_from_flash(address, buffer_ptr, length);
+ *      } else {
+ *          ret_val = read_certificate_from_ram(address, buffer_ptr, length);
  *      }
+ * 
+ *      return ret_val;
  * }
  * ############################################################################
 *******************************************************************************/
@@ -167,6 +177,59 @@ extern uint8_t spdm_read_certificate(uint32_t address,
                                   uint32_t length,
                                   uint8_t certificate_num);
 
+/******************************************************************************/
+/** pvt_key
+ * Global variable used to store the private key for signature generation.
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * User has to fill this global variable with the private key used in signature 
+ * generation spdm_crypto_ops_gen_signature().
+ * ############################################################################
+*******************************************************************************/
+extern SPDM_BSS1_ATTR uint8_t pvt_key[PVT_KEY_CODE_LENGTH];
+
+/******************************************************************************/
+/** hash_of_req_buffer
+ * Global variable that has the hash of data for signature generation.
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * SPDM module fills this buffer with hash of data.
+ * User can use this global variable in signature generation API. 
+ * Note: SPDM module supports only hash of data for signature generation.
+ * ############################################################################
+*******************************************************************************/
+extern SPDM_BSS0_ATTR uint8_t hash_of_req_buffer[SPDM_SHA384_LEN];
+
+/******************************************************************************/
+/** ecdsa_signature
+ * Global variable used to store the generated signature.
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * User is expected to store the generated signature in this variable.
+ * SPDM module uses this variable to add signature as part of SPDM challenge and 
+ * measurement response messages.
+ * ############################################################################
+*******************************************************************************/
+extern SPDM_BSS1_ATTR ecdsa_signature_t ecdsa_signature __attribute__((aligned(8)));
+
+/******************************************************************************/
+/** random_no
+ * Global variable to store the random number for signature generation.
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * User is expected to store the generated random number for signature generation
+ * if design demands it.
+ * ############################################################################
+*******************************************************************************/
+extern SPDM_BSS0_ATTR uint8_t random_no[CURVE_384_SZ];
 
 /******************************************************************************/
 /** spdm_crypto_ops_gen_signature
@@ -201,14 +264,22 @@ extern uint8_t spdm_read_certificate(uint32_t address,
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_crypto_ops_gen_signature(void)
+ * uint32_t spdm_crypto_ops_gen_signature(void)
  * {
- *      fill_pvt_key(&pvt_key[0]);
+ *      uint32_t ret_val = FAILURE;
  * 
- *      generate_random_number(&random_no);
+ *      ret_val = fill_pvt_key(&pvt_key[0]);
  * 
- *      ecdsa_gen_sig(&pvt_key[0], &hash_of_req_buffer[0], &random_no[0],
+ *      if (ret_val == SUCCESS) {
+ *          ret_val = generate_random_number(&random_no);
+ *      }
+ * 
+ *      if (ret_val == SUCCESS) {
+ *          ret_val = ecdsa_gen_sig(&pvt_key[0], &hash_of_req_buffer[0], &random_no[0],
  *                     &ecdsa_signature.ecdsa_signature[0]);
+ *      }
+ * 
+ *      return ret_val;
  * }
  * ############################################################################
 *******************************************************************************/
@@ -237,7 +308,11 @@ extern uint32_t spdm_crypto_ops_gen_signature(void);
  * uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length, 
  *                                  SPDM_CONTEXT *spdmContext)
  * {
- *      crypto_calc_hash(buff_ptr, length, &spdmContext->sha_digest[0]);
+ *      uint8_t ret_val = FAILURE;
+ * 
+ *      ret_val = crypto_calc_hash(buff_ptr, length, &spdmContext->sha_digest[0]);
+ * 
+ *      return ret_val;
  * }
  * ############################################################################
 *******************************************************************************/
@@ -337,16 +412,17 @@ extern uint8_t spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr,
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to generate random number.
- * User is expected to store the generated random number in the address pointed
+ * This function is called by the SPDM module to generate random number for nonce
+ * data. User is expected to store the generated random number in the address pointed
  * by buff.
+ * Same API can be used for generating random number during signature generation.
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff_ptr, uint32_t length)
+ * uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint32_t length)
  * {
- *    uint8_t ret = 0;
- *    ret = generate_random_num(buff_ptr, length); 
+ *    uint8_t ret = FAILURE;
+ *    ret = generate_random_num(buff, length); 
  *    return ret;  
  * }
  * ############################################################################
@@ -396,6 +472,46 @@ extern uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint8_t bytes);
  * ############################################################################
 *******************************************************************************/
 int spdm_app_task_create(void *pvParams);
+
+/******************************************************************************/
+/** spdmContext
+ * Global structure to save SPDM context information.
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * -----------------------
+ * spdmContext
+ * -----------------------
+ * spdmContext is used for saving SPDM context information. User is expected to 
+ * store the resultant hash computaiton value in spdmContext->sha_digest[48].
+ * spdmContext->get_requests_state has the hash intermediate state which can 
+ * be used for corresponding hash crypto engine functionality.
+ * ############################################################################
+*******************************************************************************/
+extern SPDM_BSS2_ATTR SPDM_CONTEXT *spdmContext;
+
+/******************************************************************************/
+/** SPDM_RQS_STATE 
+ * Intermediate hashing states
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * The values in this enum are used by SPDM module to store the intermediate
+ * hashing state. User can make use these for defining intermediate hashing crypto
+ * implementation.
+ * ############################################################################
+ *******************************************************************************/
+enum SPDM_RQS_STATE
+{
+    HASH_INIT_MODE,
+    RUN_TIME_HASH_MODE,
+    END_OF_HASH
+};
+
 
 #ifdef __cplusplus
 }

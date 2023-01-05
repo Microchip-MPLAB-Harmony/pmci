@@ -273,26 +273,6 @@ def instantiateComponent(spdmComponent):
     spdmIfaceSourceFile.setType("SOURCE")
     spdmIfaceSourceFile.setMarkup(False)
 
-    #Add spdm_crypto_ops.h
-    spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
-    spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_crypto_ops.h")
-    spdmIfaceHeaderFile.setOutputName("spdm_crypto_ops.h")
-    spdmIfaceHeaderFile.setDestPath("spdm/")
-    spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
-    spdmIfaceHeaderFile.setOverwrite(True)
-    spdmIfaceHeaderFile.setType("HEADER")
-    spdmIfaceHeaderFile.setMarkup(False)
-    
-    #Add spdm_crypto_ops.c
-    spdmIfaceSourceFile = spdmComponent.createFileSymbol(None, None)
-    spdmIfaceSourceFile.setSourcePath("spdm/src/spdm_crypto_ops.c")
-    spdmIfaceSourceFile.setOutputName("spdm_crypto_ops.c")
-    spdmIfaceSourceFile.setDestPath("spdm/")
-    spdmIfaceSourceFile.setProjectPath("config/" + configName + "/spdm/")
-    spdmIfaceSourceFile.setOverwrite(True)
-    spdmIfaceSourceFile.setType("SOURCE")
-    spdmIfaceSourceFile.setMarkup(False)
-
     #Add spdm_task.h
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
     spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_task.h")

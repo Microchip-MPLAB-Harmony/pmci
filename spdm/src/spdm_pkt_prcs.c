@@ -145,7 +145,7 @@ void read_chain_from_offset(uint16_t start_offset, uint16_t end_offset, uint32_t
 SPDM_BSS1_ATTR uint16_t read_bytes_from_chain;
 SPDM_BSS1_ATTR uint16_t START_OFFSET_IN_BUFFER;
 SPDM_BSS1_ATTR uint16_t BUFFER_END_OFFSET;
-SPDM_BSS1_ATTR uint8_t length;
+SPDM_BSS1_ATTR uint16_t length;
 
 
 /******************************************************************************/

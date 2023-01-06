@@ -100,6 +100,7 @@ def instantiateComponent(mctpComponent):
     # FreeRTOS is required for MCTP module to function
     mctpComponent.addDependency("FreeRTOS_DEP", "RTOS", None, True, True)
     mctpComponent.setDependencyEnabled("FreeRTOS_DEP", True)
+    mctpComponent.addCapability("MCTP STACK", "MCTP", True)
 
     Database.activateComponents(autoComponentIDTable)
     

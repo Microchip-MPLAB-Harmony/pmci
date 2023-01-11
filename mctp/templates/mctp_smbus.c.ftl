@@ -584,18 +584,18 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     if(spdm_pend)//if eom is not 1 for the spdm messaging, trigger spdm for further transmission over mctp
     {
-        trigger_spdm_event();
+        SET_EVENT_SPDM_TASK(spdm);
     }
 </#if>
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     if (is_pldm_request_firmware_update)
     {
-        trigger_pldm_res_event();
+        SET_EVENT_PLDM_TASK(pldm);
     }
 
     if (pldm_pend)
     {
-        trigger_pldm_res_event();
+        SET_EVENT_PLDM_TASK(pldm);
     }
 </#if>
     return ret_val;

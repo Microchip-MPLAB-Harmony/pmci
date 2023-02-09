@@ -24,13 +24,16 @@
 phyLayerList = ["Select", "I2C"]
 i2cSpeedList = ["100", "400", "1000"]
 
+def destroyComponent(mctpComponent):
+    Database.sendMessage("sg3_src", "MCTP_CONNECTED", {"isConnected":False})
+
 def handleMessage(messageID, args):
     global isSpdmComponentConnected
     global isPldmComponentConnected
     global isSpdmRequired
     global isPldmRequired
     global isSoteriaComponentConnected
-    
+
     if(messageID == "SPDM_CONNECTED"):
         if(args.get("isConnected") == True):
             isSpdmComponentConnected.setValue(True)
@@ -95,6 +98,8 @@ def instantiateComponent(mctpComponent):
 
     print("MCTP stack component initialize")
     
+    Database.sendMessage("sg3_src", "MCTP_CONNECTED", {"isConnected":True})
+
     autoComponentIDTable = ["FreeRTOS", "HarmonyCore"]
 
     # FreeRTOS is required for MCTP module to function

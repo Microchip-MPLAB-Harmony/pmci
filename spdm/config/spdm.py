@@ -23,9 +23,10 @@
 *****************************************************************************"""
 def destroyComponent(spdmCoreComponent):
     Database.sendMessage("MCTP", "SPDM_CONNECTED", {"isConnected":False})
+    Database.sendMessage("sg3_src", "SPDM_CONNECTED", {"isConnected":False})
 
 def instantiateComponent(spdmComponent):
-    print("OCP SPDM core component initialize")
+    print("SPDM stack component initialize")
     
     autoComponentIDTable = ["MCTP"]
     
@@ -35,6 +36,7 @@ def instantiateComponent(spdmComponent):
     Database.activateComponents(autoComponentIDTable)
     
     Database.sendMessage("MCTP", "SPDM_CONNECTED", {"isConnected":True})
+    Database.sendMessage("sg3_src", "SPDM_CONNECTED", {"isConnected":True})
 
     spdmCertChainSlot01 = spdmComponent.createHexSymbol("SPDM_CERT_CHAIN_SLOT_01", None)
     spdmCertChainSlot01.setLabel("Slot 01 Certificate Chain")

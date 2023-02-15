@@ -25,7 +25,18 @@ def destroyComponent(spdmCoreComponent):
     Database.sendMessage("MCTP", "SPDM_CONNECTED", {"isConnected":False})
     Database.sendMessage("sg3_src", "SPDM_CONNECTED", {"isConnected":False})
 
+def handleMessage(messageID, args):
+    global isSoteriaComponentConnected
+
+    if(messageID == "SOTERIA_CONNECTED"):
+        if(args.get("isConnected") == True):
+            isSoteriaComponentConnected.setValue(True)
+        else:
+            isSoteriaComponentConnected.setValue(False)
+
+
 def instantiateComponent(spdmComponent):
+    global isSoteriaComponentConnected
     print("SPDM stack component initialize")
     
     autoComponentIDTable = ["MCTP"]
@@ -207,6 +218,26 @@ def instantiateComponent(spdmComponent):
     spdmTailPointerCertificate60616263.setDescription("Tail pointer for Certificate 60,61,62,63")
     spdmTailPointerCertificate60616263.setDefaultValue(0xFFFFFFFF)
     spdmTailPointerCertificate60616263.setVisible(True)
+
+    isSoteriaComponentConnected = spdmComponent.createBooleanSymbol("SPDM_IS_SG3_COMPONENT_CONNECTED", None)
+    isSoteriaComponentConnected.setVisible(False)
+    isSoteriaComponentConnected.setDefaultValue(False)
+    isSoteriaComponentConnected.setValue(False)
+
+    spdmValueOverrideWarning = spdmComponent.createCommentSymbol("SPDM_VALUE_OVERRIDE_WARNING", None)
+    spdmValueOverrideWarning.setVisible(False)
+    spdmValueOverrideWarning.setLabel("****These values will be overwritten with values from APCFG table and OTP memory****")
+    spdmValueOverrideWarning.setDependencies(spdmValueOverrideWarningDisplay, ["SPDM_IS_SG3_COMPONENT_CONNECTED"])
+
+    activeComponentList = Database.getActiveComponentIDs()
+    component = "sg3_src"
+    if (component in activeComponentList):
+        isSoteriaComponentConnected.setValue(True)
+        spdmValueOverrideWarning.setVisible(True)
+
+def spdmValueOverrideWarningDisplay(symbol, event):
+    sg3Connected = event["value"]
+    symbol.setVisible(sg3Connected == True)
 
     ############################################################################
     #### Code Generation ####

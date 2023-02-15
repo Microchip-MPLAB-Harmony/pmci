@@ -234,6 +234,11 @@ def instantiateComponent(mctpComponent):
     mctpValueOverrideWarning.setLabel("****These values will be overwritten with values from APCFG table and OTP memory****")
     mctpValueOverrideWarning.setDependencies(mctpValueOverrideWarningDisplay, ["MCTP_IS_SG3_COMPONENT_CONNECTED"])
 
+    activeComponentList = Database.getActiveComponentIDs()
+    component = "sg3_src"
+    if (component in activeComponentList):
+        isSoteriaComponentConnected.setValue(True)
+        mctpValueOverrideWarning.setVisible(True)
     
     ############################################################################
     #### Code Generation ####

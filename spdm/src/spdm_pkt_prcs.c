@@ -258,7 +258,6 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                             
                             if (spdm_read_certificate(get_mem, &spi_data[offset], 1024, current_cert_ptr))
                             {
-                                // spdmContext->spdm_state_info = SPDM_IDLE;
                                 cert_chain_valid_status = CERT_CHAIN_INVALID;
                                 break;
                             }
@@ -284,7 +283,6 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                         {
                             if (spdm_read_certificate(get_mem, &spi_data[offset], 4, current_cert_ptr))
                             {
-                                // spdmContext->spdm_state_info = SPDM_IDLE;
                                 cert_chain_valid_status = CERT_CHAIN_INVALID;
                                 break;
                             }
@@ -298,7 +296,6 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                     if (cert_chain_valid_status == CERT_CHAIN_VALID) // Get Tail certificate Length only if all certificates are valid
                     {
                         spdm_read_certificate(0, &spi_data[offset], 4, current_cert_ptr);
-                        // spi_data[offset + 2] = 0xFF;
                         cert_chain_valid_status |= spdm_pkt_update_cert_data_len(offset, &cert_buf[current_cert_ptr].cert_size);
                     }
                 }
@@ -343,7 +340,6 @@ void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext)
                         get_mem = cert_buf[current_cert_ptr].mem_addr;
                         if (spdm_read_certificate(get_mem, &spi_data[offset], cert_buf[current_cert_ptr].cert_size, current_cert_ptr))
                         {
-                            // spdmContext->spdm_state_info = SPDM_IDLE;
                             slot_buf[slot].is_cert_chain_valid = CERT_CHAIN_INVALID;
                             break;
                         }

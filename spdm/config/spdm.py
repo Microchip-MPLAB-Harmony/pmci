@@ -24,6 +24,7 @@
 def destroyComponent(spdmCoreComponent):
     Database.sendMessage("MCTP", "SPDM_CONNECTED", {"isConnected":False})
     Database.sendMessage("sg3_src", "SPDM_CONNECTED", {"isConnected":False})
+    Database.sendMessage("sg3_lib", "SPDM_CONNECTED", {"isConnected":False})
 
 def handleMessage(messageID, args):
     global isSoteriaComponentConnected
@@ -48,6 +49,7 @@ def instantiateComponent(spdmComponent):
     
     Database.sendMessage("MCTP", "SPDM_CONNECTED", {"isConnected":True})
     Database.sendMessage("sg3_src", "SPDM_CONNECTED", {"isConnected":True})
+    Database.sendMessage("sg3_lib", "SPDM_CONNECTED", {"isConnected":True})
 
     spdmCertChainSlot01 = spdmComponent.createHexSymbol("SPDM_CERT_CHAIN_SLOT_01", None)
     spdmCertChainSlot01.setLabel("Slot 01 Certificate Chain")

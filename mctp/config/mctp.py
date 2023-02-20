@@ -26,6 +26,7 @@ i2cSpeedList = ["100", "400", "1000"]
 
 def destroyComponent(mctpComponent):
     Database.sendMessage("sg3_src", "MCTP_CONNECTED", {"isConnected":False})
+    Database.sendMessage("sg3_lib", "MCTP_CONNECTED", {"isConnected":False})
 
 def handleMessage(messageID, args):
     global isSpdmComponentConnected
@@ -99,6 +100,7 @@ def instantiateComponent(mctpComponent):
     print("MCTP stack component initialize")
     
     Database.sendMessage("sg3_src", "MCTP_CONNECTED", {"isConnected":True})
+    Database.sendMessage("sg3_lib", "MCTP_CONNECTED", {"isConnected":True})
 
     autoComponentIDTable = ["FreeRTOS", "HarmonyCore"]
 

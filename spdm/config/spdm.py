@@ -36,6 +36,10 @@ def handleMessage(messageID, args):
             isSoteriaComponentConnected.setValue(False)
 
 
+def spdmValueOverrideWarningDisplay(symbol, event):
+    sg3Connected = event["value"]
+    symbol.setVisible(sg3Connected == True)
+
 def instantiateComponent(spdmComponent):
     global isSoteriaComponentConnected
     print("SPDM stack component initialize")
@@ -236,10 +240,6 @@ def instantiateComponent(spdmComponent):
     if (component in activeComponentList):
         isSoteriaComponentConnected.setValue(True)
         spdmValueOverrideWarning.setVisible(True)
-
-def spdmValueOverrideWarningDisplay(symbol, event):
-    sg3Connected = event["value"]
-    symbol.setVisible(sg3Connected == True)
 
     ############################################################################
     #### Code Generation ####

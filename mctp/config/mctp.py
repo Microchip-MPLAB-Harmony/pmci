@@ -205,7 +205,7 @@ def instantiateComponent(mctpComponent):
 
     isPldmRequired = mctpComponent.createBooleanSymbol("MCTP_IS_PLDM_REQUIRED", None)
     isPldmRequired.setLabel("PLDM packet routing")
-    isPldmRequired.setVisible(False)
+    isPldmRequired.setVisible(True)
     isPldmRequired.setDefaultValue(False)
     isPldmRequired.setValue(False)
 

@@ -30,3 +30,7 @@ def loadModule():
     print("Load Module: Harmony SPDM Stack")
     dmtf_spdmComponent = Module.CreateComponent("SPDM", "SPDM", "/PMCI/", "/spdm/config/spdm.py")
     dmtf_spdmComponent.setDisplayType("SPDM stack")
+
+    print("Load Module: Harmony PLDM Stack")
+    dmtf_pldmComponent = Module.CreateComponent("PLDM", "PLDM", "/PMCI/", "/pldm/config/pldm.py")
+    dmtf_pldmComponent.setDisplayType("PLDM stack")

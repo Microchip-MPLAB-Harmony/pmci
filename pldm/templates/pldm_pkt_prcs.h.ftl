@@ -308,6 +308,7 @@ typedef struct PLDM_AP_CFG
     /* PLDM terminal ID */
     uint8_t tid;
 
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     /** Staged TAG0 Payload Base Address */         // 0x10
     uint32_t staged_TAG0_payload_BA;
 
@@ -332,13 +333,13 @@ typedef struct PLDM_AP_CFG
     /** APCFG1 base address */
     uint32_t AP_CFG_table1_base_addr;
 
-    uint32_t ht_addr_staged[2][2];
+    uint32_t ht_addr_staged[AP_MAX][COMPONENT_MAX];
 
-    uint32_t ht_addr_staged1[2][2];
+    uint32_t ht_addr_staged1[AP_MAX][COMPONENT_MAX];
 
-    uint32_t ht_addr_staged2[2][2];
+    uint32_t ht_addr_staged2[AP_MAX][COMPONENT_MAX];
 
-    uint32_t restore_img_loc[2];
+    uint32_t restore_img_loc[AP_MAX];
 
     uint32_t ap_cfg_staged_loc[AP_CFG_STAGED_LOCATION];
 
@@ -356,9 +357,10 @@ typedef struct PLDM_AP_CFG
 
     uint16_t ht_version[HASH_TABLE_VERSION];
 
-    uint8_t use_c1_ht_for_c0[2];
+    uint8_t use_c1_ht_for_c0[AP_MAX];
 
     BYTE_MATCH_DETAILS byte_match_details[NO_OF_BYTE_MATCH_SUPPORT_IN_INT_FLASH];
+</#if>
 
 } PLDM_AP_CFG;
 

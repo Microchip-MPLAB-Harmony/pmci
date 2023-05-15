@@ -58,11 +58,29 @@ def instantiateComponent(pldmComponent):
     Database.sendMessage("sg3_src", "PLDM_CONNECTED", {"isConnected":True})
     Database.sendMessage("sg3_lib", "PLDM_CONNECTED", {"isConnected":True})
 
-    pldmDeviceIdentifierLen =  pldmComponent.createHexSymbol("PLDM_DEVICE_DESCRIPTOR_OVERRIDE", None)
-    pldmDeviceIdentifierLen.setLabel("PLDM Device Descriptor Override")
-    pldmDeviceIdentifierLen.setDescription("PLDM  Override default values")
-    pldmDeviceIdentifierLen.setDefaultValue(0x07)
-    pldmDeviceIdentifierLen.setVisible(False)    
+    pldmDeviceDesOvr =  pldmComponent.createHexSymbol("PLDM_DEVICE_DESCRIPTOR_OVERRIDE", None)
+    pldmDeviceDesOvr.setLabel("PLDM Device Descriptor Override")
+    pldmDeviceDesOvr.setDescription("PLDM  Override default values")
+    pldmDeviceDesOvr.setMin(0)
+    pldmDeviceDesOvr.setDefaultValue(0x01)
+    pldmDeviceDesOvr.setMax(0x01)
+    pldmDeviceDesOvr.setVisible(False)    
+
+    pldmDeviceCopOvr =  pldmComponent.createHexSymbol("PLDM_OVERRIDE_CAPABLITIES", None)
+    pldmDeviceCopOvr.setLabel("PLDM capablities override")
+    pldmDeviceCopOvr.setDescription("PLDM  capablities Override default values")
+    pldmDeviceCopOvr.setMin(0)
+    pldmDeviceCopOvr.setDefaultValue(0x01)
+    pldmDeviceCopOvr.setMax(0x01)
+    pldmDeviceCopOvr.setVisible(False) 
+
+    pldmDeviceCompClassOvr =  pldmComponent.createHexSymbol("PLDM_OVERRIDE_COMP_CLASSIFICATION", None)
+    pldmDeviceCompClassOvr.setLabel("PLDM Override Comp Classification")
+    pldmDeviceCompClassOvr.setDescription("PLDM  Override component classification default values")
+    pldmDeviceCompClassOvr.setMin(0)
+    pldmDeviceCompClassOvr.setDefaultValue(0x01)
+    pldmDeviceCompClassOvr.setMax(0x01)
+    pldmDeviceCompClassOvr.setVisible(False) 
 
     pldmDeviceIdentifierLen =  pldmComponent.createHexSymbol("PLDM_DEVICE_IDENTIFIER_LENGTH", None)
     pldmDeviceIdentifierLen.setLabel("PLDM Device Identifier Length")
@@ -88,7 +106,12 @@ def instantiateComponent(pldmComponent):
         pldmUDes[index].setVisible(True)
         index = index +1
 
-
+    pldmUDes[0].setDefaultValue(0x28537687)
+    pldmUDes[1].setDefaultValue(0x54761786)
+    pldmUDes[2].setDefaultValue(0x78764662)
+    pldmUDes[3].setDefaultValue(0x39990007)
+    pldmUDes[4].setDefaultValue(0x51002214)
+    pldmUDes[5].setDefaultValue(0x00000025)
 
     # pldmUDes = pldmComponent.createStringSymbol("PLDM_DESCRIPTOR", None)
     # pldmUDes.setLabel("PLDM Descriptor")
@@ -164,13 +187,13 @@ def instantiateComponent(pldmComponent):
 
     #Add pldm_common.h
     pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
-    pldmIfaceHeaderFile.setSourcePath("pldm/src/pldm_common.h")
+    pldmIfaceHeaderFile.setSourcePath("pldm/templates/pldm_common.h.ftl")
     pldmIfaceHeaderFile.setOutputName("pldm_common.h")
     pldmIfaceHeaderFile.setDestPath("pldm/")
     pldmIfaceHeaderFile.setProjectPath("config/" + configName + "/pldm/")
     pldmIfaceHeaderFile.setOverwrite(True)
     pldmIfaceHeaderFile.setType("HEADER")
-    pldmIfaceHeaderFile.setMarkup(False)
+    pldmIfaceHeaderFile.setMarkup(True)
 
     #Add pldm_common.c
     pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
@@ -195,13 +218,13 @@ def instantiateComponent(pldmComponent):
     
     #Add pldm_pkt_prcs.c
     pldmIfaceSourceFile = pldmComponent.createFileSymbol(None, None)
-    pldmIfaceSourceFile.setSourcePath("pldm/src/pldm_pkt_prcs.c")
+    pldmIfaceSourceFile.setSourcePath("pldm/templates/pldm_pkt_prcs.c.ftl")
     pldmIfaceSourceFile.setOutputName("pldm_pkt_prcs.c")
     pldmIfaceSourceFile.setDestPath("pldm/")
     pldmIfaceSourceFile.setProjectPath("config/" + configName + "/pldm/")
     pldmIfaceSourceFile.setOverwrite(True)
     pldmIfaceSourceFile.setType("SOURCE")
-    pldmIfaceSourceFile.setMarkup(False)
+    pldmIfaceSourceFile.setMarkup(True)
 
     #Add pldm_task.h
     pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)

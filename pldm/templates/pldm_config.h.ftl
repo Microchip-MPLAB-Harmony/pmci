@@ -51,14 +51,17 @@ extern "C" {
 
 
 #define PLDM_DEVICE_DESCRIPTOR_OVERRIDE   0x${PLDM_DEVICE_DESCRIPTOR_OVERRIDE}
+#define PLDM_OVERRIDE_CAPABLITIES         0x${PLDM_OVERRIDE_CAPABLITIES}
+#define PLDM_OVERRIDE_COMP_CLASSIFICATION 0x${PLDM_OVERRIDE_COMP_CLASSIFICATION}
 #define PLDM_DEVICE_IDENTIFIER_LENGTH     0x${PLDM_DEVICE_IDENTIFIER_LENGTH}
 #define PLDM_DESCRIPTOR_COUNT             0x${PLDM_DESCRIPTOR_COUNT}
 
 <#assign byte_num = 0>
 <#list 0..49 as i>
-#define PLDM_DESCRIPTOR_${byte_num}_${byte_num+1}_${byte_num+2}_${byte_num+3} 0x${.vars["PLDM_DESCRIPTOR_"+(byte_num)+"_"+(byte_num+1)+"_"+(byte_num+2)+"_"+(byte_num+3)]}
+#define PLDM_DESCRIPTOR_${byte_num} 0x${.vars["PLDM_DESCRIPTOR_"+(byte_num)+"_"+(byte_num+1)+"_"+(byte_num+2)+"_"+(byte_num+3)]}
 <#assign byte_num = byte_num+4>
 </#list>
+#define GET_DESC(x)  PLDM_DESCRIPTOR_##x
 
 #define PLDM_UPGRADE_CAPABLITIES          0x${PLDM_UPGRADE_CAPABLITIES}
 

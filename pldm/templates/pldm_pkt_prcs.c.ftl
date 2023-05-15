@@ -1,5 +1,5 @@
 /*****************************************************************************
-* � 2020 Microchip Technology Inc. and its subsidiaries.
+* Copyright (c) 2022 Microchip Technology Inc. and its subsidiaries.
 * You may use this software and any derivatives exclusively with
 * Microchip products.
 * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".
@@ -33,126 +33,111 @@
  *  AUTHOR:   $Author: i67071 $
  *
  *  Revision history (latest first):
- *      # 1: Initial revision for the SPDM porting
+ *      # 1: Initial revision for the PLDM porting
  ***********************************************************************************
 */
 
 #include <stdlib.h>
-#include "app.h"
-#include "spdm_task.h"
+#include "pldm.h"
+#include "pldm_common.h"
+#include "pldm_task.h"
 #include "mctp/mctp_smbus.h"
 #include "mctp/mctp_base.h"
 #include "mctp/mctp_control.h"
-//#include "spdm_pkt_prcs.h"
-#include "../secure_boot/sb_qmspi/sb_qmspi.h"
-#include "../secure_boot/sb_core/sb_common.h"
-#include "../secure_boot/sb_modules/sb_mem_map.h"
-#include "../secure_boot/sb_modules/sb_apcfg_info.h"
 #include "pldm_pkt_prcs.h"
-#include "serial_flash.h"
-#include "../secure_boot/sb_core/sb_ecfw_auth.h"
-#include "spdm_data_iso.h"
-#include "../secure_boot/sb_core/sb_boot.h"
-#include "mctp/mctp_data_iso.h"
-#include "../secure_boot/sb_core/sb_core_data_iso.h"
-#include "spdm_pkt_prcs.h"
-#include "../secure_boot/sb_parser/sb_hash_table.h"
-#include "../plib/efuse/efuse_api.h"
-#include "../secure_boot/sb_parser/sb_parser.h"
 
-SPDM_BSS1_ATTR MCTP_PKT_BUF pldm_buf_tx[1];
-extern SPDM_BSS1_ATTR UINT8 mctp_tx_state;
-SPDM_BSS2_ATTR UINT8 pldm_request_firmware_update;
-SPDM_BSS2_ATTR MCTP_PKT_BUF *mctp_buf_tx1 = MCTP_NULL;
-SPDM_BSS2_ATTR uint32_t offset;
-SPDM_BSS2_ATTR uint32_t length;
-extern SPDM_BSS1_ATTR UINT8 get_mctp_pld[MAX_SIZE_CERTIFICATE]__attribute__((aligned(8)));
-SPDM_BSS1_ATTR uint32_t pldm_packet_size;
-SPDM_BSS2_ATTR bool received_1024b_for_flash_write;
-SPDM_BSS1_ATTR uint32_t offset_for_datacopy;
-SPDM_BSS1_ATTR uint32_t offset_for_flash;
-SPDM_BSS1_ATTR uint16_t number_of_1024b_requests;
-SPDM_BSS1_ATTR REQUEST_REQUEST_UPDATE request_update;
-SPDM_BSS2_ATTR bool in_update_mode;
-SPDM_BSS2_ATTR REQUEST_UPDATE_COMPONENT request_update_component;
-SPDM_BSS2_ATTR REQUEST_ACTIVATE_FIRMWARE request_activate_firmware;
-SPDM_BSS2_ATTR REQUEST_PASS_COMPONENT_TABLE request_pass_component_table;
-SPDM_BSS0_ATTR uint8_t buffer[1024];
-SPDM_BSS1_ATTR UINT8 pldm_pkt_seq_mctp;
-extern SPDM_BSS1_ATTR bool pldm_first_pkt;
+PLDM_BSS1_ATTR MCTP_PKT_BUF pldm_buf_tx[1];
+PLDM_BSS2_ATTR uint8_t pldm_request_firmware_update;
+PLDM_BSS2_ATTR MCTP_PKT_BUF *mctp_buf_tx1 = MCTP_NULL;
+PLDM_BSS2_ATTR uint32_t offset;
+PLDM_BSS2_ATTR uint32_t length;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+PLDM_BSS1_ATTR uint8_t get_mctp_pldm[PLDM_MAX_PAYLOAD_BUFF_SIZE]__attribute__((aligned(8)));
+<#else>
+extern PLDM_BSS1_ATTR uint8_t get_mctp_pld[PLDM_MAX_PAYLOAD_BUFF_SIZE]__attribute__((aligned(8)));
+</#if>
+PLDM_BSS1_ATTR uint32_t pldm_packet_size;
+PLDM_BSS2_ATTR bool received_1024b_for_flash_write;
+PLDM_BSS1_ATTR uint32_t offset_for_datacopy;
+PLDM_BSS1_ATTR uint32_t offset_for_flash;
+PLDM_BSS1_ATTR uint16_t number_of_1024b_requests;
+PLDM_BSS1_ATTR REQUEST_REQUEST_UPDATE request_update;
+PLDM_BSS2_ATTR bool in_update_mode;
+PLDM_BSS2_ATTR REQUEST_UPDATE_COMPONENT request_update_component;
+PLDM_BSS2_ATTR REQUEST_ACTIVATE_FIRMWARE request_activate_firmware;
+PLDM_BSS2_ATTR REQUEST_PASS_COMPONENT_TABLE request_pass_component_table;
+PLDM_BSS0_ATTR uint8_t buffer[1024];
+PLDM_BSS1_ATTR uint8_t pldm_pkt_seq_mctp;
+PLDM_BSS1_ATTR bool pldm_first_pkt;
 
-SPDM_BSS1_ATTR UINT16 total_length;
-SPDM_BSS1_ATTR UINT16 offset_for_data;
+PLDM_BSS1_ATTR uint16_t total_length;
+PLDM_BSS1_ATTR uint16_t offset_for_data;
 
-SPDM_BSS1_ATTR MCTP_PKT_BUF pldm_pktbuf_rx;
-SPDM_BSS1_ATTR MCTP_PKT_BUF pldm_mctp_pktbuf_tx;
+PLDM_BSS1_ATTR MCTP_PKT_BUF pldm_pktbuf_rx;
+PLDM_BSS1_ATTR MCTP_PKT_BUF pldm_mctp_pktbuf_tx;
 
-extern BUILD_INFO_T const sb_build_info __attribute__((section("build_info")));
-SPDM_BSS1_ATTR bool can_activate;
-SPDM_BSS1_ATTR bool can_update;
-SPDM_BSS1_ATTR bool self_contained_activation;
-SPDM_BSS1_ATTR bool failure_recovery_cap;
-SPDM_BSS1_ATTR bool retry_update_comp_cap;
-SPDM_BSS1_ATTR bool verify_fail;
-SPDM_BSS1_ATTR bool apply_completed;
-SPDM_BSS1_ATTR uint8_t pending_comp_string_ECFW0[COMP_STRING_TYPE_SIZE];
-SPDM_BSS1_ATTR uint8_t pending_comp_string_ECFW1[COMP_STRING_TYPE_SIZE];
-SPDM_BSS1_ATTR uint8_t pending_comp_string[COMP_STRING_TYPE_SIZE];
-SPDM_BSS1_ATTR uint32_t staged_address;
-SPDM_BSS1_ATTR uint8_t spi_select;
-SPDM_BSS1_ATTR uint32_t no_of_requests;
-SPDM_BSS2_ATTR uint8_t descriptors[200];
-SPDM_BSS1_ATTR REQUEST_UPDATE_COMPONENT_RESPONSE req_update_comp_resp_data;
-SPDM_BSS2_ATTR GET_FIRMWARE_PARAMETERS_RES_FIELDS get_firmware_parameters_res;
+PLDM_BSS1_ATTR bool can_activate;
+PLDM_BSS1_ATTR bool can_update;
+PLDM_BSS1_ATTR bool self_contained_activation;
+PLDM_BSS1_ATTR bool failure_recovery_cap;
+PLDM_BSS1_ATTR bool retry_update_comp_cap;
+PLDM_BSS1_ATTR bool verify_fail;
+PLDM_BSS1_ATTR bool apply_completed;
+PLDM_BSS1_ATTR uint8_t pending_comp_string_ECFW0[COMP_STRING_TYPE_SIZE];
+PLDM_BSS1_ATTR uint8_t pending_comp_string_ECFW1[COMP_STRING_TYPE_SIZE];
+PLDM_BSS1_ATTR uint8_t pending_comp_string[COMP_STRING_TYPE_SIZE];
+PLDM_BSS1_ATTR uint32_t staged_address;
+PLDM_BSS1_ATTR uint8_t spi_select;
+PLDM_BSS1_ATTR uint32_t no_of_requests;
+PLDM_BSS2_ATTR uint8_t descriptors[200];
+PLDM_BSS1_ATTR REQUEST_UPDATE_COMPONENT_RESPONSE req_update_comp_resp_data;
+PLDM_BSS2_ATTR GET_FIRMWARE_PARAMETERS_RES_FIELDS get_firmware_parameters_res;
 
-extern void timer_delay_ms(uint32_t num_ms);
-extern SPDM_BSS1_ATTR uint8_t curr_ec_id;
-SPDM_BSS2_ATTR bool host_functionality_reduced;
+PLDM_BSS1_ATTR uint8_t curr_ec_id;
+PLDM_BSS2_ATTR bool host_functionality_reduced;
 
-SPDM_BSS1_ATTR uint32_t remaining_size_for_write;
-SPDM_BSS1_ATTR uint32_t copy_data_offset;
-SPDM_BSS1_ATTR uint32_t spi_address_flash_write;
-SPDM_BSS1_ATTR uint32_t update_comp_image_size;
-SPDM_BSS1_ATTR uint32_t remaining_data_size_for_transfer;
-SPDM_BSS1_ATTR bool background_update_in_progress;
-SPDM_BSS1_ATTR bool retry_request_firmware_data;
-SPDM_BSS1_ATTR uint32_t packet_no;
-SPDM_BSS1_ATTR uint8_t FW_type;
-SPDM_BSS1_ATTR uint32_t size_supported_by_UA;
+PLDM_BSS1_ATTR uint32_t remaining_size_for_write;
+PLDM_BSS1_ATTR uint32_t copy_data_offset;
+PLDM_BSS1_ATTR uint32_t spi_address_flash_write;
+PLDM_BSS1_ATTR uint32_t update_comp_image_size;
+PLDM_BSS1_ATTR uint32_t remaining_data_size_for_transfer;
+PLDM_BSS1_ATTR bool background_update_in_progress;
+PLDM_BSS1_ATTR bool retry_request_firmware_data;
+PLDM_BSS1_ATTR uint32_t packet_no;
+PLDM_BSS1_ATTR uint8_t FW_type;
+PLDM_BSS1_ATTR uint32_t size_supported_by_UA;
 
-SPDM_BSS1_ATTR uint16_t tag0FWNum;
-SPDM_BSS1_ATTR uint16_t tag1FWNum;
+PLDM_BSS1_ATTR uint16_t tag0FWNum;
+PLDM_BSS1_ATTR uint16_t tag1FWNum;
 
-SPDM_BSS1_ATTR UINT16 pkt_cnt;
-SPDM_BSS1_ATTR UINT8 completion_code;
+PLDM_BSS1_ATTR uint16_t pkt_cnt;
+PLDM_BSS1_ATTR uint8_t completion_code;
 
-SPDM_BSS1_ATTR UINT8 req_cmd;
+PLDM_BSS1_ATTR uint8_t req_cmd;
 
-SPDM_BSS1_ATTR UINT8 pldm_type;
+PLDM_BSS1_ATTR uint8_t pldm_type;
 
-SPDM_BSS1_ATTR UINT8 offset_data_pos;
+PLDM_BSS1_ATTR uint8_t offset_data_pos;
 
-SPDM_BSS1_ATTR bool PLDMResp_timer_started;
+PLDM_BSS1_ATTR bool PLDMResp_timer_started;
 
-SPDM_BSS1_ATTR UINT8 spi_select_configured;
+PLDM_BSS1_ATTR uint8_t spi_select_configured;
 
 // support for update during crisis update
-SPDM_BSS1_ATTR uint8_t sg3_state;
-SPDM_BSS1_ATTR uint32_t APKHB_address;
-SPDM_BSS1_ATTR uint32_t APCFG_address;
-SPDM_BSS1_ATTR uint32_t HT_address;
-SPDM_BSS1_ATTR uint32_t APFW_address;
-
-// PLDM APcfg details
-extern SPDM_BSS1_ATTR PLDM_AP_CFG pldm_ap_cfg;
+PLDM_BSS1_ATTR uint8_t sg3_state;
+PLDM_BSS1_ATTR uint32_t APKHB_address;
+PLDM_BSS1_ATTR uint32_t APCFG_address;
+PLDM_BSS1_ATTR uint32_t HT_address;
+PLDM_BSS1_ATTR uint32_t APFW_address;
+PLDM_BSS1_ATTR PLDM_AP_CFG pldm_ap_cfg;
 
 /******************************************************************************/
 /** function for handling query device identifiers message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     bool override = 0;
     uint16_t size=0x0u;
@@ -171,11 +156,11 @@ void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CO
 
     QUERY_DEVICE_IDENTIFIERS_REQ_MESSAGE_RES_FIELDS device_desp_resp;
 
-    if (sg3_state == SG3_POSTAUTH) {
+    <#--  if (sg3_state == SG3_POSTAUTH) {
         override = di_sb_apcfg_pldm_override_device_desc();
     } else if (sg3_state == SG3_CRISIS) {
         override = false;
-    }
+    }  -->
 
     device_desp_resp.completion_code = PLDM_SUCCESS;
 
@@ -228,16 +213,16 @@ void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CO
 
     pldm_packet_size = size + 9;
 
-    spdmContext->pldm_current_response_cmd = PLDM_QUERY_DEVICE_IDENTIFIERS_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_QUERY_DEVICE_IDENTIFIERS_REQ;
 }
 
 /******************************************************************************/
 /** function for handling get firmware parameters message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_get_firmware_parameters(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_get_firmware_parameters(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_GET_FIRMWARE_PARAMETERS_REQ;
@@ -623,17 +608,17 @@ void pldm_pkt_handle_get_firmware_parameters(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CON
             }
             if (no_of_byte_match_int_spi_support == 1) {
 
-                if (pldm_ap_cfg.byte_match_details[0].is_present) {
+                if (pldm_cfg.byte_match_details[0].is_present) {
                     supported_idx = 0;
                 } else {
                     supported_idx = 1;
                 }
-                get_firmware_parameters_res.comp_parameter[n].comp_identifier = (PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE | (pldm_ap_cfg.byte_match_details[supported_idx].comp_img_id) |
-                                                                            (pldm_ap_cfg.byte_match_details[supported_idx].comp_id << 4) | (pldm_ap_cfg.byte_match_details[supported_idx].ap << 8));
+                get_firmware_parameters_res.comp_parameter[n].comp_identifier = (PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE | (pldm_cfg.byte_match_details[supported_idx].comp_img_id) |
+                                                                            (pldm_cfg.byte_match_details[supported_idx].comp_id << 4) | (pldm_cfg.byte_match_details[supported_idx].ap << 8));
 
             } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_identifier = (PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE | (pldm_ap_cfg.byte_match_details[b].comp_img_id) |
-                                                                            (pldm_ap_cfg.byte_match_details[b].comp_id << 4) | (pldm_ap_cfg.byte_match_details[b].ap << 8));
+                get_firmware_parameters_res.comp_parameter[n].comp_identifier = (PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE | (pldm_cfg.byte_match_details[b].comp_img_id) |
+                                                                            (pldm_cfg.byte_match_details[b].comp_id << 4) | (pldm_cfg.byte_match_details[b].ap << 8));
             }
             get_firmware_parameters_res.comp_parameter[n].comp_classification_index = 0x00;
             get_firmware_parameters_res.comp_parameter[n].active_comp_comparison_stamp = 0x00000000;
@@ -778,22 +763,24 @@ void pldm_pkt_handle_get_firmware_parameters(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CON
 
     total_length = size;
 
-    spdmContext->pldm_current_response_cmd = PLDM_GET_FIRMWARE_PARAMETERS_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_GET_FIRMWARE_PARAMETERS_REQ;
 }
 
 /******************************************************************************/
 /** function for handling request update message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
-
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+    memcpy(&request_update, &(get_mctp_pldm[0]), PLDM_REQUEST_UPDATE_DATA_LEN);
+<#else>
     memcpy(&request_update, &(get_mctp_pld[0]), PLDM_REQUEST_UPDATE_DATA_LEN);
-
+</#if>
     if (request_update.max_transfer_size < ONE_KB)
     {
         size_supported_by_UA = request_update.max_transfer_size;
@@ -808,11 +795,11 @@ void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spd
 
     REQUEST_UPDATE_RESPONSE req_update_resp_data;
 
-    spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
+    pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
     if (!in_update_mode || (verify_fail && retry_update_comp_cap))
     {
         req_update_resp_data.completion_code = PLDM_SUCCESS;
-        spdmContext->pldm_current_state = PLDM_LEARN_COMPONENTS;
+        pldmContext->pldm_current_state = PLDM_LEARN_COMPONENTS;
     }
     else
     {
@@ -827,12 +814,12 @@ void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spd
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_UPDATE_RESPONSE_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_REQUEST_UPDATE_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_REQUEST_UPDATE_REQ;
 
     if (in_update_mode == 1)
     {
         // PLDM:already in update mode
-        trace0(PLDM_TRACE, SPDM_TSK, 3, "PlaU");
+        trace0(PLDM_TRACE, PLDM_TSK, 3, "PlaU");
     }
 
     if (in_update_mode == 0)
@@ -844,15 +831,20 @@ void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spd
 /******************************************************************************/
 /** function for handling pass component table message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_pass_component_table(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_pass_component_table(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
 
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+    memcpy(&request_pass_component_table, &(get_mctp_pldm[0]), sizeof(REQUEST_PASS_COMPONENT_TABLE));
+<#else>
     memcpy(&request_pass_component_table, &(get_mctp_pld[0]), sizeof(REQUEST_PASS_COMPONENT_TABLE));
+</#if>
+    
 
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_PASS_COMPONENT_TABLE_REQ;
@@ -863,7 +855,7 @@ void pldm_pkt_handle_pass_component_table(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEX
     {
         req_pass_component_table_response_data.completion_code = NOT_IN_UPDATE_MODE;
     }
-    else if (spdmContext->pldm_current_state != PLDM_LEARN_COMPONENTS)
+    else if (pldmContext->pldm_current_state != PLDM_LEARN_COMPONENTS)
     {
         req_pass_component_table_response_data.completion_code = INVALID_STATE_FOR_COMMAND;
     }
@@ -886,22 +878,22 @@ void pldm_pkt_handle_pass_component_table(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEX
 
         if (req_pass_component_table_response_data.component_response == PLDM_PASS_COMPONENT_TABLE_CAN_BE_UPDATED)
         {
-            spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
+            pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
             if (request_pass_component_table.transfer_flag == PLDM_TRANSFER_START ||
                     request_pass_component_table.transfer_flag == PLDM_TRANSFER_MIDDLE)
             {
-                spdmContext->pldm_current_state = PLDM_LEARN_COMPONENTS;
+                pldmContext->pldm_current_state = PLDM_LEARN_COMPONENTS;
             }
             else if (request_pass_component_table.transfer_flag == PLDM_TRANSFER_END ||
                      request_pass_component_table.transfer_flag == PLDM_TRANSFER_START_AND_END)
             {
-                spdmContext->pldm_current_state = PLDM_READY_TRANSFER;
+                pldmContext->pldm_current_state = PLDM_READY_TRANSFER;
             }
         }
         else
         {
-            spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
-            spdmContext->pldm_current_state = PLDM_LEARN_COMPONENTS;
+            pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
+            pldmContext->pldm_current_state = PLDM_LEARN_COMPONENTS;
         }
     }
     else
@@ -915,22 +907,26 @@ void pldm_pkt_handle_pass_component_table(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEX
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_PASS_COMPONENT_TABLE_RESPONSE_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_PASS_COMPONENT_TABLE_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_PASS_COMPONENT_TABLE_REQ;
 }
 
 /******************************************************************************/
 /** function for handling update component message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
     uint8_t image_id, ap, comp, ht_num, ht_id;
-
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+    memcpy(&request_update_component, &(get_mctp_pldm[0]), PLDM_UPDATE_COMP_REQUEST_SIZE);
+<#else>
     memcpy(&request_update_component, &(get_mctp_pld[0]), PLDM_UPDATE_COMP_REQUEST_SIZE);
+</#if>
+    
 
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_UPDATE_COMPONENT_REQ;
@@ -951,7 +947,7 @@ void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *s
     {
         req_update_comp_resp_data.completion_code = NOT_IN_UPDATE_MODE;
     }
-    else if (spdmContext->pldm_current_state != PLDM_READY_TRANSFER)
+    else if (pldmContext->pldm_current_state != PLDM_READY_TRANSFER)
     {
         req_update_comp_resp_data.completion_code = INVALID_STATE_FOR_COMMAND;
     }
@@ -978,16 +974,16 @@ void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *s
             req_update_comp_resp_data.update_option_flag_enabled = 0;
             req_update_comp_resp_data.est_time_sending_reqfwdata = 0x0002;
 
-            spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
-            spdmContext->pldm_current_state = PLDM_DOWNLOAD;
+            pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
+            pldmContext->pldm_current_state = PLDM_DOWNLOAD;
         }
         else
         {
             req_update_comp_resp_data.update_option_flag_enabled = 0;
             req_update_comp_resp_data.est_time_sending_reqfwdata = 0x0000;
 
-            spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
-            spdmContext->pldm_current_state = PLDM_READY_TRANSFER;
+            pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
+            pldmContext->pldm_current_state = PLDM_READY_TRANSFER;
         }
     }
     else
@@ -1004,7 +1000,7 @@ void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *s
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_UPDATE_COMP_RESPONSE_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_UPDATE_COMPONENT_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_UPDATE_COMPONENT_REQ;
 
     if (can_update) {
         if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG0) || 
@@ -1059,21 +1055,21 @@ void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *s
 
         spi_select = staged_address & SPI_SELECT_MASK;
         spi_select_configured |= (uint8_t)((1u << (sb_spi_port_get(spi_select)))&UINT8_MAX);
-        spdm_di_sb_i2c_ec_fw_port_prepare(host_functionality_reduced, spi_select, spi_select, spi_select);
-        spdm_di_i2c_spi_init(spi_select, spi_select, spi_select);
+        pldm_di_sb_i2c_ec_fw_port_prepare(host_functionality_reduced, spi_select, spi_select, spi_select);
+        pldm_di_i2c_spi_init(spi_select, spi_select, spi_select);
 
-        spdm_di_qmspi_clr_port_init_status(spi_select);
-        spdm_di_init_flash_component((SPI_FLASH_SELECT)spi_select);
+        pldm_di_qmspi_clr_port_init_status(spi_select);
+        pldm_di_init_flash_component((SPI_FLASH_SELECT)spi_select);
     }
 }
 
 /******************************************************************************/
 /** function for handling request firmware data message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_create_request_firmware_data(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_create_request_firmware_data(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_REQUEST_FIRMWARE_DATA_REQ;
@@ -1128,7 +1124,7 @@ void pldm_pkt_create_request_firmware_data(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTE
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_FIRMWARE_DATA_REQ_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_REQUEST_FIRMWARE_DATA_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_REQUEST_FIRMWARE_DATA_REQ;
 
     pldm_response_timeout_start();
     PLDMResp_timer_started = true;
@@ -1238,10 +1234,10 @@ void pldm_pkt_process_request_firmware_update_response(void)
             if (!(offset_for_flash % FLASH_SECTOR_SIZE))   //sector erase for every 4096 bytes
             {
 
-                if(spdm_di_sb_spi_sector_erase(staged_address, spi_select))
+                if(pldm_di_sb_spi_sector_erase(staged_address, spi_select))
                 {
                     // PLDM:sector erase fail
-                    trace0(PLDM_TRACE, SPDM_TSK, 3, "Psef");
+                    trace0(PLDM_TRACE, PLDM_TSK, 3, "Psef");
                     return;
                 }
                 timer_delay_ms(5);
@@ -1254,18 +1250,24 @@ void pldm_pkt_process_request_firmware_update_response(void)
                 if ((is_addition_safe(write_address, staged_address) == 0)) // Coverity INT30-C
                 {
                     // Do not write to invalid address.Cannot write to invalid address
-                    trace0(PLDM_TRACE, SPDM_TSK, 3, "PiCw");
+                    trace0(PLDM_TRACE, PLDM_TSK, 3, "PiCw");
                     return;
                 }
                 else
                 {
-                    fn_ret = spdm_di_sb_spi_write(write_address, spi_select, &get_mctp_pld[copy_data_offset],
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+                    fn_ret = pldm_di_sb_spi_write(write_address, spi_select, &get_mctp_pldm[copy_data_offset],
                                                   PAGE_SIZE);
+<#else>
+                    fn_ret = pldm_di_sb_spi_write(write_address, spi_select, &get_mctp_pld[copy_data_offset],
+                                                  PAGE_SIZE);
+</#if>                    
+
                 }
                 if (fn_ret)
                 {
                     // PLDM:page write err
-                    trace0(PLDM_TRACE, SPDM_TSK, 3, "PpWe");
+                    trace0(PLDM_TRACE, PLDM_TSK, 3, "PpWe");
                     return;
                 }
                 timer_delay_ms(5);
@@ -1273,8 +1275,12 @@ void pldm_pkt_process_request_firmware_update_response(void)
                 i++;
             }
             while (i < no_of_looping);
-
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+            memset(get_mctp_pldm, 0, size_supported_by_UA);
+<#else>
             memset(get_mctp_pld, 0, size_supported_by_UA);
+</#if>
+            
             received_1024b_for_flash_write = false;
             offset_for_datacopy = 0;
             offset_for_flash = offset_for_flash + size_supported_by_UA;
@@ -1293,7 +1299,7 @@ void pldm_pkt_process_request_firmware_update_response(void)
         offset = 0;
         length = 0;
         // PLDM:req fw data resp completion code not success
-        trace0(PLDM_TRACE, SPDM_TSK, 3, "Pfdr");
+        trace0(PLDM_TRACE, PLDM_TSK, 3, "Pfdr");
     }
     return;
 }
@@ -1301,10 +1307,10 @@ void pldm_pkt_process_request_firmware_update_response(void)
 /******************************************************************************/
 /** function for handling transfer complete message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_create_transfer_complete_req(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_create_transfer_complete_req(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_TRANSFER_COMPLETE_REQ;
@@ -1318,46 +1324,46 @@ void pldm_pkt_create_transfer_complete_req(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTE
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_TRANSFER_COMPLETE_REQ_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_TRANSFER_COMPLETE_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_TRANSFER_COMPLETE_REQ;
 
-    spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
-    spdmContext->pldm_current_state = PLDM_VERIFY;
+    pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
+    pldmContext->pldm_current_state = PLDM_VERIFY;
 
-    spdmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
+    pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
     pldm_pkt_tx_packet();
 }
 
 /******************************************************************************/
 /** function for handling verify complete message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_create_verify_complete_req(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_create_verify_complete_req(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_VERIFY_COMPLETE_REQ;
 
     REQUEST_VERIFY_COMPLETE req_verify_complete;
 
-    req_verify_complete.verify_result = spdmContext->pldm_verify_state;
+    req_verify_complete.verify_result = pldmContext->pldm_verify_state;
 
     memcpy(&pldm_buf_tx->pkt.data[PLDM_HEADER_DATA_POS_FOR_REQ], &req_verify_complete,
            PLDM_REQ_VERIFY_COMPLETE_REQ_DATA_BYTES);
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_VERIFY_COMPLETE_REQ_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_VERIFY_COMPLETE_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_VERIFY_COMPLETE_REQ;
 
-    spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
+    pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
 
     if (!req_verify_complete.verify_result)
     {
-        spdmContext->pldm_current_state = PLDM_APPLY;
+        pldmContext->pldm_current_state = PLDM_APPLY;
     }
     else
     {
-        spdmContext->pldm_current_state = PLDM_VERIFY;
+        pldmContext->pldm_current_state = PLDM_VERIFY;
     }
     if (!req_verify_complete.verify_result)
     {
@@ -1369,17 +1375,17 @@ void pldm_pkt_create_verify_complete_req(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT
 /******************************************************************************/
 /** function for handling apply complete message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_create_apply_complete_req(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_create_apply_complete_req(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_APPLY_COMPLETE_REQ;
 
     REQUEST_APPLY_COMPLETE req_apply_complete;
 
-    req_apply_complete.apply_status = spdmContext->pldm_apply_state;
+    req_apply_complete.apply_status = pldmContext->pldm_apply_state;
     req_apply_complete.comp_activation_mthd_modification = 0x00;
 
     memcpy(&pldm_buf_tx->pkt.data[PLDM_HEADER_DATA_POS_FOR_REQ], &req_apply_complete,
@@ -1387,16 +1393,16 @@ void pldm_pkt_create_apply_complete_req(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT 
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_APPLY_COMPLETE_REQ_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_APPLY_COMPLETE_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_APPLY_COMPLETE_REQ;
 
-    spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
+    pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
     if (req_apply_complete.apply_status)
     {
-        spdmContext->pldm_current_state = PLDM_APPLY;
+        pldmContext->pldm_current_state = PLDM_APPLY;
     }
     else
     {
-        spdmContext->pldm_current_state = PLDM_READY_TRANSFER;
+        pldmContext->pldm_current_state = PLDM_READY_TRANSFER;
     }
 
     apply_completed = true;
@@ -1406,10 +1412,10 @@ void pldm_pkt_create_apply_complete_req(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT 
 /******************************************************************************/
 /** function for handling get status message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_get_status(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_get_status(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_REQUEST_GET_STATUS;
@@ -1417,12 +1423,12 @@ void pldm_pkt_handle_get_status(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmCon
     GET_STATUS_REQ get_status_req_response_data;
 
     get_status_req_response_data.completion_code = 0x00;
-    get_status_req_response_data.current_state = spdmContext->pldm_current_state;
-    get_status_req_response_data.previous_state = spdmContext->pldm_previous_state;
+    get_status_req_response_data.current_state = pldmContext->pldm_current_state;
+    get_status_req_response_data.previous_state = pldmContext->pldm_previous_state;
     get_status_req_response_data.aux_state = 0x00;
     get_status_req_response_data.aux_state_status = 0x00;
     get_status_req_response_data.progress_percent = PROGRESS_PERCENT;
-    get_status_req_response_data.reason_code = spdmContext->pldm_status_reason_code;
+    get_status_req_response_data.reason_code = pldmContext->pldm_status_reason_code;
     get_status_req_response_data.update_option_flags_enabled = 0x00000000;
 
     memcpy(&pldm_buf_tx->pkt.data[PLDM_HEADER_COMPLETION_CODE_POS], &get_status_req_response_data,
@@ -1430,30 +1436,34 @@ void pldm_pkt_handle_get_status(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmCon
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_GET_STATUS_RESPONSE_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_REQUEST_GET_STATUS;
+    pldmContext->pldm_current_response_cmd = PLDM_REQUEST_GET_STATUS;
 }
 
 /******************************************************************************/
 /** function for handling activate firmware message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_activate_firmware(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_activate_firmware(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
-
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+    memcpy(&request_activate_firmware, &get_mctp_pldm[0], PLDM_REQUEST_ACTIVATE_FIRMWARE_LEN);
+<#else>
     memcpy(&request_activate_firmware, &get_mctp_pld[0], PLDM_REQUEST_ACTIVATE_FIRMWARE_LEN);
+</#if>
+
 
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_ACTIVATE_FIRMWARE_REQ;
 
     REQUEST_ACTIVATE_FIRMWARE_RESP req_activate_firmware_resp;
 
-    spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
+    pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
 
-    if (spdmContext->pldm_current_state != PLDM_READY_TRANSFER)
+    if (pldmContext->pldm_current_state != PLDM_READY_TRANSFER)
     {
         req_activate_firmware_resp.completion_code = INCOMPLETE_UPDATE;
         can_activate = false;
@@ -1469,8 +1479,8 @@ void pldm_pkt_handle_activate_firmware(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *
     {
         req_activate_firmware_resp.completion_code = PLDM_SUCCESS;
         can_activate = false;
-        spdmContext->pldm_current_state = PLDM_IDLE;
-        spdmContext->pldm_status_reason_code = ACTIVATE_FIRMWARE_RECEIVED;
+        pldmContext->pldm_current_state = PLDM_IDLE;
+        pldmContext->pldm_status_reason_code = ACTIVATE_FIRMWARE_RECEIVED;
         req_activate_firmware_resp.est_time_for_self_contained_activation = 0x0000;
         in_update_mode = false;
         di_sb_core_restore_configs(spi_select_configured, host_functionality_reduced);
@@ -1479,7 +1489,7 @@ void pldm_pkt_handle_activate_firmware(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *
     else
     {
         req_activate_firmware_resp.completion_code = PLDM_SUCCESS;
-        spdmContext->pldm_current_state = PLDM_ACTIVATE;
+        pldmContext->pldm_current_state = PLDM_ACTIVATE;
         can_activate = true;
         in_update_mode = false;
         req_activate_firmware_resp.est_time_for_self_contained_activation = 0x0005;
@@ -1490,16 +1500,16 @@ void pldm_pkt_handle_activate_firmware(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_ACTIVATE_FIRMWARE_RESPONSE_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_ACTIVATE_FIRMWARE_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_ACTIVATE_FIRMWARE_REQ;
 }
 
 /******************************************************************************/
 /** function for handling cancel update component message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_create_response_cancel_update_component(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_create_response_cancel_update_component(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     uint8_t ret_Val;
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
@@ -1525,7 +1535,7 @@ void pldm_pkt_create_response_cancel_update_component(MCTP_PKT_BUF *pldm_buf_tx,
 
     pldm_packet_size = MCTP_TOT_HDR_SZ + PLDM_SPECIFIC_HEADER_BYTES + PLDM_REQ_CANCEL_UPDATE_COMP_RESPONSE_DATA_BYTES;
 
-    spdmContext->pldm_current_response_cmd = PLDM_CANCEL_UPDATE_COMPONENT_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_CANCEL_UPDATE_COMPONENT_REQ;
 
     pldm_request_firmware_update = false;
     received_1024b_for_flash_write = 0;
@@ -1540,7 +1550,7 @@ void pldm_pkt_create_response_cancel_update_component(MCTP_PKT_BUF *pldm_buf_tx,
         PLDMResp_timer_started = false;
     }
 
-    spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
+    pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
 
     if (apply_completed && failure_recovery_cap)
     {
@@ -1548,16 +1558,16 @@ void pldm_pkt_create_response_cancel_update_component(MCTP_PKT_BUF *pldm_buf_tx,
         apply_completed = false;
     }
 
-    spdmContext->pldm_current_state = PLDM_READY_TRANSFER;
+    pldmContext->pldm_current_state = PLDM_READY_TRANSFER;
 }
 
 /******************************************************************************/
 /** function for handling cancel update message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     uint8_t ret_Val;
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
@@ -1577,7 +1587,7 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONT
         req_cancel_update_res.completion_code = PLDM_SUCCESS;
     }
 
-    spdmContext->pldm_current_response_cmd = PLDM_CANCEL_UPDATE_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_CANCEL_UPDATE_REQ;
 
     pldm_request_firmware_update = false;
     received_1024b_for_flash_write = 0;
@@ -1618,9 +1628,9 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONT
         req_cancel_update_res.non_func_comp_indication = false;
         req_cancel_update_res.non_func_comp_bitmap = 0x0;
     }
-    spdmContext->pldm_previous_state = spdmContext->pldm_current_state;
-    spdmContext->pldm_current_state = PLDM_IDLE_STATE;
-    spdmContext->pldm_status_reason_code = CANCEL_UPDATE_RECEIVED;
+    pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
+    pldmContext->pldm_current_state = PLDM_IDLE_STATE;
+    pldmContext->pldm_status_reason_code = CANCEL_UPDATE_RECEIVED;
     in_update_mode = false;
 
     memcpy(&pldm_buf_tx->pkt.data[PLDM_HEADER_COMPLETION_CODE_POS], &req_cancel_update_res,
@@ -1638,10 +1648,10 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONT
 /******************************************************************************/
 /** function for handling response of transfer request
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_transfer_complete_response(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_transfer_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
@@ -1660,10 +1670,10 @@ void pldm_pkt_handle_transfer_complete_response(MCTP_PKT_BUF *pldm_buf_tx, SPDM_
 /******************************************************************************/
 /** function for handling response of verify request
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_verify_complete_response(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_verify_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
@@ -1682,10 +1692,10 @@ void pldm_pkt_handle_verify_complete_response(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CO
 /******************************************************************************/
 /** function for handling response of apply request
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_pkt_handle_apply_complete_response(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_handle_apply_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
@@ -1694,7 +1704,7 @@ void pldm_pkt_handle_apply_complete_response(MCTP_PKT_BUF *pldm_buf_tx, SPDM_CON
 
     apply_complete_response.completion_code = pldm_msg_rx_buf->pkt.data[PLDM_HEADER_DATA_POS_FOR_RESP];
 
-    spdmContext->pldm_tx_state = PLDM_TX_IDLE;
+    pldmContext->pldm_tx_state = PLDM_TX_IDLE;
 
     if (sg3_state == SG3_CRISIS) {
         pldm_get_staged_address_for_crisis_recovery();
@@ -1734,10 +1744,10 @@ int encode_get_tid_resp(uint8_t instance_id, uint8_t completion_code,
 /******************************************************************************/
 /** function for handling request firmware data message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_handle_get_id(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmContext)
+void pldm_handle_get_id(MCTP_PKT_BUF *pldm_buf, PLDM_CONTEXT *pldmContext)
 {
     uint8_t instance_id = 0;
     uint8_t comp_code = 0;
@@ -1745,7 +1755,7 @@ void pldm_handle_get_id(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmContext)
 
     tid = di_sb_apcfg_pldm_tid();
 
-    spdmContext->pldm_current_response_cmd = PLDM_GET_ID_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_GET_ID_REQ;
     encode_get_tid_resp(instance_id, comp_code, tid, pldm_buf);
 }
 
@@ -1814,10 +1824,10 @@ int encode_get_version_resp(uint8_t instance_id, uint8_t completion_code,
 /******************************************************************************/
 /** function for handling get version message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_handle_get_version(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmContext)
+void pldm_handle_get_version(MCTP_PKT_BUF *pldm_buf, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
@@ -1832,7 +1842,7 @@ void pldm_handle_get_version(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmContext)
                            &pldm_get_version_req.transfer_handle, &pldm_get_version_req.transfer_opflag,
                            &pldm_get_version_req.type);
 
-    spdmContext->pldm_current_response_cmd = PLDM_GET_PLDM_VERSION_REQ;
+    pldmContext->pldm_current_response_cmd = PLDM_GET_PLDM_VERSION_REQ;
 
     if (pldm_get_version_req.type == PLDM_FIRMWARE_UPDATE) {
         completion_code = PLDM_SUCCESS;
@@ -1892,15 +1902,15 @@ int encode_get_types_resp(uint8_t instance_id, uint8_t completion_code,
 /******************************************************************************/
 /** function for handling get PLDM types message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_handle_get_pldm_types(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmContext)
+void pldm_handle_get_pldm_types(MCTP_PKT_BUF *pldm_buf, PLDM_CONTEXT *pldmContext)
 {
     uint8_t types[8];
     memset(types, 0, 8);
     types[0] = 0x21;
-    spdmContext->pldm_current_response_cmd = PLDM_GET_PLDM_TYPES;
+    pldmContext->pldm_current_response_cmd = PLDM_GET_PLDM_TYPES;
     encode_get_types_resp(INSTANCE_ID, 0, types, pldm_buf);
 }
 
@@ -1942,10 +1952,10 @@ int encode_get_commands_resp(uint8_t instance_id, uint8_t completion_code,
 /******************************************************************************/
 /** function for handling get pldm commands message
 * @param pldm_buf_tx trasmit buffer,
-* @param spdmContext spdm task context
+* @param pldmContext pldm task context
 * @return None
 *******************************************************************************/
-void pldm_handle_get_pldm_commands(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmContext)
+void pldm_handle_get_pldm_commands(MCTP_PKT_BUF *pldm_buf, PLDM_CONTEXT *pldmContext)
 {
     uint8_t commands[32];
     memset(commands, 0, 32);
@@ -1954,7 +1964,7 @@ void pldm_handle_get_pldm_commands(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmCon
     commands[2] = 0xF9;
     commands[3] = 0x3D;
 
-    spdmContext->pldm_current_response_cmd = PLDM_GET_PLDM_COMMANDS;
+    pldmContext->pldm_current_response_cmd = PLDM_GET_PLDM_COMMANDS;
     encode_get_commands_resp(INSTANCE_ID, PLDM_SUCCESS, commands, pldm_buf);
 }
 
@@ -1963,17 +1973,17 @@ void pldm_handle_get_pldm_commands(MCTP_PKT_BUF *pldm_buf, SPDM_CONTEXT *spdmCon
 * @param pldm_type type 0 discovery messages, type 5 fw update messages
 * @param get_cmd command code
 * @param pldm_buf_tx buffer for transmitting message
-* @param spdmConext SPDM task context
-* @return error_handle if spdm context is NULL
+* @param pldmConext PLDM task context
+* @return error_handle if pldm context is NULL
 *******************************************************************************/
-UINT8 pldm_pkt_validate_and_process_pldm_msg(UINT8 pldm_type, UINT8 get_cmd, MCTP_PKT_BUF *pldm_buf_tx,
-        SPDM_CONTEXT *spdmContext)
+uint8_t pldm_pkt_validate_and_process_pldm_msg(uint8_t pldm_type, uint8_t get_cmd, MCTP_PKT_BUF *pldm_buf_tx,
+        PLDM_CONTEXT *pldmContext)
 {
-    UINT8 get_ver = 0x00;
-    UINT8 error_handle = 0x00;
-    UINT8 ret_val =0;
+    uint8_t get_ver = 0x00;
+    uint8_t error_handle = 0x00;
+    uint8_t ret_val =0;
 
-    if(NULL == spdmContext)
+    if(NULL == pldmContext)
     {
         return 0xff;
     }
@@ -1981,92 +1991,92 @@ UINT8 pldm_pkt_validate_and_process_pldm_msg(UINT8 pldm_type, UINT8 get_cmd, MCT
     if (pldm_type == PLDM_FIRMWARE_UPDATE)
     {
         // PLDM:cmd rcvd is 
-        trace1(PLDM_TRACE, SPDM_TSK, 2, "PcRx:%x", get_cmd);
+        trace1(PLDM_TRACE, PLDM_TSK, 2, "PcRx:%x", get_cmd);
         switch(get_cmd)
         {
         case PLDM_QUERY_DEVICE_IDENTIFIERS_REQ:
             // query device identfs
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "Pqdi");
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "Pqdi");
             offset_for_datacopy = 0;
             copy_data_offset = 0;
-            pldm_pkt_handle_query_device_identifiers(pldm_buf_tx, spdmContext);
+            pldm_pkt_handle_query_device_identifiers(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_GET_FIRMWARE_PARAMETERS_REQ:
             // get fw parms
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PGfpq");
-            pldm_pkt_handle_get_firmware_parameters(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PGfpq");
+            pldm_pkt_handle_get_firmware_parameters(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_REQUEST_UPDATE_REQ:
             // rqst update
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PrUq");
-            pldm_pkt_handle_request_update(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PrUq");
+            pldm_pkt_handle_request_update(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_REQUEST_FIRMWARE_DATA_REQ: // response from UA, having the data
             // rqst fw data resp
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "Prfdr");
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "Prfdr");
             pldm_pkt_process_request_firmware_update_response();
             break;
 
         case PLDM_PASS_COMPONENT_TABLE_REQ:
-            pldm_pkt_handle_pass_component_table(pldm_buf_tx, spdmContext);
+            pldm_pkt_handle_pass_component_table(pldm_buf_tx, pldmContext);
             // pass comp table
-            trace0(PLDM_TRACE, SPDM_TSK, 3, "PPcTr");
+            trace0(PLDM_TRACE, PLDM_TSK, 3, "PPcTr");
             break;
 
         case PLDM_UPDATE_COMPONENT_REQ:
             // update comp
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PUco");
-            pldm_pkt_handle_update_component(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PUco");
+            pldm_pkt_handle_update_component(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_ACTIVATE_FIRMWARE_REQ:
             // activate firmware
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "Pafw");
-            pldm_pkt_handle_activate_firmware(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "Pafw");
+            pldm_pkt_handle_activate_firmware(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_CANCEL_UPDATE_COMPONENT_REQ:
             // cacl update comp
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PcUq");
-            pldm_pkt_create_response_cancel_update_component(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PcUq");
+            pldm_pkt_create_response_cancel_update_component(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_CANCEL_UPDATE_REQ:
             // cacl update
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PclU");
-            pldm_pkt_create_response_cancel_update(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PclU");
+            pldm_pkt_create_response_cancel_update(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_REQUEST_GET_STATUS:
             // get status
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PqGs");
-            pldm_pkt_handle_get_status(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PqGs");
+            pldm_pkt_handle_get_status(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_TRANSFER_COMPLETE_REQ:
             // xfr cmplt resp
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PxCr");
-            pldm_pkt_handle_transfer_complete_response(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PxCr");
+            pldm_pkt_handle_transfer_complete_response(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_VERIFY_COMPLETE_REQ:
             // verify cmpt resp
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PvCq");
-            pldm_pkt_handle_verify_complete_response(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PvCq");
+            pldm_pkt_handle_verify_complete_response(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_APPLY_COMPLETE_REQ:
             // apply cmpt resp
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PaCq");
-            pldm_pkt_handle_apply_complete_response(pldm_buf_tx, spdmContext);
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PaCq");
+            pldm_pkt_handle_apply_complete_response(pldm_buf_tx, pldmContext);
             break;
 
         default:
             // PLDM:invalid type 5 cmd code
-            trace0(PLDM_TRACE, SPDM_TSK, 3, "PIvcc");
+            trace0(PLDM_TRACE, PLDM_TSK, 3, "PIvcc");
             return 0xff;
         }
     }
@@ -2075,31 +2085,31 @@ UINT8 pldm_pkt_validate_and_process_pldm_msg(UINT8 pldm_type, UINT8 get_cmd, MCT
         switch(get_cmd)
         {
         case PLDM_GET_ID_REQ:
-            pldm_handle_get_id(pldm_buf_tx, spdmContext);
+            pldm_handle_get_id(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_GET_PLDM_VERSION_REQ:
-            pldm_handle_get_version(pldm_buf_tx, spdmContext);
+            pldm_handle_get_version(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_GET_PLDM_TYPES:
-            pldm_handle_get_pldm_types(pldm_buf_tx, spdmContext);
+            pldm_handle_get_pldm_types(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_GET_PLDM_COMMANDS:
-            pldm_handle_get_pldm_commands(pldm_buf_tx, spdmContext);
+            pldm_handle_get_pldm_commands(pldm_buf_tx, pldmContext);
             break;
 
         default:
             // PLDM:ivld type 0 cmd code
-            trace0(PLDM_TRACE, SPDM_TSK, 3, "PIvt");
+            trace0(PLDM_TRACE, PLDM_TSK, 3, "PIvt");
             return 0xff;
         }
     }
 
     if (get_cmd != PLDM_TRANSFER_COMPLETE_REQ && get_cmd != PLDM_VERIFY_COMPLETE_REQ && get_cmd != PLDM_APPLY_COMPLETE_REQ)
     {
-        spdmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
+        pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
     }
     return 0x00;
 }
@@ -2109,15 +2119,15 @@ UINT8 pldm_pkt_validate_and_process_pldm_msg(UINT8 pldm_type, UINT8 get_cmd, MCT
 * @param pldm_buf_tx - transmit buffer
 * @param mctp_buf - final MCTP buffer
 * @param cmd_resp - command code
-* @param spdmContext - SPDM task context
+* @param pldmContext - PLDM task context
 * @param req_bit - request or response message
 * @return NULL
 *******************************************************************************/
 void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_BUF *mctp_buf, uint8_t cmd_resp,
-        SPDM_CONTEXT *spdmContext, bool req_bit)
+        PLDM_CONTEXT *pldmContext, bool req_bit)
 {
     uint8_t local=0x0u;
-    if (spdmContext == NULL)
+    if (pldmContext == NULL)
     {
         return;
     }
@@ -2163,7 +2173,7 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
     }
     else
     {
-        mctp_buf->pkt.field.hdr.inst_id = spdmContext->pldm_instance_id & 0x1F;
+        mctp_buf->pkt.field.hdr.inst_id = pldmContext->pldm_instance_id & 0x1F;
     }
 
     mctp_buf->rx_smbus_timestamp  = pldm_buf_tx->rx_smbus_timestamp;
@@ -2212,19 +2222,19 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
     }
 
     /* destination slave address */
-    mctp_buf->pkt.field.hdr.dst_addr  = spdmContext->pldm_host_slv_addr;
+    mctp_buf->pkt.field.hdr.dst_addr  = pldmContext->pldm_host_slv_addr;
     mctp_buf->pkt.field.hdr.rw_dst    = 0;
     /*  Command Code */
     mctp_buf->pkt.field.hdr.cmd_code  = MCTP_SMBUS_HDR_CMD_CODE;
     /* Source Slave address*/
-    mctp_buf->pkt.field.hdr.src_addr  = spdmContext->pldm_ec_slv_addr;
+    mctp_buf->pkt.field.hdr.src_addr  = pldmContext->pldm_ec_slv_addr;
     mctp_buf->pkt.field.hdr.ipmi_src  = 1;
     /* mctp reserved */
     mctp_buf->pkt.field.hdr.mctp_rsvd = 0;
     /* header version supported by this implementation */
     mctp_buf->pkt.field.hdr.hdr_ver   = 1;
     /* destination eid */
-    mctp_buf->pkt.field.hdr.dst_eid   = spdmContext->pldm_host_eid;
+    mctp_buf->pkt.field.hdr.dst_eid   = pldmContext->pldm_host_eid;
     /* source eid = eid of self/EC */
     mctp_buf->pkt.field.hdr.src_eid = curr_ec_id;
     /* message tag */
@@ -2253,14 +2263,14 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
 }
 
 /******************************************************************************/
-/** once spdm msg is ready to transmit, trigger MCTP
+/** once pldm msg is ready to transmit, trigger MCTP
 * @param buf - transmit buffer
-* @param spdmContext - SPDM task context
+* @param pldmContext - PLDM task context
 * @return void
 *******************************************************************************/
-void pldm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *buf, SPDM_CONTEXT *spdmContext)
+void pldm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *buf, PLDM_CONTEXT *pldmContext)
 {
-    if(NULL == spdmContext)
+    if(NULL == pldmContext)
     {
         return;
     }
@@ -2269,41 +2279,41 @@ void pldm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *buf, SPDM_CONTEXT *spdmContex
 
     if((buf->pkt.field.hdr.eom != 1) || (pldm_request_firmware_update))
     {
-        spdmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
+        pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
     }
     else
     {
         pldm_first_pkt = true;
         pldm_pkt_seq_mctp = 0;
-        spdmContext->pldm_tx_state = MCTP_TX_IDLE;
+        pldmContext->pldm_tx_state = MCTP_TX_IDLE;
         pldm_pktbuf_rx.buf_full = MCTP_EMPTY;
         offset_for_data = 0;
     }
-    di_send_spdm_reponse_packet((uint8_t*)buf, sizeof(MCTP_PKT_BUF), true, pldm_request_firmware_update);
+    di_send_pldm_reponse_packet((uint8_t*)buf, sizeof(MCTP_PKT_BUF), true, pldm_request_firmware_update);
 }
 
 /******************************************************************************/
-/** once spdm msg is ready to transmit, spdm state machine is set to transmit mode
-* function to load the spdm data to mctp tx buffer
+/** once pldm msg is ready to transmit, pldm state machine is set to transmit mode
+* function to load the pldm data to mctp tx buffer
 * @param none
 * @return void
 *******************************************************************************/
 void pldm_pkt_tx_packet(void)
 {
-    UINT8 cmd_resp = 0;
-    UINT8 error = false;
-    SPDM_CONTEXT *spdmContext = NULL;
-    spdmContext = spdm_ctxt_get();
+    uint8_t cmd_resp = 0;
+    uint8_t error = false;
+    PLDM_CONTEXT *pldmContext = NULL;
+    pldmContext = pldm_ctxt_get();
     bool req_bit = 0;
     MCTP_PKT_BUF *pldm_rx_buf;
     pldm_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
 
-    if(NULL == spdmContext)
+    if(NULL == pldmContext)
     {
         return;
     }
 
-    switch(spdmContext->pldm_tx_state)
+    switch(pldmContext->pldm_tx_state)
     {
     case PLDM_TX_IDLE:
         break;
@@ -2315,12 +2325,12 @@ void pldm_pkt_tx_packet(void)
         {
             if (number_of_1024b_requests < no_of_requests)
             {
-                pldm_pkt_create_request_firmware_data(pldm_buf_tx, spdmContext);
+                pldm_pkt_create_request_firmware_data(pldm_buf_tx, pldmContext);
                 pldm_request_firmware_update = false;
             } else {
-                spdm_di_spi_tristate(sb_spi_port_get(spi_select));
+                pldm_di_spi_tristate(sb_spi_port_get(spi_select));
                 // PLDM:rcvd all binary data
-                trace0(PLDM_TRACE, SPDM_TSK, 2, "Prab");
+                trace0(PLDM_TRACE, PLDM_TSK, 2, "Prab");
                 pldm_request_firmware_update = false;
                 received_1024b_for_flash_write = 0;
                 offset_for_datacopy = 0;
@@ -2328,12 +2338,12 @@ void pldm_pkt_tx_packet(void)
                 number_of_1024b_requests = 0;
                 offset = 0;
                 length = 0;
-                pldm_pkt_create_transfer_complete_req(pldm_buf_tx, spdmContext);
+                pldm_pkt_create_transfer_complete_req(pldm_buf_tx, pldmContext);
                 return;
             }
         }
 
-        cmd_resp = spdmContext->pldm_current_response_cmd;
+        cmd_resp = pldmContext->pldm_current_response_cmd;
 
         if (cmd_resp == PLDM_REQUEST_FIRMWARE_DATA_REQ || cmd_resp == PLDM_TRANSFER_COMPLETE_REQ
                 || cmd_resp == PLDM_APPLY_COMPLETE_REQ
@@ -2342,7 +2352,7 @@ void pldm_pkt_tx_packet(void)
             req_bit = true;
         }
 
-        pldm_pkt_populate_mctp_packet_for_resp(pldm_buf_tx, mctp_buf_tx1, cmd_resp, spdmContext, req_bit);
+        pldm_pkt_populate_mctp_packet_for_resp(pldm_buf_tx, mctp_buf_tx1, cmd_resp, pldmContext, req_bit);
 
         if (cmd_resp == PLDM_UPDATE_COMPONENT_REQ && can_update)
         {
@@ -2351,7 +2361,7 @@ void pldm_pkt_tx_packet(void)
 
         pldm_rx_buf->buf_full = MCTP_EMPTY;
 
-        pldm_pkt_msg_ready_trigger_mctp(mctp_buf_tx1, spdmContext);
+        pldm_pkt_msg_ready_trigger_mctp(mctp_buf_tx1, pldmContext);
 
         if (cmd_resp == PLDM_ACTIVATE_FIRMWARE_REQ && can_activate)
         {
@@ -2362,13 +2372,13 @@ void pldm_pkt_tx_packet(void)
         if (cmd_resp == PLDM_VERIFY_COMPLETE_REQ)
         {
             // PLDM : Verfiy cmpt
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "Pvcpt");
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "Pvcpt");
         }
         break;
 
     default:
         // pldm_tx_pkt: default
-        trace0(PLDM_TRACE, SPDM_TSK, 2, "Pxpd");
+        trace0(PLDM_TRACE, PLDM_TSK, 2, "Pxpd");
         break;
     }
 }
@@ -2380,14 +2390,14 @@ void pldm_pkt_tx_packet(void)
 *******************************************************************************/
 void pldm_pkt_rcv_packet()
 {
-    UINT8 ret_sts = 0x00;
-    UINT8 req_field;
+    uint8_t ret_sts = 0x00;
+    uint8_t req_field;
     uint8_t byte_cnt_for_one_pkt = BYTE_CNT_FOR_ONE_PKT;
 
-    SPDM_CONTEXT *spdmContext = NULL;
-    spdmContext = spdm_ctxt_get();
-    UINT16 len = 0;
-    if(NULL == spdmContext)
+    PLDM_CONTEXT *pldmContext = NULL;
+    pldmContext = pldm_ctxt_get();
+    uint16_t len = 0;
+    if(NULL == pldmContext)
     {
         return;
     }
@@ -2396,19 +2406,19 @@ void pldm_pkt_rcv_packet()
 
     if(MCTP_RX_PENDING == pldm_msg_rx_buf->buf_full)
     {
-        spdmContext->pldm_host_eid = pldm_msg_rx_buf->pkt.field.hdr.src_eid;
-        spdmContext->pldm_ec_eid = pldm_msg_rx_buf->pkt.field.hdr.dst_eid;
-        spdmContext->pldm_ec_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.dst_addr;
-        spdmContext->pldm_host_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.src_addr;
-        spdmContext->pldm_instance_id = pldm_msg_rx_buf->pkt.field.hdr.inst_id;
+        pldmContext->pldm_host_eid = pldm_msg_rx_buf->pkt.field.hdr.src_eid;
+        pldmContext->pldm_ec_eid = pldm_msg_rx_buf->pkt.field.hdr.dst_eid;
+        pldmContext->pldm_ec_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.dst_addr;
+        pldmContext->pldm_host_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.src_addr;
+        pldmContext->pldm_instance_id = pldm_msg_rx_buf->pkt.field.hdr.inst_id;
 
-        if(spdmContext->pldm_tx_state == PLDM_TX_IDLE || spdmContext->pldm_tx_state == PLDM_PACKETIZING)
+        if(pldmContext->pldm_tx_state == PLDM_TX_IDLE || pldmContext->pldm_tx_state == PLDM_PACKETIZING)
         {
             //check if MCTP packet received is single packet request
             if((pldm_msg_rx_buf->pkt.data[MCTP_MSG_TAG_REF_MASK] & MCTP_SOM_EOM_REF_MSK) == MCTP_SOM_EOM_REF)
             {
                 pkt_cnt = 0;
-                spdmContext->pldm_tx_state = PLDM_NON_PACKETIZING;
+                pldmContext->pldm_tx_state = PLDM_NON_PACKETIZING;
                 pldm_type = (pldm_msg_rx_buf->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS]) & 0x3F;
                 req_cmd = pldm_msg_rx_buf->pkt.data[PLDM_HEADER_COMMAND_CODE_POS];
                 completion_code = pldm_msg_rx_buf->pkt.data[PLDM_HEADER_COMPLETION_CODE_POS];
@@ -2427,11 +2437,11 @@ void pldm_pkt_rcv_packet()
                 {
                     ;//Handle erroe
                 }
-                ret_sts = pldm_pkt_fill_buffer(pldm_msg_rx_buf, spdmContext, len, offset_data_pos);
+                ret_sts = pldm_pkt_fill_buffer(pldm_msg_rx_buf, pldmContext, len, offset_data_pos);
                 if (ret_sts)
                 {
                     // PLDM:Fill bufr fail for single pkt
-                    trace0(PLDM_TRACE, SPDM_TSK, 2, "PFbp");
+                    trace0(PLDM_TRACE, PLDM_TSK, 2, "PFbp");
                 }
             }
             else if(!((pldm_msg_rx_buf->pkt.data[MCTP_MSG_TAG_REF_MASK] & MCTP_SOM_EOM_REF_MSK) == MCTP_SOM_EOM_REF))
@@ -2461,44 +2471,49 @@ void pldm_pkt_rcv_packet()
                 }
                 //som = 1, eom = 0 or som = 0, eom = 0 or som = 0, eom = 1 states
                 //this means packetizing in progress
-                spdmContext->pldm_tx_state = PLDM_PACKETIZING;
-                ret_sts = pldm_pkt_fill_buffer(pldm_msg_rx_buf, spdmContext, len, offset_data_pos);
+                pldmContext->pldm_tx_state = PLDM_PACKETIZING;
+                ret_sts = pldm_pkt_fill_buffer(pldm_msg_rx_buf, pldmContext, len, offset_data_pos);
                 if(!ret_sts)
                 {
                     if((pldm_msg_rx_buf->pkt.data[MCTP_MSG_TAG_REF_MASK] & MCTP_EOM_REF_MSK) == MCTP_EOM_REF)
                     {
-                        spdmContext->pldm_tx_state = PLDM_RX_LAST_PKT;
+                        pldmContext->pldm_tx_state = PLDM_RX_LAST_PKT;
                         pkt_cnt = 0;
                     }
                     else
                     {
-                        spdmContext->pldm_tx_state = PLDM_PACKETIZING;
+                        pldmContext->pldm_tx_state = PLDM_PACKETIZING;
                     }
                 }
                 else
                 {
                     pkt_cnt = 0;
-                    spdmContext->pldm_tx_state = PLDM_TX_IDLE;
-                    spdmContext->current_request_length = 0;
+                    pldmContext->pldm_tx_state = PLDM_TX_IDLE;
+                    pldmContext->current_request_length = 0;
                     memset(pldm_buf_tx, 0, MCTP_PKT_BUF_DATALEN);
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+                    memset(get_mctp_pldm, 0, MAX_SIZE_CERTIFICATE);
+<#else>
                     memset(get_mctp_pld, 0, MAX_SIZE_CERTIFICATE);
+</#if>
+
                 }
             }
         }
     }
 
-    if(spdmContext->pldm_tx_state == PLDM_NON_PACKETIZING || spdmContext->pldm_tx_state == PLDM_RX_LAST_PKT)
+    if(pldmContext->pldm_tx_state == PLDM_NON_PACKETIZING || pldmContext->pldm_tx_state == PLDM_RX_LAST_PKT)
     {
-        ret_sts = pldm_pkt_validate_and_process_pldm_msg(pldm_type, req_cmd, pldm_buf_tx, spdmContext);
+        ret_sts = pldm_pkt_validate_and_process_pldm_msg(pldm_type, req_cmd, pldm_buf_tx, pldmContext);
         if(ret_sts)
         {
             // PLDM:Ivld msg rcvd
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PImrx");
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PImrx");
         }
         else
         {
             // PLDM:Vld msg rcvd
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PVmRx");
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PVmRx");
         }
     }
 
@@ -2513,13 +2528,13 @@ void pldm_pkt_rcv_packet()
 * @param none
 * @return 1 if payload size goes greater than 1024 else success
 *******************************************************************************/
-UINT8 pldm_pkt_fill_buffer(MCTP_PKT_BUF *pldm_msg_rx_buf, SPDM_CONTEXT *spdmContext, UINT16 len, UINT8 offset)
+uint8_t pldm_pkt_fill_buffer(MCTP_PKT_BUF *pldm_msg_rx_buf, PLDM_CONTEXT *pldmContext, uint16_t len, uint8_t offset)
 {
-    UINT32 i;
-    UINT8 ret_sts = 0x00;
-    UINT16 get_len = 0x00;
+    uint32_t i;
+    uint8_t ret_sts = 0x00;
+    uint16_t get_len = 0x00;
 
-    if(NULL == spdmContext)
+    if(NULL == pldmContext)
     {
         return 0x01;
     }
@@ -2527,17 +2542,22 @@ UINT8 pldm_pkt_fill_buffer(MCTP_PKT_BUF *pldm_msg_rx_buf, SPDM_CONTEXT *spdmCont
     //buffer the pldm payload to 1K input buffer from mctp input buffer
     for(i = 0; i < len; i++)
     {
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+        get_mctp_pldm[pkt_cnt + i] = pldm_msg_rx_buf->pkt.data[offset + i]; //Take only the pldm msg payload
+<#else>
         get_mctp_pld[pkt_cnt + i] = pldm_msg_rx_buf->pkt.data[offset + i]; //Take only the pldm msg payload
+</#if>
+
     }
 
-    if(spdmContext->pldm_tx_state == PLDM_PACKETIZING)
+    if(pldmContext->pldm_tx_state == PLDM_PACKETIZING)
     {
         pkt_cnt = (uint16_t)((pkt_cnt + len)&UINT16_MAX);
-        spdmContext->current_request_length = pkt_cnt;
+        pldmContext->current_request_length = pkt_cnt;
     }
-    else if(spdmContext->pldm_tx_state == PLDM_NON_PACKETIZING)
+    else if(pldmContext->pldm_tx_state == PLDM_NON_PACKETIZING)
     {
-        spdmContext->current_request_length = len;
+        pldmContext->current_request_length = len;
     }
 
     if (pkt_cnt > INPUT_BUF_MAX_BYTES)//if no of bytes received cross max input buffer size of 1224
@@ -2558,11 +2578,11 @@ UINT8 pldm_pkt_fill_buffer(MCTP_PKT_BUF *pldm_msg_rx_buf, SPDM_CONTEXT *spdmCont
 void pldm1_event_task(void)
 {
     // pldm_evt_tsk: Start
-    trace0(PLDM_TRACE, SPDM_TSK, 2, "PEtS");
+    trace0(PLDM_TRACE, PLDM_TSK, 2, "PEtS");
     pldm_pkt_rcv_packet();
     pldm_pkt_tx_packet();
     // pldm_evt_tsk: End
-    trace0(PLDM_TRACE, SPDM_TSK, 2, "PetE");
+    trace0(PLDM_TRACE, PLDM_TSK, 2, "PetE");
 }
 
 /******************************************************************************/
@@ -2613,7 +2633,7 @@ void pldm_start_update()
 
     if (image_id == ECFW_IMG_TAG0 || image_id == ECFW_IMG_TAG1)
     {
-        spdm_di_sb_ecfw_tagx_addr_get(&tagx_address, image_id);
+        pldm_di_sb_ecfw_tagx_addr_get(&tagx_address, image_id);
         if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG0) || (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG1))
         {
             FW_type = PLDM_FW_TYPE_EC_FW;
@@ -2657,10 +2677,10 @@ void pldm_start_update()
         restore_spi_select = restore_address & 0xF;
         tagx_spi_select = (uint8_t)(tagx_address & 0xF); //coverity fix
 
-        spdm_di_i2c_spi_init(restore_spi_select, restore_spi_select, restore_spi_select);
-        spdm_di_i2c_spi_init(tagx_spi_select, tagx_spi_select, tagx_spi_select);
+        pldm_di_i2c_spi_init(restore_spi_select, restore_spi_select, restore_spi_select);
+        pldm_di_i2c_spi_init(tagx_spi_select, tagx_spi_select, tagx_spi_select);
         // PLDM ECFW/APCFG:staged ,restore,active
-        trace3(PLDM_TRACE, SPDM_TSK, 2, "PFA:%x,%x,%x", staged_address, restore_address, tagx_address);
+        trace3(PLDM_TRACE, PLDM_TSK, 2, "PFA:%x,%x,%x", staged_address, restore_address, tagx_address);
     }
 
     if ((request_update_component.comp_identifier & PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE) ==
@@ -2680,7 +2700,7 @@ void pldm_start_update()
     image_size = request_update_component.comp_image_size;
 
     if (sg3_state != SG3_CRISIS) {
-        spdm_di_sb_core_i2c_ec_fw_update_start(staged_address, FW_type,
+        pldm_di_sb_core_i2c_ec_fw_update_start(staged_address, FW_type,
             restore_address, image_size, 0, tagx_address, true, failure_recovery_cap, ht_id);
     }
 }
@@ -2692,25 +2712,25 @@ void pldm_start_update()
 *******************************************************************************/
 void pldm_initiate_verify_req_to_update_agent(uint8_t verify_state)
 {
-    SPDM_CONTEXT *spdmContext = NULL;
+    PLDM_CONTEXT *pldmContext = NULL;
     uint8_t ret_val = 0;
 
-    spdmContext = spdm_ctxt_get();
-    if(NULL == spdmContext)
+    pldmContext = pldm_ctxt_get();
+    if(NULL == pldmContext)
     {
         return;
     }
 
-    spdmContext->pldm_verify_state = verify_state;
-    pldm_pkt_create_verify_complete_req(pldm_buf_tx, spdmContext);
-    spdmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
+    pldmContext->pldm_verify_state = verify_state;
+    pldm_pkt_create_verify_complete_req(pldm_buf_tx, pldmContext);
+    pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
     pldm_pkt_tx_packet();
     if (sg3_state == SG3_POSTAUTH) {
-        ret_val = spdm_di_mctp_done_wait(MCTP_DI_PACKET_DONE);
+        ret_val = pldm_di_mctp_done_wait(MCTP_DI_PACKET_DONE);
     
         if (ret_val)
         {
-            spdm_di_core_done_set();
+            pldm_di_core_done_set();
         }
     }
 }
@@ -2722,33 +2742,33 @@ void pldm_initiate_verify_req_to_update_agent(uint8_t verify_state)
 *******************************************************************************/
 void pldm_initiate_apply_req_to_update_agent(uint8_t apply_state)
 {
-    SPDM_CONTEXT *spdmContext = NULL;
-    spdmContext = spdm_ctxt_get();
-    if(NULL == spdmContext)
+    PLDM_CONTEXT *pldmContext = NULL;
+    pldmContext = pldm_ctxt_get();
+    if(NULL == pldmContext)
     {
         return;
     }
-    spdmContext->pldm_apply_state = apply_state;
-    pldm_pkt_create_apply_complete_req(pldm_buf_tx, spdmContext);
-    spdmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
+    pldmContext->pldm_apply_state = apply_state;
+    pldm_pkt_create_apply_complete_req(pldm_buf_tx, pldmContext);
+    pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
 
     pldm_pkt_tx_packet();
 }
 /******************************************************************************/
-/** This function is used for getting AP_CFG during initialization of SPDM task
-* @param spdmContext
+/** This function is used for getting AP_CFG during initialization of PLDM task
+* @param pldmContext
 * @return void
 *******************************************************************************/
-void pldm_pkt_get_config_from_apcfg(SPDM_CONTEXT *spdmContext)
-{
-    if (NULL == spdmContext)
+void pldm_pkt_get_config_from_apcfg(PLDM_CONTEXT *pldmContext)
+{    
+    if (NULL == pldmContext)
     {
         return;
     }
 
     (void)di_sb_apcfg_config_data_request();
     /* Move to idle state and wait for response */
-    spdmContext->pldm_state_info = PLDM_IDLE;
+    pldmContext->pldm_state_info = PLDM_IDLE;
 }
 
 /******************************************************************************/
@@ -2845,24 +2865,29 @@ void sb_get_apx_compx_htnum_based_on_comp_identifier(uint16_t component_identifi
 *******************************************************************************/
 void PLDMResp_timer_callback(TimerHandle_t pxTimer)
 {
-    SPDM_CONTEXT *spdmContext = NULL;
-    spdmContext = spdm_ctxt_get();
+    PLDM_CONTEXT *pldmContext = NULL;
+    pldmContext = pldm_ctxt_get();
 
-    if (NULL == spdmContext)
+    if (NULL == pldmContext)
     {
         return;
     }
     pkt_cnt = 0;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+    memset(get_mctp_pldm, 0, MAX_SIZE_CERTIFICATE);
+<#else>
     memset(get_mctp_pld, 0, MAX_SIZE_CERTIFICATE);
+</#if>
+    
     if (PLDMResp_timer_started)
     {
         pldm_response_timeout_stop();
         PLDMResp_timer_started = false;
     }
     retry_request_firmware_data = true;
-    pldm_pkt_create_request_firmware_data(pldm_buf_tx, spdmContext);
+    pldm_pkt_create_request_firmware_data(pldm_buf_tx, pldmContext);
     pldm_request_firmware_update = false;
-    spdmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
+    pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
     pldm_pkt_tx_packet();
 }
 
@@ -2876,13 +2901,13 @@ void pldm_get_staged_address_for_crisis_recovery()
 {
     uint8_t buffer[32];
         sb_parser_get_spi_info(&staged_address, &spi_select);  
-        spdm_di_qmspi_clr_port_init_status(spi_select);
-        spdm_di_init_flash_component((SPI_FLASH_SELECT)spi_select);
+        pldm_di_qmspi_clr_port_init_status(spi_select);
+        pldm_di_init_flash_component((SPI_FLASH_SELECT)spi_select);
     if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_AP_BA_PTR0) {
         sb_parser_get_spi_info(&staged_address, &spi_select);        
-        if (di_spdm_spi_send_read_request(staged_address, buffer, 8, (SPI_FLASH_SELECT)spi_select, true)) {
+        if (di_pldm_spi_send_read_request(staged_address, buffer, 8, (SPI_FLASH_SELECT)spi_select, true)) {
             // sb_parse_flash_map: Error in reading AP Descriptor 
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PAdEr");
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PAdEr");
         }
         memcpy(&APCFG_address, buffer, 4);
         memcpy(&APKHB_address, (buffer + 4), 4);
@@ -2894,21 +2919,21 @@ void pldm_get_staged_address_for_crisis_recovery()
         }
         else
         {
-            if (di_spdm_spi_send_read_request((APCFG_address + 0x5C0), buffer, 8, (SPI_FLASH_SELECT)spi_select, true)) {
+            if (di_pldm_spi_send_read_request((APCFG_address + 0x5C0), buffer, 8, (SPI_FLASH_SELECT)spi_select, true)) {
                 // sb_parse_flash_map: Error in reading APCFG 
-                trace0(PLDM_TRACE, SPDM_TSK, 2, "PACEr");
+                trace0(PLDM_TRACE, PLDM_TSK, 2, "PACEr");
             }
             memcpy(&HT_address, buffer, 4);
         }
     } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_HT0_AP0C0) {
         sb_parser_get_spi_info(&HT_address, &spi_select);
-        if (di_spdm_spi_send_read_request((HT_address), buffer, 32, (SPI_FLASH_SELECT)spi_select, true)) {
+        if (di_pldm_spi_send_read_request((HT_address), buffer, 32, (SPI_FLASH_SELECT)spi_select, true)) {
             // sb_parse_flash_map: Error in reading HT
-            trace0(PLDM_TRACE, SPDM_TSK, 2, "PHTer");
+            trace0(PLDM_TRACE, PLDM_TSK, 2, "PHTer");
         }
         memcpy(&APFW_address, &buffer[28], 4);
     }
-    spdm_di_spi_tristate(sb_spi_port_get(spi_select));
+    pldm_di_spi_tristate(sb_spi_port_get(spi_select));
 }
 
 /******************************************************************************/
@@ -2931,4 +2956,51 @@ bool is_comp_iden_supported(uint16_t comp_iden)
     }
 
     return false;
+}
+
+/******************************************************************************/
+/** pldm_init_flags()
+* Init Pldm flags
+* @param None
+* @return None
+*******************************************************************************/
+void pldm_init_flags()
+{
+    pldm_first_pkt = true;
+    PLDM_CONTEXT *pldmContext = NULL;
+    pldmContext = pldm_ctxt_get();
+    if(NULL == pldmContext)
+    {
+        return;
+    }
+    pldmContext->pldm_state_info = PLDM_IDLE;
+    pldmContext->pldm_previous_state = PLDM_IDLE_STATE;
+    pldmContext->pldm_current_state = PLDM_IDLE_STATE;
+    pldmContext->pldm_status_reason_code = INITIALIZATION_OF_FD;    
+}
+
+/******************************************************************************/
+/** pldm_pkt_init_config_params();
+* Initialize the PLDM config params
+* @param None
+* @return None
+*******************************************************************************/
+void pldm_pkt_init_config_params()
+{  
+    void *desc;
+    pldm_ap_cfg.PLDM_override_device_descriptors = PLDM_DEVICE_DESCRIPTOR_OVERRIDE;
+    pldm_ap_cfg.PLDM_override_capability_upgrade = PLDM_OVERRIDE_CAPABLITIES;
+    pldm_ap_cfg.PLDM_override_comp_classification = PLDM_OVERRIDE_COMP_CLASSIFICATION;
+    pldm_ap_cfg.pldm_device_identifier_len = PLDM_DEVICE_IDENTIFIER_LENGTH;
+    pldm_ap_cfg.pldm_des_cnt = PLDM_DESCRIPTOR_COUNT;   
+<#assign byte_num = 0>
+<#list 0..49 as i>
+
+    *desc = &pldm_ap_cfg.descriptor[${byte_num}];
+    *(uint32_t*)desc = GET_DESC(${byte_num});
+<#assign byte_num = byte_num+4>
+</#list>
+    pldm_ap_cfg.cap_during_update = PLDM_UPGRADE_CAPABLITIES;
+    pldm_ap_cfg.comp_classification = PLDM_COMP_CLASSIFICATION;
+    pldm_ap_cfg.tid = PLDM_DEVICE_TID;
 }

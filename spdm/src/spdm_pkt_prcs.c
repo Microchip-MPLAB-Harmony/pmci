@@ -32,9 +32,6 @@
 
 #define SPI_DATA_MAX_BUFF 4096U
 
-// extern SPDM_BSS1_ATTR DI_CONTEXT_SPDM *spdm_di_context;
-SPDM_BSS1_ATTR uint8_t curr_ec_id;
-
 SPDM_BSS1_ATTR uint8_t get_mctp_pld[MAX_SIZE_CERTIFICATE] __attribute__((aligned(8)));
 SPDM_BSS1_ATTR MCTP_PKT_BUF mctp_pktbuf_tx;
 SPDM_BSS1_ATTR MCTP_PKT_BUF spdm_pktbuf_rx;

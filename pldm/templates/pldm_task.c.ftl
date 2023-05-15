@@ -35,7 +35,6 @@
  * OF THESE TERMS.
  *****************************************************************************/
 #include "definitions.h"
-
 #include "pldm_task.h"
 #include "pldm_pkt_prcs.h"
 #include "pldm_common.h"
@@ -44,7 +43,6 @@
 static void pldm_main(void *pvParameters);
 static StaticTask_t pldm_tcb;
 
-extern PLDM_BSS1_ATTR DI_CONTEXT_PLDM *pldm_di_context;
 PLDM_BSS0_ATTR static uint32_t pldm_stack[PLDM_STACK_WORD_SIZE] PLDM_STACK_ALIGN;
 PLDM_BSS2_ATTR static TaskHandle_t pldm_handle;
 PLDM_BSS2_ATTR PLDM_CONTEXT *pldmContext;
@@ -79,12 +77,6 @@ union
  * initialize the pcName and pxTaskBuffer objects.
  * We can intialize all other items in the task creation function.
  */
-static const TaskParameters_t pldm_def =
-{
-    .pcName = "pldm_main",
-    .pxTaskBuffer = &pldm_tcb
-};
-
 TaskHandle_t pldm_get_handle(void)
 {
     return pldm_handle;
@@ -170,7 +162,6 @@ static void pldm_main(void* pvParameters)
     {
         return;
     }
-
 <#if (MCTP.MCTP_IS_RTOS_COMPONENT_CONNECTED == true && FreeRTOS.FREERTOS_STATIC_ALLOC == true) || (MCTP.MCTP_IS_RTOS_COMPONENT_CONNECTED == false)>    
     pldmContext->xPLDMRespTimer =
         xTimerCreateStatic("PLDMResp_timer", // Text name for the task.  Helps debugging only.  Not used by FreeRTOS.
@@ -188,7 +179,6 @@ static void pldm_main(void* pvParameters)
                            PLDMResp_timer_callback); // The function to execute when the timer expires.                         
 </#if>
 
-    pldmContext->pldm_state_info = PLDM_IDLE;
     pldm_init_task(pldmContext);
     while(1)
     {
@@ -235,7 +225,6 @@ void SET_PLDM_EVENT_FLAG(void)
     }
     pldmContext->pldm_state_info = PLDM_CMD_PROCESS_MODE;
     //pldmContext->pldm_tx_state = PLDM_TX_IDLE;
-    trace0(0, PLDM_TSK, 0, "PLDM:set event");
     xEventGroupSetBits( pldmContext->xPLDMEventGroupHandle, PLDM_EVENT_BIT);
 }
 
@@ -279,4 +268,16 @@ void pldm_response_timeout_stop(void)
             }
         }
     }
+}
+
+/******************************************************************************/
+/** pldm_response_timeout_stop
+* Stop the software PLDMResponse timer
+* @param void
+* @return void
+*******************************************************************************/
+void pldm_init_task(PLDM_CONTEXT *pldmContext)
+{
+    pldm_init_flags();
+    pldm_pkt_init_config_params();
 }

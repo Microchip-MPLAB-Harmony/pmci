@@ -220,7 +220,7 @@ uint8_t packetize_data(uint8_t rx_packet_len, I2C_BUFFER_INFO *buffer_info, MCTP
 * @param *buffer_info Pointer to I2C_BUFFER_INFO structure of smbus layer
 * @return void
 *******************************************************************************/
-uint8_t mctp_copy_rx_for_pldm_for_ec(BUFFER_INFO *buffer_info)
+uint8_t mctp_copy_rx_for_pldm_for_ec(I2C_BUFFER_INFO *buffer_info)
 {
     uint8_t i;
     uint8_t msg_type;

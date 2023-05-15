@@ -19,33 +19,35 @@
 *****************************************************************************/
 
 /** @file pldm.h
- * Interface header file for applications of SPDM
+ * Interface header file for applications of PLDM
  */
-/** @defgroup SPDM interface
+/** @defgroup PLDM interface
  */
 
 #ifndef PLDM_H
 #define PLDM_H
 
 #include "definitions.h"
-
+#include "pldm_common.h"
+#include "pldm_task.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /******************************************************************************/
-/** pldm_get_fw_param_resp_feilds
- * This function is to get SPDM Certificate 2 Address
- * @param buf_ptr         Pointer to hold certificate 2 address
+/** pldm_get_firmware_param_resp_feilds
+ * This function is to get PLDM Certificate 2 Address
+ * @param buf_ptr         budder to hold the pldm descriptor data
+ * @param size            Size of the discriptor in bytes
  * @return                 None
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * Currently the SPDM module supports only 64 certificates. 
- * This function is called by SPDM module to get the Certificate 2 base address.
+ * Currently the PLDM module supports only 64 certificates. 
+ * This function is called by PLDM module to get the Certificate 2 base address.
  * Certificates 3 to 63 have to be placed at an offset 0x400 from previous
  * certificate. User can have these certificates 3 to 63 in any peripheral as
  * per the system design.
@@ -64,18 +66,9 @@ extern "C" {
  * -----------------------
  * Example:
  * -----------------------
- * void spdm_pkt_initialize_cert_params_to_default(SPDM_CONTEXT *spdmContext)
- * {
- *     get_cert2_base_address(&cert2_base_addr);
- * }
- *
- * void get_cert2_base_address(uint8_t *cert_ptr)
- * {
- *     read_cert2_addr(*cert_ptr);
- * }
  * ############################################################################
 *******************************************************************************/
-extern void pldm_get_fw_param_resp_feilds(uint8_t *buf_ptr, uint32_t* size);
+extern uint8_t pldm_get_firmware_param_resp_feilds(uint8_t *buf_ptr, uint32_t* size);
 
 
 /******************************************************************************/
@@ -88,39 +81,22 @@ extern void pldm_get_fw_param_resp_feilds(uint8_t *buf_ptr, uint32_t* size);
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to get hash of measurement data.
- * Currently SPDM module supports 4 measurements of data hash. User is 
+ * This function is called by the PLDM module to get hash of measurement data.
+ * Currently PLDM module supports 4 measurements of data hash. User is 
  * expected to fill unused measurements with zeros.
  * -----------------------
  * Example:
  * -----------------------
- * void spdm_get_measurements(uint8_t *buffer_ptr, uint8_t index)
+ * void pldm_init_peripheral_for_update(uint8_t *buffer_ptr, uint8_t index)
  * {
- *      switch(index)
- *      {
- *          case 1:
- *              get_measurement_1_data(buffer_ptr);
- *              break;
- *          case 2:
- *              get_measurement_2_data(buffer_ptr);
- *              break;
- *          case 3:
- *              get_measurement_3_data(buffer_ptr);
- *              break;
- *          case 4:
- *              get_measurement_4_data(buffer_ptr);
- *              break;
- *          default:
- *              break;
- *      }
+ *
  * }
  * ############################################################################
 *******************************************************************************/
-extern void spdm_get_measurements(uint8_t *buffer_ptr,
-                                    uint8_t index);
+extern uint8_t pldm_init_peripheral_for_update(uint8_t component_id);
 
 /******************************************************************************/
-/** spdm_read_certificate
+/** pldm_read_certificate
  * This function can be used to read the certificate data and store it in buffer. 
  * @param address          Address of certificate
  * @param buff_ptr         Pointer to hold certificate data
@@ -132,14 +108,14 @@ extern void spdm_get_measurements(uint8_t *buffer_ptr,
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to read certificate data.
+ * This function is called by the PLDM module to read certificate data.
  * Root certificate of size 1KB is read, other certificates read length are
  * decided by the size specified in the certificate header. Certificate number
  * passed can be used to read certificate data from corresponding peripherals.
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_read_certificate(uint32_t address, uint8_t *buffer_ptr, uint8_t length
+ * uint8_t pldm_write_firmware_data(uint32_t address, uint8_t *buffer_ptr, uint8_t length
  *                              uint8_t certificate_no)
  * {
  *      uint8_t ret_val = FAILURE;
@@ -154,23 +130,20 @@ extern void spdm_get_measurements(uint8_t *buffer_ptr,
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t spdm_read_certificate(uint32_t address, 
-                                  uint8_t *buff_ptr,
-                                  uint32_t length,
-                                  uint8_t certificate_num);
+extern uint8_t pldm_write_firmware_data(uint8_t component_id, uint8_t *buff_ptr);
 
 /******************************************************************************/
-/** pvt_key
+/** pldm_start_firware_update
  * Global variable used to store the private key for signature generation.
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
  * User has to fill this global variable with the private key used in signature 
- * generation spdm_crypto_ops_gen_signature().
+ * generation pldm_crypto_ops_gen_signature().
  * ############################################################################
 *******************************************************************************/
-extern SPDM_BSS1_ATTR uint8_t pvt_key[PVT_KEY_CODE_LENGTH];
+extern uint8_t pldm_start_firmware_update(uint8_t component_id);
 
 /******************************************************************************/
 /** hash_of_req_buffer
@@ -179,12 +152,12 @@ extern SPDM_BSS1_ATTR uint8_t pvt_key[PVT_KEY_CODE_LENGTH];
  * -----------------------
  * Usage notes:
  * -----------------------
- * SPDM module fills this buffer with hash of data.
+ * PLDM module fills this buffer with hash of data.
  * User can use this global variable in signature generation API. 
- * Note: SPDM module supports only hash of data for signature generation.
+ * Note: PLDM module supports only hash of data for signature generation.
  * ############################################################################
 *******************************************************************************/
-extern SPDM_BSS0_ATTR uint8_t hash_of_req_buffer[SPDM_SHA384_LEN];
+extern uint8_t pldm_start_firmware_Apply(uint8_t component_id);
 
 /******************************************************************************/
 /** ecdsa_signature
@@ -194,14 +167,14 @@ extern SPDM_BSS0_ATTR uint8_t hash_of_req_buffer[SPDM_SHA384_LEN];
  * Usage notes:
  * -----------------------
  * User is expected to store the generated signature in this variable.
- * SPDM module uses this variable to add signature as part of SPDM challenge and 
+ * PLDM module uses this variable to add signature as part of PLDM challenge and 
  * measurement response messages.
  * ############################################################################
 *******************************************************************************/
-extern SPDM_BSS1_ATTR ecdsa_signature_t ecdsa_signature __attribute__((aligned(8)));
+extern uint8_t pldm_calcel_update(uint8_t component_id, uint8_t cancel_update_flag);
 
 /******************************************************************************/
-/** random_no
+/** pldm_restore_configs
  * Global variable to store the random number for signature generation.
  * ############################################################################
  * -----------------------
@@ -211,10 +184,10 @@ extern SPDM_BSS1_ATTR ecdsa_signature_t ecdsa_signature __attribute__((aligned(8
  * if design demands it.
  * ############################################################################
 *******************************************************************************/
-extern SPDM_BSS0_ATTR uint8_t random_no[CURVE_384_SZ];
+extern void  pldm_restore_configs();
 
 /******************************************************************************/
-/** spdm_crypto_ops_gen_signature
+/** pldm_reset_firmware_update_flags
  * This function can be used to generate signature. 
  * @param                  None
  * @return                 None
@@ -223,10 +196,10 @@ extern SPDM_BSS0_ATTR uint8_t random_no[CURVE_384_SZ];
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to generate signature.
- * The SPDM module is designed for ECDSA384 calculations.
+ * This function is called by the PLDM module to generate signature.
+ * The PLDM module is designed for ECDSA384 calculations.
  * pvt_key array - User is expected to fill the private key.
- * hash_of_req_buffer - will have the hash of data, filled by SPDM stack
+ * hash_of_req_buffer - will have the hash of data, filled by PLDM stack
  *                      (no action needed from user).
  * random_no - User is expected to fill the random number for signature generation.
  * ecdsa_signature.ecdsa_signature - User is expected to fill with generated
@@ -246,7 +219,7 @@ extern SPDM_BSS0_ATTR uint8_t random_no[CURVE_384_SZ];
  * -----------------------
  * Example:
  * -----------------------
- * uint32_t spdm_crypto_ops_gen_signature(void)
+ * uint32_t pldm_crypto_ops_gen_signature(void)
  * {
  *      uint32_t ret_val = FAILURE;
  * 
@@ -265,14 +238,14 @@ extern SPDM_BSS0_ATTR uint8_t random_no[CURVE_384_SZ];
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint32_t spdm_crypto_ops_gen_signature(void);
+extern uint8_t pldm_reset_firmware_update_flags(void);
 
 /******************************************************************************/
-/** spdm_crypto_ops_calc_hash
+/** pldm_crypto_ops_calc_hash
  * This function can be used to calculate hash of data at single shot.
  * @param  buf_ptr         Pointer to data to be hashed
  * @param  length          Length of data to be hashed
- * @param  spdmContext     Holds the stage of hashing in case of intermediate
+ * @param  pldmContext     Holds the stage of hashing in case of intermediate
  *                         hashing
  * @return                 success or failure
  * @note
@@ -280,34 +253,33 @@ extern uint32_t spdm_crypto_ops_gen_signature(void);
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to calculate hash of data at
+ * This function is called by the PLDM module to calculate hash of data at
  * single shot.
- * The SPDM module is designed for SHA384 hash calculations.
- * The user is expected to store the resultant hash in spdmContext->sha_digest.
+ * The PLDM module is designed for SHA384 hash calculations.
+ * The user is expected to store the resultant hash in pldmContext->sha_digest.
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length, 
- *                                  SPDM_CONTEXT *spdmContext)
+ * uint8_t pldm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length, 
+ *                                  PLDM_CONTEXT *pldmContext)
  * {
  *      uint8_t ret_val = FAILURE;
  * 
- *      ret_val = crypto_calc_hash(buff_ptr, length, &spdmContext->sha_digest[0]);
+ *      ret_val = crypto_calc_hash(buff_ptr, length, &pldmContext->sha_digest[0]);
  * 
  *      return ret_val;
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
-                                    SPDM_CONTEXT *spdmContext);
+extern uint8_t pldm_activate_firmware(void);
 
 
 /******************************************************************************/
-/** spdm_crypto_ops_run_time_hashing
+/** pldm_process_verify_complete()
  * This function can be used to calculate hash of data at runtime.
  * @param  buf_ptr         Pointer to data to be hashed
  * @param  length          Length of data to be hashed
- * @param  spdmContext     Holds the stage of hashing in case of intermediate
+ * @param  pldmContext     Holds the stage of hashing in case of intermediate
  *                         hashing
  * @return                 None
  * @note
@@ -315,36 +287,36 @@ extern uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to calculate hash of data at
+ * This function is called by the PLDM module to calculate hash of data at
  * runtime.
  * Data to be hashed has to be fed into crypto engine in chunks with engine
  * saving the intermediate result till hash finalize is issued.
- * spdmContext->get_requests_state will hold the hashing state.
+ * pldmContext->get_requests_state will hold the hashing state.
  * HASH_INIT_MODE - initialize the memory for hash context saving
  * RUN_TIME_HASH_MODE - feed chunks of data and hash the same
  * END_OF_HASH - get the finalized hash of all chunks passed to engine for
  *               hashing
- * The resultant hash has to be stored in spdmContext->sha_digest.
+ * The resultant hash has to be stored in pldmContext->sha_digest.
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr, uint32_t length, 
- *                                  SPDM_CONTEXT *spdmContext)
+ * uint8_t pldm_process_verify_complete(uint8_t *buff_ptr, uint32_t length, 
+ *                                  PLDM_CONTEXT *pldmContext)
  * {
  *   uint8_t rc = 0x00;
  *
- *   if(NULL == spdmContext)
+ *   if(NULL == pldmContext)
  *   {
  *       return 0xff;
  *   }
  *
- *   switch(spdmContext->get_requests_state)
+ *   switch(pldmContext->get_requests_state)
  *   {
  *   case HASH_INIT_MODE:
  *       memset(&ctx_ptr, 0, sizeof(ctx_ptr));
  *       // initialize hash structure pointer to HW instance
  *       // allocate a descriptor to load hash configuration word
- *       rc = spdm_crypto_ops_hash_ctx_init(&ctx_ptr);
+ *       rc = pldm_crypto_ops_hash_ctx_init(&ctx_ptr);
  *       if (rc != OK)
  *       {
  *           return rc;
@@ -354,21 +326,21 @@ extern uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
  *       //populate internal buffer (128 bytes) upto 128 (block size)
  *       //feed to hash engine and calculate intermediate hash if internal
  *       //buffer reaches max 128 bytes
- *       rc = spdm_crypto_ops_hash_ctx_update_buf(buff, &ctx_ptr, length);
+ *       rc = pldm_crypto_ops_hash_ctx_update_buf(buff, &ctx_ptr, length);
  *       if (rc != OK)
  *       {
  *           return rc;
  *       }
  *       break;
  *   case END_OF_HASH:
- *       rc = spdm_crypto_ops_hash_ctx_final(&ctx_ptr,
- *                                           &spdmContext->sha_digest[0]);
+ *       rc = pldm_crypto_ops_hash_ctx_final(&ctx_ptr,
+ *                                           &pldmContext->sha_digest[0]);
  *       if (rc != OK)
  *       {
  *           return rc;
  *       }
  *       //switch back to init state as we got the final digest
- *       spdmContext->get_requests_state = HASH_INIT_MODE;
+ *       pldmContext->get_requests_state = HASH_INIT_MODE;
  *       break;
  *   default:
  *       break;
@@ -379,12 +351,10 @@ extern uint8_t spdm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length,
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr,
-                                                uint32_t length,
-                                                SPDM_CONTEXT *spdmContext);
-
+extern uint8_t pldm_process_verify_complete(uint8_t verify_status);
+ 
 /******************************************************************************/
-/** spdm_crypto_ops_gen_random_no
+/** pldm_process_apply_coplete()
  * This function can be used to generate random number.
  * @param  buff           Pointer to hold the generated random number
  * @param  bytes          Length of random number
@@ -394,14 +364,14 @@ extern uint8_t spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr,
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the SPDM module to generate random number for nonce
+ * This function is called by the PLDM module to generate random number for nonce
  * data. User is expected to store the generated random number in the address pointed
  * by buff.
  * Same API can be used for generating random number during signature generation.
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint32_t length)
+ * uint8_t pldm_crypto_ops_gen_random_no(uint8_t *buff, uint32_t length)
  * {
  *    uint8_t ret = FAILURE;
  *    ret = generate_random_num(buff, length); 
@@ -409,18 +379,18 @@ extern uint8_t spdm_crypto_ops_run_time_hashing(uint8_t *buff_ptr,
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint8_t bytes);
+extern uint8_t pldm_process_apply_complete(uint8_t apply_state);
 
 /******************************************************************************/
-/** spdm_app_task_create(void)
- * Create SPDM FreeRTOS task
+/** pldm_app_task_create(void)
+ * Create PLDM FreeRTOS task
  * @param pvParams  This parameter is not used
  * @return -1 :Fail, 0: Pass
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function creates and prepares the SPDM task to be run by the FreeRTOS
+ * This function creates and prepares the PLDM task to be run by the FreeRTOS
  * task scheduler. The user is expected to call this function in their main
  * function along with any other application task creation routines and start
  * the FreeRTOS scheduler. Make sure that all necessary peripheral initializations
@@ -432,7 +402,7 @@ extern uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint8_t bytes);
  * {
  *    SYS_Initialize ( NULL );
  *    
- *    if(spdm_app_task_create((void*)NULL) < 0)
+ *    if(pldm_app_task_create((void*)NULL) < 0)
  *    {
  *        while(1);
  *    }
@@ -453,41 +423,41 @@ extern uint8_t spdm_crypto_ops_gen_random_no(uint8_t *buff, uint8_t bytes);
  * }
  * ############################################################################
 *******************************************************************************/
-int spdm_app_task_create(void *pvParams);
+int pldm_app_task_create(void *pvParams);
 
 /******************************************************************************/
-/** spdmContext
- * Global structure to save SPDM context information.
+/** pldmContext
+ * Global structure to save PLDM context information.
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
  * -----------------------
- * spdmContext
+ * pldmContext
  * -----------------------
- * spdmContext is used for saving SPDM context information. User is expected to 
- * store the resultant hash computaiton value in spdmContext->sha_digest[48].
- * spdmContext->get_requests_state has the hash intermediate state which can 
+ * pldmContext is used for saving PLDM context information. User is expected to 
+ * store the resultant hash computaiton value in pldmContext->sha_digest[48].
+ * pldmContext->get_requests_state has the hash intermediate state which can 
  * be used for corresponding hash crypto engine functionality.
  * ############################################################################
 *******************************************************************************/
-extern SPDM_BSS2_ATTR SPDM_CONTEXT *spdmContext;
+extern PLDM_BSS2_ATTR PLDM_CONTEXT *pldmContext;
 
 /******************************************************************************/
-/** SPDM_RQS_STATE 
+/** PLDM_RQS_STATE 
  * Intermediate hashing states
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * The values in this enum are used by SPDM module to store the intermediate
+ * The values in this enum are used by PLDM module to store the intermediate
  * hashing state. User can make use these for defining intermediate hashing crypto
  * implementation.
  * ############################################################################
  *******************************************************************************/
-enum SPDM_RQS_STATE
+enum PLDM_RQS_STATE
 {
     HASH_INIT_MODE,
     RUN_TIME_HASH_MODE,
@@ -499,7 +469,7 @@ enum SPDM_RQS_STATE
 }
 #endif
 
-#endif /* SPDM_H */
+#endif /* PLDM_H */
 
 /**   @}
  */

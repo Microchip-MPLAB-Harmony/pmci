@@ -76,6 +76,8 @@ typedef struct PLDM_CONTEXT
     uint8_t pldm_state_info; // added this to track PLDM packets (if tracking with pldm_state_info, if pldm packet comes in between
     // pldm packets, the current state would go into toss)
 
+    uint16_t pldm_current_request_length;
+
     uint8_t pldm_tx_state;
 
     uint8_t pldm_host_eid;

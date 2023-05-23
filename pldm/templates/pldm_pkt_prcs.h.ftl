@@ -40,6 +40,7 @@
 #ifndef PLDM_PKT_PRCS_H
 #define PLDM_PKT_PRCS_H
 
+#include "pldm_common.h"
 
 /* Message payload lengths */
 #define PLDM_GET_COMMANDS_REQ_BYTES 5
@@ -99,18 +100,6 @@ enum PLDM_STATES
 #define PLDM_MAX_CMDS_PER_TYPE 256
 #define PLDM_INSTANCE_MAX 31
 
-#define COMP_STRING_TYPE_SIZE UTF16_SIZE
-
-#define ASCII_SIZE 40
-#define UTF8 1
-#define UTF16_SIZE 2
-#define UTF16LE 2
-#define UTF16BE 2
-
-// string types
-#define ASCII 0x01
-#define UTF16  0X03
-
 #define PROGRESS_PERCENT 0x65
 
 #define NUMBER_OF_256B_TRANSFER_FROM_HOST_FOR_EC_FW 897
@@ -118,55 +107,6 @@ enum PLDM_STATES
 
 #define REQUEST_59B 59
 #define REQUEST_20B 20
-
-#define PLDM_COMP_IDENTIFIER_TAG0 0x1020
-#define PLDM_COMP_IDENTIFIER_TAG1 0x1021
-#define PLDM_COMP_IDENTIFIER_KHB_TAG0 0x1024
-#define PLDM_COMP_IDENTIFIER_KHB_TAG1 0x1025
-#define PLDM_COMP_IDENTIFIER_KHB1_TAG1 0x102D
-
-#define PLDM_COMP_IDENTIFIER_APCFG0 0x4000
-#define PLDM_COMP_IDENTIFIER_APCFG1 0x4011
-
-#define PLDM_COMP_IDENTIFIER_HT0_AP0C0 0x8000
-#define PLDM_COMP_IDENTIFIER_HT1_AP0C0 0x8001
-#define PLDM_COMP_IDENTIFIER_HT2_AP0C0 0x8002
-#define PLDM_COMP_IDENTIFIER_HT0_AP0C1 0x8010
-#define PLDM_COMP_IDENTIFIER_HT1_AP0C1 0x8011
-#define PLDM_COMP_IDENTIFIER_HT2_AP0C1 0x8012
-#define PLDM_COMP_IDENTIFIER_HT0_AP1C0 0x8100
-#define PLDM_COMP_IDENTIFIER_HT1_AP1C0 0x8101
-#define PLDM_COMP_IDENTIFIER_HT2_AP1C0 0x8102
-#define PLDM_COMP_IDENTIFIER_HT0_AP1C1 0x8110
-#define PLDM_COMP_IDENTIFIER_HT1_AP1C1 0x8111
-#define PLDM_COMP_IDENTIFIER_HT2_AP1C1 0x8112
-
-#define PLDM_COMP_IDENTIFIER_AP_BA_PTR0 0x3000
-#define PLDM_COMP_IDENTIFIER_AP_BA_PTR1 0x3001
-
-#define PLDM_COMP_IDENTIFIER_AP_KHB0 0x6000
-#define PLDM_COMP_IDENTIFIER_AP_KHB1 0x6001
-
-#define PLDM_COMP_IDENTIFIER_APFW_0 0x2000
-
-#define PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE 0x5000
-
-#define INVALID_ECFWKHB_IDENTIFIER(x) ((x != PLDM_COMP_IDENTIFIER_KHB_TAG0) && \
-                                       (x != PLDM_COMP_IDENTIFIER_KHB_TAG1) && \
-                                       (x != PLDM_COMP_IDENTIFIER_KHB1_TAG1))
-
-#define INVALID_HASH_COMP_IDENTIFIER(x) ((x != PLDM_COMP_IDENTIFIER_HT0_AP0C0) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT1_AP0C0) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT2_AP0C0) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT0_AP0C1) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT1_AP0C1) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT2_AP0C1) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT0_AP1C0) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT1_AP1C0) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT2_AP1C0) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT0_AP1C1) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT1_AP1C1) && \
-                                       (x != PLDM_COMP_IDENTIFIER_HT2_AP1C1))
 
 // PLDM Types
 #define PLDM_FIRMWARE_UPDATE 0X5
@@ -245,8 +185,6 @@ enum PLDM_STATES
 
 #define PLDM_DEFAULT_CAP_DURING_UPDATE 0x00000024
 #define PLDM_NUMBER_OF_COMPONENTS_SUPPORTED 4  // EC_FW Tag 0 & 1; AP_CFG 0 & 1
-#define PLDM_DEFAULT_COMP_CLASSIFICATION 0x000A
-#define PLDM_COMP_ACTIVATION_SUPPORTED 0x003A
 
 #define PLDM_COMP_UPDATE_FAILURE_RECOVERY_CAP (1 << 0)
 #define PLDM_COMP_UPDATE_RETRY_CAP (1 << 1)
@@ -271,8 +209,6 @@ enum PLDM_STATES
 #define PLDM_REQUEST_ACTIVATE_FIRMWARE_LEN sizeof(REQUEST_ACTIVATE_FIRMWARE)
 
 #define PLDM_EOM 0x40
-
-#define NO_OF_COMP_TBL 19
 
 // Byte match int spi update masking
 #define BYTE_MATCH_INT_SPI_IMGID_MSK 0x000F
@@ -426,39 +362,6 @@ typedef struct QUERY_DEVICE_IDENTIFIERS_REQ_MESSAGE_RES_FIELDS
     uint8_t descriptor_count;
     uint8_t descriptor[200];
 } __attribute__((packed)) QUERY_DEVICE_IDENTIFIERS_REQ_MESSAGE_RES_FIELDS;
-
-typedef struct COMPONENT_PARAMETER_TABLE
-{
-    uint16_t comp_classification;
-    uint16_t comp_identifier;
-    uint8_t comp_classification_index;
-    uint32_t active_comp_comparison_stamp;
-    uint8_t active_comp_version_string_type;
-    uint8_t active_comp_version_string_length;
-    uint8_t active_comp_release_date[8];
-    uint32_t pending_comp_comparison_stamp;
-    uint8_t pending_comp_version_string_type;
-    uint8_t pending_comp_version_string_length;
-    uint8_t pending_comp_release_date[8];
-    uint16_t comp_activation_methods;
-    uint32_t cap_during_update;
-    uint8_t active_comp_version_string[COMP_STRING_TYPE_SIZE];
-    uint8_t pending_comp_version_string[COMP_STRING_TYPE_SIZE];
-} __attribute__((packed)) COMPONENT_PARAMETER_TABLE;
-
-typedef struct GET_FIRMWARE_PARAMETERS_RES_FIELDS
-{
-    uint8_t completion_code;
-    uint32_t capabilities_during_update;
-    uint16_t component_count;
-    uint8_t active_comp_image_set_version_string_type;
-    uint8_t active_comp_image_set_version_string_length;
-    uint8_t pending_comp_image_set_version_string_type;
-    uint8_t pending_comp_image_set_version_string_length;
-    uint8_t active_comp_image_set_version_string[ASCII_SIZE];
-    uint8_t pending_comp_image_set_version_string[ASCII_SIZE];
-    COMPONENT_PARAMETER_TABLE comp_parameter[NO_OF_COMP_TBL];
-} __attribute__((packed)) GET_FIRMWARE_PARAMETERS_RES_FIELDS;
 
 typedef struct REQUEST_FIRMWARE_DATA
 {
@@ -742,29 +645,6 @@ void pldm1_event_task(void);
 void pldm_pkt_process_request_firmware_update_response(void);
 
 /******************************************************************************/
-/** This is called for starting EC_FW/AP_CFG update process
-* EC_FW/AP_CFG is copied to staged location before this function is called, and
-* reusing EC_FW update and reboot I2C command code.
-* @param void
-* @return void
-*******************************************************************************/
-void pldm_start_update();
-
-/******************************************************************************/
-/** This function is for sending verify complete to UA
-* @param verify_state verify success or failure
-* @return void
-*******************************************************************************/
-void pldm_initiate_verify_req_to_update_agent(uint8_t verify_state);
-
-/******************************************************************************/
-/** This function is for sending apply complete to UA
-* @param apply_state apply success or failure
-* @return void
-*******************************************************************************/
-void pldm_initiate_apply_req_to_update_agent(uint8_t apply_state);
-
-/******************************************************************************/
 /** This function is for restoring configs back for AP access
 * @param None
 * @return void
@@ -795,14 +675,6 @@ uint8_t pldm_pkt_fill_buffer(MCTP_PKT_BUF *pldm_msg_rx_buf, PLDM_CONTEXT *pldmCo
 void PLDMResp_timer_callback(TimerHandle_t pxTimer);
 
 /******************************************************************************/
-/** pldm_get_staged_address_for_crisis_recovery();
-* PLDMResp timer callback
-* @param TimerHandle_t pxTimer
-* @return None
-*******************************************************************************/
-void pldm_get_staged_address_for_crisis_recovery();
-
-/******************************************************************************/
 /** is_comp_iden_supported();
 * check if comp identifier in pass component and update component messages are
 * supported
@@ -820,11 +692,119 @@ bool is_comp_iden_supported(uint16_t comp_iden);
 void pldm_init_flags();
 
 /******************************************************************************/
-/** pldm_pkt_init_config_params();
-* Initialize the PLDM config params
+/** pldm_apcfg_device_identifier_length();
+* Returns device descriptor length
 * @param None
+* @return length of device descriptor
+*******************************************************************************/
+uint32_t pldm_apcfg_device_identifier_length(void);
+
+/******************************************************************************/
+/** pldm_apcfg_descriptor_count();
+* Returns device descriptor count
+* @param None
+* @return count no of device descriptor available
+*******************************************************************************/
+uint8_t pldm_apcfg_descriptor_count(void);
+
+/******************************************************************************/
+/** pldm_apcfg_descriptor();
+* Returns device descriptor
+* @param descriptor array
 * @return None
 *******************************************************************************/
-void pldm_pkt_init_config_params();
+void pldm_apcfg_descriptor(uint8_t *descriptor);
+
+/******************************************************************************/
+/** pldm_apcfg_override_cap_upgrade();
+* Returns flag of pldm override capabilities during upgrade
+* @param None
+* @return true = override, false = no override
+*******************************************************************************/
+bool pldm_apcfg_override_cap_upgrade(void);
+
+/******************************************************************************/
+/** pldm_apcfg_capabilities_upgrade();
+* Returns pldm capabilities during upgrade
+* @param None
+* @return cap capapbilites configured
+*******************************************************************************/
+uint16_t pldm_apcfg_capabilities_upgrade(void);
+
+/******************************************************************************/
+/** pldm_apcfg_override_comp_classification();
+* Returns flag of pldm override component classification
+* @param None
+* @return true = override, false = no override
+*******************************************************************************/
+bool pldm_apcfg_override_comp_classification(void);
+
+/******************************************************************************/
+/** pldm_apcfg_tid();
+* Returns pldm terminal id
+* @param None
+* @return tid
+*******************************************************************************/
+uint8_t pldm_apcfg_tid(void);
+
+/******************************************************************************/
+/** pldm_apcfg_component_classification();
+* Returns pldm component classification
+* @param None
+* @return comp_classification
+*******************************************************************************/
+uint16_t pldm_apcfg_component_classification(void);
+
+/******************************************************************************/
+/** pldm_pkt_get_config_from_apcfg
+* This function is used for getting AP_CFG during initialization for PLDM
+* @param pldmContext
+* @return void
+*******************************************************************************/
+void pldm_pkt_get_config_from_apcfg(PLDM_CONTEXT *pldmContext);
+
+/******************************************************************************/
+/** pldm_initiate_verify_req_to_update_agent
+* This function is for sending verify complete to UA
+* @param verify_state verify success or failure
+* @return void
+*******************************************************************************/
+void pldm_initiate_verify_req_to_update_agent(uint8_t verify_state);
+
+/******************************************************************************/
+/** pldm_initiate_apply_req_to_update_agent
+* This function is for sending apply complete to UA
+* @param apply_state apply success or failure
+* @return void
+*******************************************************************************/
+void pldm_initiate_apply_req_to_update_agent(uint8_t apply_state);
+
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+/******************************************************************************/
+/** pldm_apply_complete_response
+* This function is for any action required internal to UA after sending 
+* apply complete response 
+* @param apply_state apply success or failure
+* @return void
+*******************************************************************************/
+void pldm_apply_complete_response(uint16_t comp_identifier);
+
+/******************************************************************************/
+/** get_pldm_override_device_desc();
+* Returns pldm override device descriptor
+* @param None
+* @return overrite - true, false
+*******************************************************************************/
+bool get_pldm_override_device_desc();
+
+/******************************************************************************/
+/** pldm_get_AP_custom_configs_from_apcfg();
+* This function gets the PLDM_AP_CFG feilds required for AP image update
+* Refer PLDM_AP_CFG
+* @param None
+* @return overrite - true, false
+*******************************************************************************/
+void pldm_get_AP_custom_configs_from_apcfg();
+</#if>
 
 #endif

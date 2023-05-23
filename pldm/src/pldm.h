@@ -29,166 +29,315 @@
 
 #include "definitions.h"
 #include "pldm_common.h"
-#include "pldm_task.h"
+#include "pldm_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /******************************************************************************/
-/** pldm_get_firmware_param_resp_feilds
- * This function is to get PLDM Certificate 2 Address
- * @param buf_ptr         budder to hold the pldm descriptor data
- * @param size            Size of the discriptor in bytes
- * @return                 None
+/** COMPONENT_PARAMETER_TABLE 
+ * Comparameter parameters
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * Currently the PLDM module supports only 64 certificates. 
- * This function is called by PLDM module to get the Certificate 2 base address.
- * Certificates 3 to 63 have to be placed at an offset 0x400 from previous
- * certificate. User can have these certificates 3 to 63 in any peripheral as
- * per the system design.
- * Certificate 0 and 1 addresses are configurable via macro
- * CERTIFICATE_START_ADDRESS, and this can be placed in same peripheral of
- * certificate 3 to 63, or can be any other peripheral as per design.
- * _______________________________________________________________________
- * |           |            |           |            |     |             |
- * | Cert 0    | Cert 1     | Cert 2    | Cert 3     |     | Cert 63     |
- * | offset 0  |offset 0x400| offset 0  |offst 0x400 |     |offset 0xF400|
- * |___________|____________|___________|____________|_____|_____________|
- * ^                        ^
- * |                        |____________________________
- * CERTIFICATE_START_ADDRESS                           get_cert2_base_address()
+ * The values is the parameters supported for any update component
+ * User can update these parameters as part of get firmware parameters
+ * command
+ * ############################################################################
+ *******************************************************************************/
+typedef struct COMPONENT_PARAMETER_TABLE
+{
+    uint16_t comp_classification;
+    uint16_t comp_identifier;
+    uint8_t comp_classification_index;
+    uint32_t active_comp_comparison_stamp;
+    uint8_t active_comp_version_string_type;
+    uint8_t active_comp_version_string_length;
+    uint8_t active_comp_release_date[8];
+    uint32_t pending_comp_comparison_stamp;
+    uint8_t pending_comp_version_string_type;
+    uint8_t pending_comp_version_string_length;
+    uint8_t pending_comp_release_date[8];
+    uint16_t comp_activation_methods;
+    uint32_t cap_during_update;
+    uint8_t active_comp_version_string[COMP_STRING_TYPE_SIZE];
+    uint8_t pending_comp_version_string[COMP_STRING_TYPE_SIZE];
+} __attribute__((packed)) COMPONENT_PARAMETER_TABLE;
+
+typedef struct GET_FIRMWARE_PARAMETERS_RES_FIELDS
+{
+    uint8_t completion_code;
+    uint32_t capabilities_during_update;
+    uint16_t component_count;
+    uint8_t active_comp_image_set_version_string_type;
+    uint8_t active_comp_image_set_version_string_length;
+    uint8_t pending_comp_image_set_version_string_type;
+    uint8_t pending_comp_image_set_version_string_length;
+    uint8_t active_comp_image_set_version_string[ASCII_SIZE];
+    uint8_t pending_comp_image_set_version_string[ASCII_SIZE];
+    COMPONENT_PARAMETER_TABLE comp_parameter[NO_OF_COMP_TBL];
+} __attribute__((packed)) GET_FIRMWARE_PARAMETERS_RES_FIELDS;
+
+/******************************************************************************/
+/** pldm_get_firmware_param_resp_feilds
+ * This function is used to the Firmware parameters 
+ * @param buf_ptr         Pointer. Refer GET_FIRMWARE_PARAMETERS_RES_FIELDS
+ * @return                None
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by PLDM module when the Get Firmware parameter 
+ * command is received from Host.
+ * The completion_code, capabilities_during_update parameters will we filled
+ * by the PLDM module. User is expected to fill all other 
+ * parameters in  GET_FIRMWARE_PARAMETERS_RES_FIELDS. 
+ * The string type and length supported are ASCII and  UTF16
  * 
  * -----------------------
  * Example:
  * -----------------------
+ * pldm_get_firmware_param_resp_feilds(
+ * GET_FIRMWARE_PARAMETERS_RES_FIELDS *buf_ptr)
+ * {
+ *     buf_ptr->component_count = 1;
+ *     buf_ptr->active_comp_image_set_version_string_type = ASCII;
+ *     buf_ptr->active_comp_image_set_version_string_length = ASCII_SIZE;
+ *     buf_ptr->pending_comp_image_set_version_string_type = ASCII;
+ *     buf_ptr->pending_comp_image_set_version_string_length = ASCII_SIZE;  
+ *     memcpy(buf_ptr->active_comp_image_set_version_string, ver, ASCII_SIZE);
+ *     memcpy(buf_ptr->pending_comp_image_set_version_string, ver_pend, ASCII_SIZE);
+ *     buf_ptr->comp_parameter[0].comp_classification = 2;
+ *     buf_ptr->comp_parameter[0].comp_identifier = 0x1121
+ *     buf_ptr->comp_parameter[0].comp_classification_index = 0x00;    
+ *     buf_ptr->comp_parameter[0].pending_comp_version_string_type = UTF16;
+ *     buf_ptr->comp_parameter[0].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
+ *     buf_ptr->comp_parameter[0].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
+ * 
+ * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_get_firmware_param_resp_feilds(uint8_t *buf_ptr, uint32_t* size);
+extern void  pldm_get_firmware_param_resp_feilds(GET_FIRMWARE_PARAMETERS_RES_FIELDS *buf_ptr);
 
 
 /******************************************************************************/
 /** pldm_init_peripheral_for_update()
- * This function can be used to get hash of measurement data. 
- * @param component_id         Pointer to hold the measurement data
+ * This function is used to initialize the peripheral to get ready  to receive
+ * the Update firmware data from Host 
+ * @param component_id   Component identifier
  * @return                 None
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the PLDM module to get hash of measurement data.
- * Currently PLDM module supports 4 measurements of data hash. User is 
- * expected to fill unused measurements with zeros.
+ * This function is called by the PLDM module when the update component
+ * message is received from the host and if UA can update the requested  
+ * component_id. The User is expected to initialize the peripherals required
+ * to receive the Firmware image
  * -----------------------
  * Example:
  * -----------------------
  * void pldm_init_peripheral_for_update(uint8_t *buffer_ptr, uint8_t index)
  * {
- *
+ *      spi_tristate();
+ *      spi_init_shd_spi();  // Initialize the external flash 
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_init_peripheral_for_update(uint8_t component_id);
+extern void pldm_init_peripheral_for_update(uint16_t component_id);
 
 /******************************************************************************/
-/** pldm_read_certificate
+/** pldm_write_firmware_data
  * This function can be used to read the certificate data and store it in buffer. 
- * @param address          Address of certificate
- * @param buff_ptr         Pointer to hold certificate data
- * @param length           Length of the certificate to be read
- * @param certificate_no   Certificate number
- * @return                 None
+ * @param component_id     Component identifier
+ * @param buff_ptr         Pointer to firmware data from host
+ * @param offset           Address of firmware date requested by UA
+ * @return                 uint8_t
+ *                         0 - No error . UA can continue to get next 
+ *                             firmware data
+ *                         1 - Error occured . UA does not continue to
+ *                         create next request for firmware data.
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the PLDM module to read certificate data.
- * Root certificate of size 1KB is read, other certificates read length are
- * decided by the size specified in the certificate header. Certificate number
- * passed can be used to read certificate data from corresponding peripherals.
+ * This function is called by the PLDM module when the firmware data is
+ * received from the host. UA requests host to get the firmware image in
+ * 1KB chunck size. 
+ * The user is expected to process the firmware data stored in buff ptr.
+ * User should return success to continue the PLDM update process.
+ * Return error will terminate the update process
+ * UA supports firmware data reques of Max 1KB 
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t pldm_write_firmware_data(uint32_t address, uint8_t *buffer_ptr, uint8_t length
- *                              uint8_t certificate_no)
+ * Example If image size  = 2048 bytes , This function is called 
+ * twice for each 1KB request. 
+ * offset = 0 for 1st 1KB data
+ * offset = 1024 for 2nd 1KB data 
+ * flash_wr_addr = 0x480000
+ * 
+ * uint8_t pldm_write_firmware_data(uint16_t component_id, uint8_t *buffer_ptr, 
+ *                                  uint32_t offset)
  * {
- *      uint8_t ret_val = FAILURE;
  * 
- *      if (certificate_no == 0 || certificate_no == 1) {
- *          ret_val = read_certificate_from_flash(address, buffer_ptr, length);
- *      } else {
- *          ret_val = read_certificate_from_ram(address, buffer_ptr, length);
+ *      uint8_t ret_val = 0;
+ *      flash_wr_addr += offset
+ *      if(!(offset % SERIAL_FLASH_SECTOR_SIZE))
+ *      {
+ *          if(sector_erase(flash_wr_addr))
+ *          {
+ *              return 1; // erase fail
+ *          }
  *      }
- * 
- *      return ret_val;
+ *      if(flash_write(flash_wr_addr, buffer_ptr, 1024))
+ *      {
+ *          return 1; // flash write fail
+ *      }
+ *
+ *      return 0;    // flash write success
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_write_firmware_data(uint8_t component_id, uint8_t *buff_ptr);
+extern uint8_t pldm_write_firmware_data(uint16_t component_id, uint8_t *buff_ptr, uint32_t offset);
 
 /******************************************************************************/
-/** pldm_start_firware_update
- * Global variable used to store the private key for signature generation.
+/** pldm_start_firmware_update
+ * This function is used to start the update process after the firmware
+ * data transfer is complete.
+ * @param component_id     Component identifier
+ * @param buff_ptr         Pointer to firmware data from host
+ * @param offset           Address of firmware date requested by UA
+ * @return                 none
+ * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * User has to fill this global variable with the private key used in signature 
- * generation pldm_crypto_ops_gen_signature().
+ * This function is called by the PLDM module when the transfer complete
+ * response is received from Host
+ *  User is expected to verify the firmware data in the update process
+ *  and send verify complete or success
+ * -----------------------
+ * Example:
+ * -----------------------
+ *
+ * 
+ * uint8_t pldm_start_firmware_update(uint16_t component_id)
+ * {
+ *      uint8_t flash_rd_addr  = 0x480000;
+ *      uint8_t buff[1024], verify_state = PLDM_VERIFY_SUCCESS
+ *      while(i < 2) {
+ *         // read the firmware data 
+ *         if(flash_read(flash_rd_addr, buffer_ptr, 1024))
+ *         {
+ *            // read fail
+ *            verify_state = PLDM_VERIFY_FAILURE;
+ *            break;
+ *         }
+ *         // calculate hash 
+ *         if(do_sha(buffer_ptr, digest_buff)) 
+ *         {
+ *            //hash error
+ *            verify_state = PLDM_VERIFY_FAILURE;
+ *         }
+ *      }
+ *      if(validate_hash(digest_buff, compare_buff))
+ *      {
+ *            // hash verify fail
+ *            verify_state = PLDM_VERIFY_FAILURE;
+ *      }
+ * 
+ * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_start_firmware_update(uint8_t component_id);
+extern void pldm_start_firmware_update(uint16_t component_id);
 
 /******************************************************************************/
-/** hash_of_req_buffer
- * Global variable that has the hash of data for signature generation.
+/** pldm_start_firmware_apply
+ * This function is called after verifu complete response is received.
+ * @param                  none
+ * @return                 none
+ * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * PLDM module fills this buffer with hash of data.
- * User can use this global variable in signature generation API. 
- * Note: PLDM module supports only hash of data for signature generation.
+ * PLDM module calls this function after verify complete 
+ * is received. 
+ * User is expected to initiate apply update process is complete
+ * 
+ * -----------------------
+ * Example:
+ * -----------------------
+ * 
+ * uint8_t pldm_start_firmware_apply()
+ * {
+ *    flash_write addr = 0x20000
+ *    flash_write(flash_write, data, 2048)
+ *    pldm_initiate_apply_req_to_update_agent(0) // initiate apply success
+ * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_start_firmware_Apply(uint8_t component_id);
+extern void pldm_start_firmware_apply();
 
 /******************************************************************************/
-/** ecdsa_signature
- * Global variable used to store the generated signature.
+/** pldm_cancel_update
+ * THis function is called by PLDM module when cancel 
+ * update component or cancel update  request is received
+ * @param   component_id
+ * @param   cancel_update_flag    0 - cancel update component received
+ *                                1 - Cancel update message received
+ * @return  uint8_t   0 - success , 1 - fail
+ * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * User is expected to store the generated signature in this variable.
- * PLDM module uses this variable to add signature as part of PLDM challenge and 
- * measurement response messages.
+ * User is expected to restore flash states and restore the flash image 
+ * if required
+ * -----------------------
+ * Example:
+ * -----------------------
+ * pldm_cancel_update()
+ * {
+ *      flash_erase(0x20000)
+ *      return 0;
+ *      
+ * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_calcel_update(uint8_t component_id, uint8_t cancel_update_flag);
+extern uint8_t pldm_cancel_update(uint16_t component_id, uint8_t cancel_update_flag);
 
 /******************************************************************************/
 /** pldm_restore_configs
- * Global variable to store the random number for signature generation.
+ * THis function is called by PLDM module when cancel update is received or
+ *  when activate firmware request is false
+ * @param   component_id
+ * @param   host_funct_reduced    0 - host reduced functionality false
+ *                                1 - host reduced functionality true
+ * @return  none  
+ * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * User is expected to store the generated random number for signature generation
- * if design demands it.
+ * User is expected to store any global variables or states used during 
+ * update process
  * ############################################################################
 *******************************************************************************/
-extern void  pldm_restore_configs();
+extern void  pldm_restore_configs(uint16_t component_id, uint8_t host_funct_reduced);
 
 /******************************************************************************/
 /** pldm_reset_firmware_update_flags
- * This function can be used to generate signature. 
+ * This function is used to reaset firmware update user states when 
+ * the completion code of firmware update response is failure  
  * @param                  None
  * @return                 None
  * @note
@@ -196,190 +345,159 @@ extern void  pldm_restore_configs();
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the PLDM module to generate signature.
- * The PLDM module is designed for ECDSA384 calculations.
- * pvt_key array - User is expected to fill the private key.
- * hash_of_req_buffer - will have the hash of data, filled by PLDM stack
- *                      (no action needed from user).
- * random_no - User is expected to fill the random number for signature generation.
- * ecdsa_signature.ecdsa_signature - User is expected to fill with generated
- * signature.
- *
- *  typedef union
- *  {
- *     struct
- *      {
- *          uint8_t signature_r_term[CURVE_384_SZ];
- *          uint8_t signature_s_term[CURVE_384_SZ];
- *      };
- *      uint8_t ecdsa_signature[CURVE_384_SZ*2];
- *  } ecdsa_signature_t;
- *
- *  #define CURVE_384_SZ 48
- * -----------------------
- * Example:
- * -----------------------
- * uint32_t pldm_crypto_ops_gen_signature(void)
- * {
- *      uint32_t ret_val = FAILURE;
- * 
- *      ret_val = fill_pvt_key(&pvt_key[0]);
- * 
- *      if (ret_val == SUCCESS) {
- *          ret_val = generate_random_number(&random_no);
- *      }
- * 
- *      if (ret_val == SUCCESS) {
- *          ret_val = ecdsa_gen_sig(&pvt_key[0], &hash_of_req_buffer[0], &random_no[0],
- *                     &ecdsa_signature.ecdsa_signature[0]);
- *      }
- * 
- *      return ret_val;
- * }
+ * This function is called by the PLDM module to reset user states
+ * when the firmware update response is failure.
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_reset_firmware_update_flags(void);
+extern void pldm_reset_firmware_update_flags(void);
 
 /******************************************************************************/
-/** pldm_crypto_ops_calc_hash
- * This function can be used to calculate hash of data at single shot.
- * @param  buf_ptr         Pointer to data to be hashed
- * @param  length          Length of data to be hashed
- * @param  pldmContext     Holds the stage of hashing in case of intermediate
- *                         hashing
- * @return                 success or failure
+/** pldm_activate_firmware
+ * This function is called by the PLDM module when the activate firmware
+ * request is received from host 
+ * @param  none         
+ * @param  none          
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the PLDM module to calculate hash of data at
+ * The user is expected to add his/her own  activation method for 
+ * firmware update complete process
  * single shot.
  * The PLDM module is designed for SHA384 hash calculations.
  * The user is expected to store the resultant hash in pldmContext->sha_digest.
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t pldm_crypto_ops_calc_hash(uint8_t *buff_ptr, uint32_t length, 
- *                                  PLDM_CONTEXT *pldmContext)
+ * uint8_t pldm_activate_firmware(void)
  * {
- *      uint8_t ret_val = FAILURE;
- * 
- *      ret_val = crypto_calc_hash(buff_ptr, length, &pldmContext->sha_digest[0]);
- * 
- *      return ret_val;
+ *      system_soft_reset();
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_activate_firmware(void);
-
+extern void pldm_activate_firmware(void);
 
 /******************************************************************************/
-/** pldm_process_verify_complete()
- * This function can be used to calculate hash of data at runtime.
- * @param  buf_ptr         Pointer to data to be hashed
- * @param  length          Length of data to be hashed
- * @param  pldmContext     Holds the stage of hashing in case of intermediate
- *                         hashing
+/** pldm_initiate_verify_req_to_update_agent
+ * This function is for sending verify complete to UA.
+ * @param  verify_state    0 - success , 1 - verify fail
  * @return                 None
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the PLDM module to calculate hash of data at
- * runtime.
- * Data to be hashed has to be fed into crypto engine in chunks with engine
- * saving the intermediate result till hash finalize is issued.
- * pldmContext->get_requests_state will hold the hashing state.
- * HASH_INIT_MODE - initialize the memory for hash context saving
- * RUN_TIME_HASH_MODE - feed chunks of data and hash the same
- * END_OF_HASH - get the finalized hash of all chunks passed to engine for
- *               hashing
- * The resultant hash has to be stored in pldmContext->sha_digest.
+ * This function is called by the User to inintiate a verify complete 
+ * request to UA
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t pldm_process_verify_complete(uint8_t *buff_ptr, uint32_t length, 
- *                                  PLDM_CONTEXT *pldmContext)
+ * uint8_t pldm_start_firmware_update(uint16_t component_id)
  * {
- *   uint8_t rc = 0x00;
- *
- *   if(NULL == pldmContext)
- *   {
- *       return 0xff;
- *   }
- *
- *   switch(pldmContext->get_requests_state)
- *   {
- *   case HASH_INIT_MODE:
- *       memset(&ctx_ptr, 0, sizeof(ctx_ptr));
- *       // initialize hash structure pointer to HW instance
- *       // allocate a descriptor to load hash configuration word
- *       rc = pldm_crypto_ops_hash_ctx_init(&ctx_ptr);
- *       if (rc != OK)
- *       {
- *           return rc;
- *       }
- *       break;
- *   case RUN_TIME_HASH_MODE:
- *       //populate internal buffer (128 bytes) upto 128 (block size)
- *       //feed to hash engine and calculate intermediate hash if internal
- *       //buffer reaches max 128 bytes
- *       rc = pldm_crypto_ops_hash_ctx_update_buf(buff, &ctx_ptr, length);
- *       if (rc != OK)
- *       {
- *           return rc;
- *       }
- *       break;
- *   case END_OF_HASH:
- *       rc = pldm_crypto_ops_hash_ctx_final(&ctx_ptr,
- *                                           &pldmContext->sha_digest[0]);
- *       if (rc != OK)
- *       {
- *           return rc;
- *       }
- *       //switch back to init state as we got the final digest
- *       pldmContext->get_requests_state = HASH_INIT_MODE;
- *       break;
- *   default:
- *       break;
- *
- *   }
- *   return rc;
- *
+ *      update_state = HASH_VERIFY;
+ *      uint8_t flash_rd_addr  = 0x480000;
+ *      uint8_t buff[1024], verify_state = PLDM_VERIFY_SUCCESS
+ *      while(i < 2) {
+ *         // read the firmware data 
+ *         if(flash_read(flash_rd_addr, buffer_ptr, 1024))
+ *         {
+ *            // read fail
+ *            verify_state = PLDM_VERIFY_FAILURE;
+ *            break;
+ *         }
+ *         // calculate hash 
+ *         if(do_sha(buffer_ptr, digest_buff)) 
+ *         {
+ *            //hash error
+ *            verify_state = PLDM_VERIFY_FAILURE;
+ *         }
+ *      }
+ *      if(validate_hash(digest_buff, compare_buff))
+ *      {
+ *            // hash verify fail
+ *            verify_state = PLDM_VERIFY_FAILURE;
+ *      }
+ *      pldm_initiate_verify_req_to_update_agent(verify_state);
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_process_verify_complete(uint8_t verify_status);
- 
+void pldm_initiate_verify_req_to_update_agent(uint8_t verify_state);
+
 /******************************************************************************/
-/** pldm_process_apply_coplete()
- * This function can be used to generate random number.
- * @param  buff           Pointer to hold the generated random number
- * @param  bytes          Length of random number
- * @return                None
+/** pldm_initiate_verify_req_tx_end
+ * This function is called by the PLDM module when the verify complete 
+ * request is sent to UA 
+ * @param  none         
+ * @param  none          
  * @note
  * ############################################################################
  * -----------------------
  * Usage notes:
  * -----------------------
- * This function is called by the PLDM module to generate random number for nonce
- * data. User is expected to store the generated random number in the address pointed
- * by buff.
- * Same API can be used for generating random number during signature generation.
+ * The user is expected to use this function if there is requirment to 
+ * move the user defined internal states.
+ * firmware update complete process
  * -----------------------
  * Example:
  * -----------------------
- * uint8_t pldm_crypto_ops_gen_random_no(uint8_t *buff, uint32_t length)
+ * uint8_t pldm_initiate_verify_req_tx_end(void)
  * {
- *    uint8_t ret = FAILURE;
- *    ret = generate_random_num(buff, length); 
- *    return ret;  
+ *      update_state = IDLE 
  * }
  * ############################################################################
 *******************************************************************************/
-extern uint8_t pldm_process_apply_complete(uint8_t apply_state);
+extern void pldm_initiate_verify_req_tx_end();
+
+/******************************************************************************/
+/** pldm_initiate_apply_req_to_update_agent
+ * This function is for sending apply complete to UA.
+ * @param  apply_state    0 - success , 1 - verify fail
+ * @return                 None
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the User to inintiate a apply complete 
+ * request to UA
+ * -----------------------
+ * Example:
+ * -----------------------
+ * uint8_t pldm_start_firmware_apply()
+ * {
+ *    flash_write addr = 0x20000
+ *    flash_write(flash_write, data, 2048)
+ *    pldm_initiate_apply_req_to_update_agent(0) // initiate apply success
+ * }
+ * ############################################################################
+*******************************************************************************/
+void pldm_initiate_apply_req_to_update_agent(uint8_t apply_state);
+
+/******************************************************************************/
+/** pldm_write_firmware_data_complete
+ * This function is called when the firmware data received by the UA is done
+ * @param  component_id    Component identifier
+ * @return                 None
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the User PLDM modur=le when all the 1KB chuncks
+ * of data is received from Host
+ * The user is expected to release the pripherals accuried during 
+ * firmware write data
+ * -----------------------
+ * Example:
+ * -----------------------
+ * uint8_t pldm_write_firmware_data_complete()
+ * {
+ *    spi_tristate();
+ * }
+ * ############################################################################
+*******************************************************************************/
+extern void pldm_write_firmware_data_complete(uint16_t component_id);
 
 /******************************************************************************/
 /** pldm_app_task_create(void)
@@ -436,33 +554,11 @@ int pldm_app_task_create(void *pvParams);
  * -----------------------
  * pldmContext
  * -----------------------
- * pldmContext is used for saving PLDM context information. User is expected to 
- * store the resultant hash computaiton value in pldmContext->sha_digest[48].
- * pldmContext->get_requests_state has the hash intermediate state which can 
- * be used for corresponding hash crypto engine functionality.
+ * pldmContext is used for saving PLDM context information. Used by Internal 
+ * PLDM state machine. 
  * ############################################################################
 *******************************************************************************/
 extern PLDM_BSS2_ATTR PLDM_CONTEXT *pldmContext;
-
-/******************************************************************************/
-/** PLDM_RQS_STATE 
- * Intermediate hashing states
- * @note
- * ############################################################################
- * -----------------------
- * Usage notes:
- * -----------------------
- * The values in this enum are used by PLDM module to store the intermediate
- * hashing state. User can make use these for defining intermediate hashing crypto
- * implementation.
- * ############################################################################
- *******************************************************************************/
-enum PLDM_RQS_STATE
-{
-    HASH_INIT_MODE,
-    RUN_TIME_HASH_MODE,
-    END_OF_HASH
-};
 
 
 #ifdef __cplusplus

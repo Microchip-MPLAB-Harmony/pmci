@@ -40,17 +40,21 @@
 #include <stdlib.h>
 #include "pldm.h"
 #include "pldm_common.h"
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
 #include "pldm_task.h"
+</#if>
 #include "mctp/mctp_smbus.h"
 #include "mctp/mctp_base.h"
 #include "mctp/mctp_control.h"
 #include "pldm_pkt_prcs.h"
 
+#define PAGE_SIZE                   256ul
+
 PLDM_BSS1_ATTR MCTP_PKT_BUF pldm_buf_tx[1];
 PLDM_BSS2_ATTR uint8_t pldm_request_firmware_update;
 PLDM_BSS2_ATTR MCTP_PKT_BUF *mctp_buf_tx1 = MCTP_NULL;
 PLDM_BSS2_ATTR uint32_t offset;
-PLDM_BSS2_ATTR uint32_t length;
+PLDM_BSS2_ATTR uint32_t len;
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
 PLDM_BSS1_ATTR uint8_t get_mctp_pldm[PLDM_MAX_PAYLOAD_BUFF_SIZE]__attribute__((aligned(8)));
 <#else>
@@ -58,7 +62,6 @@ extern PLDM_BSS1_ATTR uint8_t get_mctp_pld[PLDM_MAX_PAYLOAD_BUFF_SIZE]__attribut
 </#if>
 PLDM_BSS1_ATTR uint32_t pldm_packet_size;
 PLDM_BSS2_ATTR bool received_1024b_for_flash_write;
-PLDM_BSS1_ATTR uint32_t offset_for_datacopy;
 PLDM_BSS1_ATTR uint32_t offset_for_flash;
 PLDM_BSS1_ATTR uint16_t number_of_1024b_requests;
 PLDM_BSS1_ATTR REQUEST_REQUEST_UPDATE request_update;
@@ -69,7 +72,9 @@ PLDM_BSS2_ATTR REQUEST_PASS_COMPONENT_TABLE request_pass_component_table;
 PLDM_BSS0_ATTR uint8_t buffer[1024];
 PLDM_BSS1_ATTR uint8_t pldm_pkt_seq_mctp;
 PLDM_BSS1_ATTR bool pldm_first_pkt;
-
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+extern PLDM_BSS1_ATTR uint8_t curr_ec_id;
+</#if>
 PLDM_BSS1_ATTR uint16_t total_length;
 PLDM_BSS1_ATTR uint16_t offset_for_data;
 
@@ -83,32 +88,18 @@ PLDM_BSS1_ATTR bool failure_recovery_cap;
 PLDM_BSS1_ATTR bool retry_update_comp_cap;
 PLDM_BSS1_ATTR bool verify_fail;
 PLDM_BSS1_ATTR bool apply_completed;
-PLDM_BSS1_ATTR uint8_t pending_comp_string_ECFW0[COMP_STRING_TYPE_SIZE];
-PLDM_BSS1_ATTR uint8_t pending_comp_string_ECFW1[COMP_STRING_TYPE_SIZE];
-PLDM_BSS1_ATTR uint8_t pending_comp_string[COMP_STRING_TYPE_SIZE];
-PLDM_BSS1_ATTR uint32_t staged_address;
-PLDM_BSS1_ATTR uint8_t spi_select;
 PLDM_BSS1_ATTR uint32_t no_of_requests;
 PLDM_BSS2_ATTR uint8_t descriptors[200];
 PLDM_BSS1_ATTR REQUEST_UPDATE_COMPONENT_RESPONSE req_update_comp_resp_data;
 PLDM_BSS2_ATTR GET_FIRMWARE_PARAMETERS_RES_FIELDS get_firmware_parameters_res;
 
-PLDM_BSS1_ATTR uint8_t curr_ec_id;
+extern void timer_delay_ms(uint32_t num_ms);
 PLDM_BSS2_ATTR bool host_functionality_reduced;
 
-PLDM_BSS1_ATTR uint32_t remaining_size_for_write;
-PLDM_BSS1_ATTR uint32_t copy_data_offset;
-PLDM_BSS1_ATTR uint32_t spi_address_flash_write;
-PLDM_BSS1_ATTR uint32_t update_comp_image_size;
 PLDM_BSS1_ATTR uint32_t remaining_data_size_for_transfer;
 PLDM_BSS1_ATTR bool background_update_in_progress;
 PLDM_BSS1_ATTR bool retry_request_firmware_data;
-PLDM_BSS1_ATTR uint32_t packet_no;
-PLDM_BSS1_ATTR uint8_t FW_type;
 PLDM_BSS1_ATTR uint32_t size_supported_by_UA;
-
-PLDM_BSS1_ATTR uint16_t tag0FWNum;
-PLDM_BSS1_ATTR uint16_t tag1FWNum;
 
 PLDM_BSS1_ATTR uint16_t pkt_cnt;
 PLDM_BSS1_ATTR uint8_t completion_code;
@@ -121,14 +112,7 @@ PLDM_BSS1_ATTR uint8_t offset_data_pos;
 
 PLDM_BSS1_ATTR bool PLDMResp_timer_started;
 
-PLDM_BSS1_ATTR uint8_t spi_select_configured;
-
 // support for update during crisis update
-PLDM_BSS1_ATTR uint8_t sg3_state;
-PLDM_BSS1_ATTR uint32_t APKHB_address;
-PLDM_BSS1_ATTR uint32_t APCFG_address;
-PLDM_BSS1_ATTR uint32_t HT_address;
-PLDM_BSS1_ATTR uint32_t APFW_address;
 PLDM_BSS1_ATTR PLDM_AP_CFG pldm_ap_cfg;
 
 /******************************************************************************/
@@ -155,15 +139,12 @@ void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CO
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_QUERY_DEVICE_IDENTIFIERS_REQ;
 
     QUERY_DEVICE_IDENTIFIERS_REQ_MESSAGE_RES_FIELDS device_desp_resp;
-
-    <#--  if (sg3_state == SG3_POSTAUTH) {
-        override = di_sb_apcfg_pldm_override_device_desc();
-    } else if (sg3_state == SG3_CRISIS) {
-        override = false;
-    }  -->
-
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+    override = get_pldm_override_device_desc();
+</#if>
     device_desp_resp.completion_code = PLDM_SUCCESS;
 
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     if (!override)
     {
         device_desp_resp.device_identifiers_length = PLDM_QUERY_DEVICE_DES_TOTAL_LEN;
@@ -188,14 +169,16 @@ void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CO
 
         size = 6 + PLDM_QUERY_DEVICE_DES_TOTAL_LEN;
         total_length = size;
+        
     }
     else
+ </#if>
     {
-        device_desp_resp.device_identifiers_length = di_sb_apcfg_pldm_device_identifier_length();
+        device_desp_resp.device_identifiers_length = pldm_apcfg_device_identifier_length();
 
-        device_desp_resp.descriptor_count = di_sb_apcfg_pldm_descriptor_count();
+        device_desp_resp.descriptor_count = pldm_apcfg_descriptor_count();
 
-        di_sb_apcfg_pldm_descriptor(descriptors);
+        pldm_apcfg_descriptor(descriptors);
 
         memcpy(device_desp_resp.descriptor, descriptors, device_desp_resp.device_identifiers_length);
         uint64_t local = (uint64_t)((device_desp_resp.device_identifiers_length + 6u )& UINT64_MAX);
@@ -226,541 +209,52 @@ void pldm_pkt_handle_get_firmware_parameters(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CON
 {
     pldm_buf_tx->pkt.data[PLDM_HEADER_VERSION_PLDM_TYPE_POS] = PLDM_HDR_VERSION_PLDM_FW_UPDATE_TYPE;
     pldm_buf_tx->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = PLDM_GET_FIRMWARE_PARAMETERS_REQ;
-
-    uint8_t crisis_int_en;
     uint16_t size = 0;
     uint16_t cap;
-    uint16_t ap0_rev, ap1_rev;
-    uint8_t container_state, no_of_ECFW_KHB = 0, no_of_HT_support_AP0C0, no_of_HT_support_AP0C1, no_of_HT_support_AP1C0, no_of_HT_support_AP1C1, i, j, k, l, m = 0, n = 0, b =0;
-    uint16_t ht_version[SB_HASH_TABLE_ID_MAX];
-    uint16_t crisis_rec_version = PLDM_CRISIS_BA_VERSION;
-    uint8_t no_of_byte_match_int_spi_support = 0, supported_idx = 0; //byte match int flash update
 
-    if (sg3_state == SG3_POSTAUTH) { 
-        no_of_HT_support_AP0C0 = di_pldm_sb_get_number_of_ht(0);
-        no_of_HT_support_AP0C1 = di_pldm_sb_get_number_of_ht(1);
-        no_of_HT_support_AP1C0 = di_pldm_sb_get_number_of_ht(2);
-        no_of_HT_support_AP1C1 = di_pldm_sb_get_number_of_ht(3);
-        no_of_byte_match_int_spi_support = di_pldm_sb_get_number_of_byte_match_int();
-        SRAM_RLOG_API_tag0_buildnum_read((uint8_t*)&tag0FWNum);
-        SRAM_RLOG_API_tag0_buildnum_read((uint8_t*)&tag1FWNum);
-        
-        get_firmware_parameters_res.completion_code = PLDM_SUCCESS;
-        if (di_sb_apcfg_pldm_override_cap_upgrade()) {
-        	cap = di_sb_apcfg_pldm_capabilities_upgrade();
-            get_firmware_parameters_res.capabilities_during_update = cap;
-            if (get_firmware_parameters_res.capabilities_during_update & PLDM_COMP_UPDATE_FAILURE_RECOVERY_CAP) {
-                failure_recovery_cap = false;
-            } else {
-                failure_recovery_cap = true;
-            }
-
-            if (get_firmware_parameters_res.capabilities_during_update & PLDM_COMP_UPDATE_RETRY_CAP) {
-                retry_update_comp_cap = false;
-            } else {
-                retry_update_comp_cap = true;
-            }
-            if (get_firmware_parameters_res.capabilities_during_update & PLDM_COMP_UPDATE_HOST_FUNCTIONALITY) {
-                host_functionality_reduced = true;
-            } else {
-                host_functionality_reduced = false;
-            }
+    get_firmware_parameters_res.completion_code = PLDM_SUCCESS;
+    if (pldm_apcfg_override_cap_upgrade()) {
+        cap = pldm_apcfg_capabilities_upgrade();
+        get_firmware_parameters_res.capabilities_during_update = cap;
+        if (get_firmware_parameters_res.capabilities_during_update & PLDM_COMP_UPDATE_FAILURE_RECOVERY_CAP) {
+            failure_recovery_cap = false;
         } else {
-            get_firmware_parameters_res.capabilities_during_update = PLDM_DEFAULT_CAP_DURING_UPDATE;
             failure_recovery_cap = true;
-            retry_update_comp_cap = true;
-            host_functionality_reduced = true;
         }
 
-        if(efuse_read_data(TOO_CONTAINER_STATE, &container_state, 1)) {
-            return;
-        }
-        SRAM_MBOX_API_read_container_crisis_interface_en(&crisis_int_en);
-
-        if ((container_state & 0x1) && (crisis_int_en & 0x4)) {
-            no_of_ECFW_KHB = 1;
-        } 
-
-        get_firmware_parameters_res.component_count = PLDM_NUMBER_OF_COMPONENTS_SUPPORTED + 
-                            no_of_HT_support_AP0C0 + no_of_HT_support_AP0C1 + no_of_HT_support_AP1C0 + 
-                            no_of_HT_support_AP1C1 + no_of_ECFW_KHB + no_of_byte_match_int_spi_support;
-        get_firmware_parameters_res.active_comp_image_set_version_string_type = ASCII;
-        get_firmware_parameters_res.active_comp_image_set_version_string_length = ASCII_SIZE;
-        get_firmware_parameters_res.pending_comp_image_set_version_string_type = ASCII;
-        get_firmware_parameters_res.pending_comp_image_set_version_string_length = ASCII_SIZE;
-        memcpy(get_firmware_parameters_res.active_comp_image_set_version_string, sb_build_info.build_label, ASCII_SIZE);
-        memcpy(get_firmware_parameters_res.pending_comp_image_set_version_string, request_update.comp_image_set_version_string, ASCII_SIZE);
-
-        // EC_FW
-        if (di_sb_apcfg_pldm_override_comp_classification()) {
-            get_firmware_parameters_res.comp_parameter[0].comp_classification = di_sb_apcfg_pldm_component_classification();
-        }
-        else
-        {
-            get_firmware_parameters_res.comp_parameter[0].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        }
-
-        get_firmware_parameters_res.comp_parameter[0].comp_identifier = PLDM_COMP_IDENTIFIER_TAG0;
-        get_firmware_parameters_res.comp_parameter[0].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[0].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[0].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[0].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[0].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[0].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[0].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[0].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[0].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[0].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[0].cap_during_update = 0x00000000;
-        memcpy(get_firmware_parameters_res.comp_parameter[0].active_comp_version_string, &tag0FWNum, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[0].pending_comp_version_string, &pending_comp_string_ECFW0[0], COMP_STRING_TYPE_SIZE);
-
-
-        if (di_sb_apcfg_pldm_override_comp_classification()) {
-            get_firmware_parameters_res.comp_parameter[1].comp_classification = di_sb_apcfg_pldm_component_classification();
+        if (get_firmware_parameters_res.capabilities_during_update & PLDM_COMP_UPDATE_RETRY_CAP) {
+            retry_update_comp_cap = false;
         } else {
-            get_firmware_parameters_res.comp_parameter[1].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
+            retry_update_comp_cap = true;
         }
-
-        get_firmware_parameters_res.comp_parameter[1].comp_identifier = PLDM_COMP_IDENTIFIER_TAG1;
-        get_firmware_parameters_res.comp_parameter[1].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[1].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[1].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[1].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[1].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[1].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[1].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[1].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[1].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[1].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[1].cap_during_update = 0x00000000;
-
-        memcpy(get_firmware_parameters_res.comp_parameter[1].active_comp_version_string, &tag1FWNum, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[1].pending_comp_version_string, &pending_comp_string_ECFW1[0], COMP_STRING_TYPE_SIZE);
-
-        // AP_CFG
-        ap0_rev = di_pldm_sb_apcfg_apcfg_version(true);
-        ap1_rev = di_pldm_sb_apcfg_apcfg_version(false);
-
-        if (di_sb_apcfg_pldm_override_comp_classification()) {
-            get_firmware_parameters_res.comp_parameter[2].comp_classification = di_sb_apcfg_pldm_component_classification();
+        if (get_firmware_parameters_res.capabilities_during_update & PLDM_COMP_UPDATE_HOST_FUNCTIONALITY) {
+            host_functionality_reduced = true;
+        } else {
+            host_functionality_reduced = false;
         }
-        else
-        {
-            get_firmware_parameters_res.comp_parameter[2].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        }
-
-        get_firmware_parameters_res.comp_parameter[2].comp_identifier = PLDM_COMP_IDENTIFIER_APCFG0;
-        get_firmware_parameters_res.comp_parameter[2].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[2].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[2].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[2].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[2].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[2].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[2].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[2].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[2].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[2].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[2].cap_during_update = 0x00000000;
-        memcpy(get_firmware_parameters_res.comp_parameter[2].active_comp_version_string, &ap0_rev, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[2].pending_comp_version_string, pending_comp_string, COMP_STRING_TYPE_SIZE);
-
-        if (di_sb_apcfg_pldm_override_comp_classification()) {
-            get_firmware_parameters_res.comp_parameter[3].comp_classification = di_sb_apcfg_pldm_component_classification();
-        }
-        else
-        {
-            get_firmware_parameters_res.comp_parameter[3].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        }
-
-        get_firmware_parameters_res.comp_parameter[3].comp_identifier = PLDM_COMP_IDENTIFIER_APCFG1;
-        get_firmware_parameters_res.comp_parameter[3].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[3].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[3].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[3].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[3].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[3].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[3].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[3].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[3].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[3].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[3].cap_during_update = 0x00000000;
-        memcpy(get_firmware_parameters_res.comp_parameter[3].active_comp_version_string, &ap1_rev, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[3].pending_comp_version_string, pending_comp_string, COMP_STRING_TYPE_SIZE);
-
-        // HASH TABLE
-        di_pldm_sb_get_ht_version(&ht_version[0]);
-
-        n = 4;
-        for (i = 0; i < no_of_HT_support_AP0C0; i++)
-        {
-        	if (i > SB_HASH_TABLE2 && di_pldm_sb_get_use_c1_ht_for_c0(AP_0))
-        	{
-            	get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP0C0 + m;
-            	if(safe_add_8(m, 1U, &m) == 0U) // INT30-C, INT31-C
-            	{
-            	}
-            	else
-            	{
-                	// handle error
-            	}
-            
-        	}
-        	else
-        	{
-            	get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP0C0 + i;
-        	}
-            if (di_sb_apcfg_pldm_override_comp_classification()) {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = di_sb_apcfg_pldm_component_classification();
-            } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-            }
-
-            get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP0C0 + i;
-            get_firmware_parameters_res.comp_parameter[n].comp_classification_index = 0x00;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].active_comp_release_date, 0, 8);
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].pending_comp_release_date, 0, 8);
-
-            get_firmware_parameters_res.comp_parameter[n].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-            get_firmware_parameters_res.comp_parameter[n].cap_during_update = 0x00000000;
-
-            memcpy(get_firmware_parameters_res.comp_parameter[n].active_comp_version_string, &ht_version[i], COMP_STRING_TYPE_SIZE);
-            memcpy(get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string, pending_comp_string, COMP_STRING_TYPE_SIZE);   
-            if(safe_add_8(n, 1U, &n) == 0U) // INT30-C, INT31-C
-            {
-            }
-            else
-            {
-            	// handle error
-            }
-        }
-
-        for (j = 0; j < no_of_HT_support_AP0C1; j++)
-        {
-            if (di_sb_apcfg_pldm_override_comp_classification()) {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = di_sb_apcfg_pldm_component_classification();
-            } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-            }
-
-            get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP0C1 + j;
-            get_firmware_parameters_res.comp_parameter[n].comp_classification_index = 0x00;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].active_comp_release_date, 0, 8);
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].pending_comp_release_date, 0, 8);
-
-            get_firmware_parameters_res.comp_parameter[n].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-            get_firmware_parameters_res.comp_parameter[n].cap_during_update = 0x00000000;
-            memcpy(get_firmware_parameters_res.comp_parameter[n].active_comp_version_string, &ht_version[i], COMP_STRING_TYPE_SIZE);
-            memcpy(get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string, pending_comp_string, COMP_STRING_TYPE_SIZE); 
-            if(safe_add_8(n, 1U, &n) == 0U) // INT30-C, INT31-C
-            {
-            }
-            else
-            {
-            	// handle error
-            }
-        }
-       
-        for (k = 0; k < no_of_HT_support_AP1C0; k++)
-        {
-            if (di_sb_apcfg_pldm_override_comp_classification()) {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = di_sb_apcfg_pldm_component_classification();
-            } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-            }
-
-        	if (k > SB_HASH_TABLE2 && di_pldm_sb_get_use_c1_ht_for_c0(AP_1))
-        	{
-            	get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP1C1 + m;
-
-            	if (safe_add_8(m, 1U, &m) == 0U) // INT30-C, INT31-C
-            	{
-
-            	}
-            	else
-            	{
-                	// handle error
-            	}
-
-        	}
-        	else
-        	{
-            	get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP1C0 + k;
-        	}
-            get_firmware_parameters_res.comp_parameter[n].comp_classification_index = 0x00;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].active_comp_release_date, 0, 8);
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].pending_comp_release_date, 0, 8);
-
-            get_firmware_parameters_res.comp_parameter[n].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-            get_firmware_parameters_res.comp_parameter[n].cap_during_update = 0x00000000;
-            memcpy(get_firmware_parameters_res.comp_parameter[n].active_comp_version_string, &ht_version[i], COMP_STRING_TYPE_SIZE);
-            memcpy(get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string, pending_comp_string, COMP_STRING_TYPE_SIZE);
-            if(safe_add_8(n, 1U, &n) == 0U) // INT30-C, INT31-C
-            {
-            }
-            else
-            {
-            	// handle error
-            }
-        }
-
-        for (l = 0; l < no_of_HT_support_AP1C1; l++)
-        {
-            if (di_sb_apcfg_pldm_override_comp_classification()) {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = di_sb_apcfg_pldm_component_classification();
-            } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-            }
-
-            get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP1C1 + l;
-            get_firmware_parameters_res.comp_parameter[n].comp_classification_index = 0x00;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].active_comp_release_date, 0, 8);
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].pending_comp_release_date, 0, 8);
-
-            get_firmware_parameters_res.comp_parameter[n].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-            get_firmware_parameters_res.comp_parameter[n].cap_during_update = 0x00000000;
-            memcpy(get_firmware_parameters_res.comp_parameter[n].active_comp_version_string, &ht_version[i], COMP_STRING_TYPE_SIZE);
-            memcpy(get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string, pending_comp_string, COMP_STRING_TYPE_SIZE);
-            if(safe_add_8(n, 1U, &n) == 0U) // INT30-C, INT31-C
-            {
-            }
-            else
-            {
-            	// handle error
-            }
-        }
-
-        if (no_of_ECFW_KHB == 1) {
-            // KHB1 TAG1
-            if (di_sb_apcfg_pldm_override_comp_classification()) {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = di_sb_apcfg_pldm_component_classification();
-            } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-            }
-
-            get_firmware_parameters_res.comp_parameter[n].comp_identifier = PLDM_COMP_IDENTIFIER_KHB1_TAG1;
-            get_firmware_parameters_res.comp_parameter[n].comp_classification_index = 0x00;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].active_comp_release_date, 0, 8);
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].pending_comp_release_date, 0, 8);
-
-            get_firmware_parameters_res.comp_parameter[n].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-            get_firmware_parameters_res.comp_parameter[n].cap_during_update = 0x00000000;
-            memcpy(get_firmware_parameters_res.comp_parameter[n].active_comp_version_string, &tag0FWNum, COMP_STRING_TYPE_SIZE);
-            memcpy(get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string, &pending_comp_string_ECFW0[0], COMP_STRING_TYPE_SIZE);
-            if(safe_add_8(n, 1U, &n) == 0U) // INT30-C, INT31-C
-            {
-            }
-            else
-            {
-            	// handle error
-            }
-        }
-
-        for (b = 0; b < no_of_byte_match_int_spi_support; b++) 
-        {
-            if (di_sb_apcfg_pldm_override_comp_classification()) {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = di_sb_apcfg_pldm_component_classification();
-            } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-            }
-            if (no_of_byte_match_int_spi_support == 1) {
-
-                if (pldm_cfg.byte_match_details[0].is_present) {
-                    supported_idx = 0;
-                } else {
-                    supported_idx = 1;
-                }
-                get_firmware_parameters_res.comp_parameter[n].comp_identifier = (PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE | (pldm_cfg.byte_match_details[supported_idx].comp_img_id) |
-                                                                            (pldm_cfg.byte_match_details[supported_idx].comp_id << 4) | (pldm_cfg.byte_match_details[supported_idx].ap << 8));
-
-            } else {
-                get_firmware_parameters_res.comp_parameter[n].comp_identifier = (PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE | (pldm_cfg.byte_match_details[b].comp_img_id) |
-                                                                            (pldm_cfg.byte_match_details[b].comp_id << 4) | (pldm_cfg.byte_match_details[b].ap << 8));
-            }
-            get_firmware_parameters_res.comp_parameter[n].comp_classification_index = 0x00;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].active_comp_release_date, 0, 8);
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_comparison_stamp = 0x00000000;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_type = UTF16;
-            get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-            memset(get_firmware_parameters_res.comp_parameter[n].pending_comp_release_date, 0, 8);
-
-            get_firmware_parameters_res.comp_parameter[n].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-            get_firmware_parameters_res.comp_parameter[n].cap_during_update = 0x00000000;
-            memcpy(get_firmware_parameters_res.comp_parameter[n].pending_comp_version_string, pending_comp_string, COMP_STRING_TYPE_SIZE);
-            if(safe_add_8(n, 1U, &n) == 0U) // INT30-C, INT31-C
-            {
-            }
-            else
-            {
-            	// handle error
-            }
-        }
-
-        size = PLDM_REQ_GET_FIRMWARE_PARAMETERS_RESPONSE_COMMON_DATA_BYTES + ((sizeof(COMPONENT_PARAMETER_TABLE)) * PLDM_GET_FIRMWARE_PARAMETERS_ECFW_APCFG_CNT) +
-               ((sizeof(COMPONENT_PARAMETER_TABLE)) * (no_of_HT_support_AP1C1 + no_of_HT_support_AP1C0 + no_of_HT_support_AP0C1 +
-               no_of_HT_support_AP0C0 + no_of_ECFW_KHB + no_of_byte_match_int_spi_support));
-    } else if (sg3_state == SG3_CRISIS) {
-        get_firmware_parameters_res.completion_code = PLDM_SUCCESS;
+    } else {
         get_firmware_parameters_res.capabilities_during_update = PLDM_DEFAULT_CAP_DURING_UPDATE;
         failure_recovery_cap = true;
         retry_update_comp_cap = true;
         host_functionality_reduced = true;
+    }
 
-        get_firmware_parameters_res.component_count = PLDM_NUMBER_OF_COMP_SUPPORTED_DURING_CRISIS;
-        get_firmware_parameters_res.active_comp_image_set_version_string_type = ASCII;
-        get_firmware_parameters_res.active_comp_image_set_version_string_length = ASCII_SIZE;
-        get_firmware_parameters_res.pending_comp_image_set_version_string_type = ASCII;
-        get_firmware_parameters_res.pending_comp_image_set_version_string_length = ASCII_SIZE;
-        memcpy(get_firmware_parameters_res.active_comp_image_set_version_string, sb_build_info.build_label, ASCII_SIZE);
-        memcpy(get_firmware_parameters_res.pending_comp_image_set_version_string, request_update.comp_image_set_version_string, ASCII_SIZE);
+    pldm_get_firmware_param_resp_feilds(&get_firmware_parameters_res);
 
-        // AP BA 0
-        get_firmware_parameters_res.comp_parameter[0].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        get_firmware_parameters_res.comp_parameter[0].comp_identifier = PLDM_COMP_IDENTIFIER_AP_BA_PTR0;
-        get_firmware_parameters_res.comp_parameter[0].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[0].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[0].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[0].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[0].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[0].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[0].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[0].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[0].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[0].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[0].cap_during_update = 0x00000000;
-        memcpy(get_firmware_parameters_res.comp_parameter[0].active_comp_version_string, &crisis_rec_version, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[0].pending_comp_version_string, &pending_comp_string_ECFW0[0], COMP_STRING_TYPE_SIZE);
-
-        // AP KHB 0
-        get_firmware_parameters_res.comp_parameter[1].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        get_firmware_parameters_res.comp_parameter[1].comp_identifier = PLDM_COMP_IDENTIFIER_AP_KHB0;
-        get_firmware_parameters_res.comp_parameter[1].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[1].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[1].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[1].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[1].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[1].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[1].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[1].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[1].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[1].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[1].cap_during_update = 0x00000000;
-
-        memcpy(get_firmware_parameters_res.comp_parameter[1].active_comp_version_string, &crisis_rec_version, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[1].pending_comp_version_string, &pending_comp_string_ECFW1[0], COMP_STRING_TYPE_SIZE);
-
-        // AP CFG0
-        get_firmware_parameters_res.comp_parameter[2].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        get_firmware_parameters_res.comp_parameter[2].comp_identifier = PLDM_COMP_IDENTIFIER_APCFG0;
-        get_firmware_parameters_res.comp_parameter[2].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[2].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[2].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[2].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[2].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[2].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[2].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[2].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[2].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[2].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[2].cap_during_update = 0x00000000;
-        memcpy(get_firmware_parameters_res.comp_parameter[2].active_comp_version_string, &crisis_rec_version, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[2].pending_comp_version_string, &pending_comp_string_ECFW0[0], COMP_STRING_TYPE_SIZE);
-
-        // HASH TABLE0
-        get_firmware_parameters_res.comp_parameter[3].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        get_firmware_parameters_res.comp_parameter[3].comp_identifier = PLDM_COMP_IDENTIFIER_HT0_AP0C0;
-        get_firmware_parameters_res.comp_parameter[3].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[3].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[3].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[3].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[3].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[3].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[3].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[3].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[1].pending_comp_release_date, 0, 8);
-
-        get_firmware_parameters_res.comp_parameter[3].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;
-
-        get_firmware_parameters_res.comp_parameter[3].cap_during_update = 0x00000000;
-
-        memcpy(get_firmware_parameters_res.comp_parameter[3].active_comp_version_string, &crisis_rec_version, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[3].pending_comp_version_string, &pending_comp_string_ECFW1[0], COMP_STRING_TYPE_SIZE);
-
-        // APFW 0
-        get_firmware_parameters_res.comp_parameter[4].comp_classification = PLDM_DEFAULT_COMP_CLASSIFICATION;
-        get_firmware_parameters_res.comp_parameter[4].comp_identifier = PLDM_COMP_IDENTIFIER_APFW_0;
-        get_firmware_parameters_res.comp_parameter[4].comp_classification_index = 0x00;
-        get_firmware_parameters_res.comp_parameter[4].active_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[4].active_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[4].active_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[4].active_comp_release_date, 0, 8);
-        get_firmware_parameters_res.comp_parameter[4].pending_comp_comparison_stamp = 0x00000000;
-        get_firmware_parameters_res.comp_parameter[4].pending_comp_version_string_type = UTF16;
-        get_firmware_parameters_res.comp_parameter[4].pending_comp_version_string_length = COMP_STRING_TYPE_SIZE;
-        memset(get_firmware_parameters_res.comp_parameter[4].pending_comp_release_date, 0, 8);      
-        get_firmware_parameters_res.comp_parameter[4].comp_activation_methods = PLDM_COMP_ACTIVATION_SUPPORTED;   
-        get_firmware_parameters_res.comp_parameter[4].cap_during_update = 0x00000000;
-        memcpy(get_firmware_parameters_res.comp_parameter[4].active_comp_version_string, &crisis_rec_version, COMP_STRING_TYPE_SIZE);
-        memcpy(get_firmware_parameters_res.comp_parameter[4].pending_comp_version_string, &pending_comp_string_ECFW0[0], COMP_STRING_TYPE_SIZE);
-
-        size = PLDM_REQ_GET_FIRMWARE_PARAMETERS_RESPONSE_COMMON_DATA_BYTES + (((sizeof(COMPONENT_PARAMETER_TABLE)) * PLDM_NUMBER_OF_COMP_SUPPORTED_DURING_CRISIS));
+    size = (PLDM_REQ_GET_FIRMWARE_PARAMETERS_RESPONSE_COMMON_DATA_BYTES +
+            ((sizeof(COMPONENT_PARAMETER_TABLE)) * get_firmware_parameters_res.component_count));
+    
+    if(size > sizeof(buffer)) // Misra fix - make sure size does not exceed size of destination buffer
+    {
+        size = sizeof(buffer);
+    }
+    else
+    {
+        // do nothing
     }
 
     memcpy(buffer, &get_firmware_parameters_res, size);
-
+    
     total_length = size;
 
     pldmContext->pldm_current_response_cmd = PLDM_GET_FIRMWARE_PARAMETERS_REQ;
@@ -775,7 +269,12 @@ void pldm_pkt_handle_get_firmware_parameters(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CON
 void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
+
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
     memcpy(&request_update, &(get_mctp_pldm[0]), PLDM_REQUEST_UPDATE_DATA_LEN);
 <#else>
@@ -819,7 +318,9 @@ void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pld
     if (in_update_mode == 1)
     {
         // PLDM:already in update mode
-        trace0(PLDM_TRACE, PLDM_TSK, 3, "PlaU");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+        trace0(PLDM_TRACE, SPDM_TSK, 3, "PlaU");
+</#if>
     }
 
     if (in_update_mode == 0)
@@ -837,7 +338,11 @@ void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pld
 void pldm_pkt_handle_pass_component_table(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
 
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
     memcpy(&request_pass_component_table, &(get_mctp_pldm[0]), sizeof(REQUEST_PASS_COMPONENT_TABLE));
@@ -919,7 +424,11 @@ void pldm_pkt_handle_pass_component_table(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEX
 void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
     uint8_t image_id, ap, comp, ht_num, ht_id;
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
     memcpy(&request_update_component, &(get_mctp_pldm[0]), PLDM_UPDATE_COMP_REQUEST_SIZE);
@@ -936,7 +445,7 @@ void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *p
     if (remaining_data_size_for_transfer % size_supported_by_UA)
     {
         no_of_requests = no_of_requests + 1;
-        if (is_addition_safe(no_of_requests, 1) == 0) // Coverity INT30-C
+        if (is_add_safe(no_of_requests, 1) == 0) // Coverity INT30-C
         {
             // Handle Error
         }
@@ -1003,63 +512,7 @@ void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *p
     pldmContext->pldm_current_response_cmd = PLDM_UPDATE_COMPONENT_REQ;
 
     if (can_update) {
-        if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG0) || 
-            (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG0)) {
-            image_id = ECFW_IMG_TAG0;
-            memcpy(&pending_comp_string_ECFW0[0], &request_update_component.comp_version_string[0], COMP_STRING_TYPE_SIZE);
-        } else if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG1) || 
-            (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB1_TAG1) || 
-            (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG1)) {
-            image_id = ECFW_IMG_TAG1;
-            memcpy(&pending_comp_string_ECFW1[0], &request_update_component.comp_version_string[0], COMP_STRING_TYPE_SIZE);
-        }
-        else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG0)
-        {
-            image_id = ECFW_IMG_APCFG0;
-        }
-        else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG1)
-        {
-            image_id = ECFW_IMG_APCFG1;
-        }
-
-        if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG0 || 
-            request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG1 ||
-            !(INVALID_ECFWKHB_IDENTIFIER(request_update_component.comp_identifier)))
-        {
-            di_pldm_sb_apcfg_ecfw_staged_add_get(image_id, &staged_address);
-        }
-        else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG0 ||
-                 request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG1)
-        {
-            if (sg3_state == SG3_POSTAUTH) {
-                di_pldm_sb_apcfg_apcfg_staged_add_get(image_id, &staged_address);
-            } else if (sg3_state == SG3_CRISIS) {
-                staged_address = APCFG_address;
-            }
-        }
-        else if (!INVALID_HASH_COMP_IDENTIFIER(request_update_component.comp_identifier))
-        {
-            if (sg3_state == SG3_POSTAUTH) {
-                sb_get_apx_compx_htnum_based_on_comp_identifier(request_update_component.comp_identifier, &ap, &comp, &ht_num);
-                staged_address = di_pldm_sb_apcfg_ht_staged_add_get(ap, comp, ht_num);
-            } else if (sg3_state == SG3_CRISIS) {
-                staged_address = HT_address;
-            }
-        } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_AP_BA_PTR0) {
-            (void)efuse_read_data(AP_BA_PTR0_BASE_ADDR_EFUSE_OFFSET, (uint8_t*)&staged_address, 4);
-        } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_AP_KHB0) {
-            staged_address = APKHB_address;
-        } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APFW_0) {
-            staged_address = APFW_address;
-        }
-
-        spi_select = staged_address & SPI_SELECT_MASK;
-        spi_select_configured |= (uint8_t)((1u << (sb_spi_port_get(spi_select)))&UINT8_MAX);
-        pldm_di_sb_i2c_ec_fw_port_prepare(host_functionality_reduced, spi_select, spi_select, spi_select);
-        pldm_di_i2c_spi_init(spi_select, spi_select, spi_select);
-
-        pldm_di_qmspi_clr_port_init_status(spi_select);
-        pldm_di_init_flash_component((SPI_FLASH_SELECT)spi_select);
+        pldm_init_peripheral_for_update(request_update_component.comp_identifier);
     }
 }
 
@@ -1079,7 +532,7 @@ void pldm_pkt_create_request_firmware_data(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTE
     req_firmware_data.offset = offset;
     if (retry_request_firmware_data)
     {
-        if (is_subtraction_safe(req_firmware_data.offset, size_supported_by_UA) == 0) // Coverity INT30-C
+        if (is_sub_safe(req_firmware_data.offset, size_supported_by_UA) == 0) // Coverity INT30-C
         {
             // Handle Error
         }
@@ -1091,7 +544,7 @@ void pldm_pkt_create_request_firmware_data(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTE
     else
     {
         offset = offset + size_supported_by_UA;
-        if (is_addition_safe(offset, size_supported_by_UA) == 0) // Coverity INT30-C
+        if (is_add_safe(offset, size_supported_by_UA) == 0) // Coverity INT30-C
         {
             // Handle Error
         }
@@ -1101,18 +554,18 @@ void pldm_pkt_create_request_firmware_data(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTE
     {
         if (remaining_data_size_for_transfer < size_supported_by_UA)
         {
-            length = remaining_data_size_for_transfer;
+            len = remaining_data_size_for_transfer;
         }
         else
         {
-            length = size_supported_by_UA;
+            len = size_supported_by_UA;
         }
     }
 
-    req_firmware_data.length = length;
+    req_firmware_data.length = len;
     if (!retry_request_firmware_data)
     {
-        remaining_data_size_for_transfer = remaining_data_size_for_transfer - length;
+        remaining_data_size_for_transfer = remaining_data_size_for_transfer - len;
     }
 
     if (retry_request_firmware_data)
@@ -1140,15 +593,14 @@ void pldm_pkt_create_request_firmware_data(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTE
 void pldm_pkt_process_request_firmware_update_response(void)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+    <#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
+
     uint8_t fn_ret=0;
     uint8_t retry_count = 0;
-    uint8_t image_id = 0x00;
-    uint8_t i = 0;
-    uint8_t ap = 0x00;
-    uint8_t comp = 0x00;
-    uint8_t ht_num = 0x00;
-    uint8_t no_of_looping = 0x00;
 
     if (PLDMResp_timer_started)
     {
@@ -1157,134 +609,27 @@ void pldm_pkt_process_request_firmware_update_response(void)
     }
     received_1024b_for_flash_write = true;
 
-    no_of_looping = (uint8_t)((size_supported_by_UA / PAGE_SIZE) & UINT8_MAX);
-
     if (!completion_code)
     {
         if (received_1024b_for_flash_write == true)
         {
-            if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG0) ||
-                (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG0))
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+            fn_ret= pldm_write_firmware_data(request_update_component.comp_identifier, &get_mctp_pldm[0], offset_for_flash);
+<#else>
+            fn_ret =  pldm_write_firmware_data(request_update_component.comp_identifier, &get_mctp_pld[0], offset_for_flash);
+</#if>
+            if(fn_ret)
             {
-                image_id = ECFW_IMG_TAG0;
-            } else if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG1) ||
-                (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG1) || 
-                (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB1_TAG1))
-            {
-                image_id = ECFW_IMG_TAG1;
-            }
-            else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG0)
-            {
-                image_id = ECFW_IMG_APCFG0;
-            }
-            else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG1)
-            {
-                image_id = ECFW_IMG_APCFG1;
-            }
-
-            if (image_id == ECFW_IMG_TAG0 || image_id == ECFW_IMG_TAG1)
-            {
-                di_pldm_sb_apcfg_ecfw_staged_add_get(image_id, &staged_address);
-            } else if (image_id == ECFW_IMG_APCFG0 || image_id == ECFW_IMG_APCFG1) {
-                if (sg3_state == SG3_POSTAUTH) {
-                    di_pldm_sb_apcfg_apcfg_staged_add_get(image_id, &staged_address);
-                } else {
-                    staged_address = APCFG_address;
-                }
-            }
-
-            if (!INVALID_HASH_COMP_IDENTIFIER(request_update_component.comp_identifier))
-            {
-                if (sg3_state == SG3_POSTAUTH) {
-                sb_get_apx_compx_htnum_based_on_comp_identifier(request_update_component.comp_identifier, &ap, &comp, &ht_num);
-                staged_address = di_pldm_sb_apcfg_ht_staged_add_get(ap, comp, ht_num);
-                } else if (sg3_state == SG3_CRISIS) {
-                    staged_address = HT_address;
-                }
-            }
-
-            if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_AP_BA_PTR0) {
-                (void)efuse_read_data(AP_BA_PTR0_BASE_ADDR_EFUSE_OFFSET, (uint8_t *)&staged_address, 4);
-            } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_AP_KHB0) {
-                staged_address = APKHB_address;
-            } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APFW_0) {
-                staged_address = APFW_address;
-            }
-
-
-            if ((request_update_component.comp_identifier & PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE) ==
-                PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE)
-            {
-                if (di_pldm_sb_apcfg_byte_match_staged_addr_get(request_update_component.comp_identifier, &staged_address)) {
-                    // continue
-                } else {
-                    // invalid case
-                    return;
-                }
-            }
-
-            staged_address = staged_address + offset_for_flash;
-            if (is_addition_safe(staged_address, offset_for_flash) == 0) // Coverity INT30-C
-            {
-                // Handle Error
-                // Do not erase
-                // return error
                 return;
             }
-            if (!(offset_for_flash % FLASH_SECTOR_SIZE))   //sector erase for every 4096 bytes
-            {
 
-                if(pldm_di_sb_spi_sector_erase(staged_address, spi_select))
-                {
-                    // PLDM:sector erase fail
-                    trace0(PLDM_TRACE, PLDM_TSK, 3, "Psef");
-                    return;
-                }
-                timer_delay_ms(5);
-            }
-
-            do
-            {
-                timer_delay_ms(5);
-                uint32_t write_address = staged_address + copy_data_offset;
-                if ((is_addition_safe(write_address, staged_address) == 0)) // Coverity INT30-C
-                {
-                    // Do not write to invalid address.Cannot write to invalid address
-                    trace0(PLDM_TRACE, PLDM_TSK, 3, "PiCw");
-                    return;
-                }
-                else
-                {
-<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
-                    fn_ret = pldm_di_sb_spi_write(write_address, spi_select, &get_mctp_pldm[copy_data_offset],
-                                                  PAGE_SIZE);
-<#else>
-                    fn_ret = pldm_di_sb_spi_write(write_address, spi_select, &get_mctp_pld[copy_data_offset],
-                                                  PAGE_SIZE);
-</#if>                    
-
-                }
-                if (fn_ret)
-                {
-                    // PLDM:page write err
-                    trace0(PLDM_TRACE, PLDM_TSK, 3, "PpWe");
-                    return;
-                }
-                timer_delay_ms(5);
-                copy_data_offset = copy_data_offset + PAGE_SIZE;
-                i++;
-            }
-            while (i < no_of_looping);
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
             memset(get_mctp_pldm, 0, size_supported_by_UA);
 <#else>
             memset(get_mctp_pld, 0, size_supported_by_UA);
 </#if>
-            
             received_1024b_for_flash_write = false;
-            offset_for_datacopy = 0;
             offset_for_flash = offset_for_flash + size_supported_by_UA;
-            copy_data_offset = 0;
             number_of_1024b_requests = number_of_1024b_requests + 1;
             pldm_request_firmware_update = true;
         }
@@ -1293,13 +638,12 @@ void pldm_pkt_process_request_firmware_update_response(void)
     {
         pldm_request_firmware_update = false;
         received_1024b_for_flash_write = 0;
-        offset_for_datacopy = 0;
         offset_for_flash = 0;
         number_of_1024b_requests = 0;
         offset = 0;
-        length = 0;
+        len = 0;
+        pldm_reset_firmware_update_flags();
         // PLDM:req fw data resp completion code not success
-        trace0(PLDM_TRACE, PLDM_TSK, 3, "Pfdr");
     }
     return;
 }
@@ -1448,7 +792,12 @@ void pldm_pkt_handle_get_status(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmCon
 void pldm_pkt_handle_activate_firmware(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
+
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
     memcpy(&request_activate_firmware, &get_mctp_pldm[0], PLDM_REQUEST_ACTIVATE_FIRMWARE_LEN);
 <#else>
@@ -1483,8 +832,7 @@ void pldm_pkt_handle_activate_firmware(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *
         pldmContext->pldm_status_reason_code = ACTIVATE_FIRMWARE_RECEIVED;
         req_activate_firmware_resp.est_time_for_self_contained_activation = 0x0000;
         in_update_mode = false;
-        di_sb_core_restore_configs(spi_select_configured, host_functionality_reduced);
-        spi_select_configured = 0x00;
+        pldm_restore_configs(request_update_component.comp_identifier, host_functionality_reduced);
     }
     else
     {
@@ -1539,11 +887,10 @@ void pldm_pkt_create_response_cancel_update_component(MCTP_PKT_BUF *pldm_buf_tx,
 
     pldm_request_firmware_update = false;
     received_1024b_for_flash_write = 0;
-    offset_for_datacopy = 0;
     offset_for_flash = 0;
     number_of_1024b_requests = 0;
     offset = 0;
-    length = 0;
+    len = 0;
     if (PLDMResp_timer_started)
     {
         pldm_response_timeout_stop();
@@ -1554,7 +901,7 @@ void pldm_pkt_create_response_cancel_update_component(MCTP_PKT_BUF *pldm_buf_tx,
 
     if (apply_completed && failure_recovery_cap)
     {
-        ret_Val = di_sb_core_request_switch_mode(FW_type);
+        ret_Val = pldm_cancel_update(request_update_component.comp_identifier, 0);
         apply_completed = false;
     }
 
@@ -1591,11 +938,10 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONT
 
     pldm_request_firmware_update = false;
     received_1024b_for_flash_write = 0;
-    offset_for_datacopy = 0;
     offset_for_flash = 0;
     number_of_1024b_requests = 0;
     offset = 0;
-    length = 0;
+    len = 0;
     if (PLDMResp_timer_started)
     {
         pldm_response_timeout_stop();
@@ -1604,7 +950,8 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONT
 
     if (apply_completed && failure_recovery_cap)
     {
-        ret_Val = di_sb_core_request_switch_mode(FW_type);
+        ret_Val = pldm_cancel_update(request_update_component.comp_identifier, 1);
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>        
         req_cancel_update_res.non_func_comp_indication = ret_Val;
         if (!req_cancel_update_res.non_func_comp_indication)
         {
@@ -1621,6 +968,7 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONT
         {
             req_cancel_update_res.non_func_comp_bitmap = 0x0;
         }
+</#if>        
         apply_completed = false;
     }
     else
@@ -1640,8 +988,7 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONT
 
     if (req_cancel_update_res.completion_code == PLDM_SUCCESS)
     {
-        di_sb_core_restore_configs(spi_select_configured, host_functionality_reduced);
-        spi_select_configured = 0x00;
+        pldm_restore_configs(request_update_component.comp_identifier, host_functionality_reduced);
     }
 }
 
@@ -1654,17 +1001,17 @@ void pldm_pkt_create_response_cancel_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONT
 void pldm_pkt_handle_transfer_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
 
     REQUEST_TRANSFER_COMPLETE_RESPONSE transfer_complete_response;
 
     transfer_complete_response.completion_code = pldm_msg_rx_buf->pkt.data[PLDM_HEADER_DATA_POS_FOR_RESP];
 
-    if (sg3_state == SG3_POSTAUTH) {
-        pldm_start_update();
-    } else if (sg3_state == SG3_CRISIS) {
-        pldm_initiate_verify_req_to_update_agent(0);
-    }
+    pldm_start_firmware_update(request_update_component.comp_identifier);
 }
 
 /******************************************************************************/
@@ -1676,17 +1023,17 @@ void pldm_pkt_handle_transfer_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_
 void pldm_pkt_handle_verify_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
 
     REQUEST_VERIFY_COMPLETE_RESPONSE verify_complete_response;
 
     verify_complete_response.completion_code = pldm_msg_rx_buf->pkt.data[PLDM_HEADER_DATA_POS_FOR_RESP];
 
-    if (sg3_state == SG3_POSTAUTH) {
-        di_sb_core_request_switch_mode_verify_response();
-    } else if (sg3_state == SG3_CRISIS) {
-        pldm_initiate_apply_req_to_update_agent(0);
-    }
+    pldm_start_firmware_apply();
 }
 
 /******************************************************************************/
@@ -1698,17 +1045,19 @@ void pldm_pkt_handle_verify_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CO
 void pldm_pkt_handle_apply_complete_response(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
 
     REQUEST_APPLY_COMPLETE_RESPONSE apply_complete_response;
 
     apply_complete_response.completion_code = pldm_msg_rx_buf->pkt.data[PLDM_HEADER_DATA_POS_FOR_RESP];
-
     pldmContext->pldm_tx_state = PLDM_TX_IDLE;
-
-    if (sg3_state == SG3_CRISIS) {
-        pldm_get_staged_address_for_crisis_recovery();
-    }
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+    pldm_apply_complete_response(request_update_component.comp_identifier);
+</#if>
 }
 
 /******************************************************************************/
@@ -1753,7 +1102,7 @@ void pldm_handle_get_id(MCTP_PKT_BUF *pldm_buf, PLDM_CONTEXT *pldmContext)
     uint8_t comp_code = 0;
     uint8_t tid;
 
-    tid = di_sb_apcfg_pldm_tid();
+    tid = pldm_apcfg_tid();
 
     pldmContext->pldm_current_response_cmd = PLDM_GET_ID_REQ;
     encode_get_tid_resp(instance_id, comp_code, tid, pldm_buf);
@@ -1772,7 +1121,11 @@ int decode_get_version_req(MCTP_PKT_BUF *msg, size_t payload_length,
 {
 
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
 
     if (payload_length != PLDM_GET_VERSION_REQ_BYTES)
     {
@@ -1830,7 +1183,12 @@ int encode_get_version_resp(uint8_t instance_id, uint8_t completion_code,
 void pldm_handle_get_version(MCTP_PKT_BUF *pldm_buf, PLDM_CONTEXT *pldmContext)
 {
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
+
     uint8_t completion_code = 0;
 
     uint8_t payload_length = 6;
@@ -1991,92 +1349,120 @@ uint8_t pldm_pkt_validate_and_process_pldm_msg(uint8_t pldm_type, uint8_t get_cm
     if (pldm_type == PLDM_FIRMWARE_UPDATE)
     {
         // PLDM:cmd rcvd is 
-        trace1(PLDM_TRACE, PLDM_TSK, 2, "PcRx:%x", get_cmd);
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+        trace1(PLDM_TRACE, SPDM_TSK, 2, "PcRx:%x", get_cmd);
+</#if>
         switch(get_cmd)
         {
         case PLDM_QUERY_DEVICE_IDENTIFIERS_REQ:
             // query device identfs
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "Pqdi");
-            offset_for_datacopy = 0;
-            copy_data_offset = 0;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "Pqdi");
+</#if>
             pldm_pkt_handle_query_device_identifiers(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_GET_FIRMWARE_PARAMETERS_REQ:
             // get fw parms
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PGfpq");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PGfpq");
+</#if>
             pldm_pkt_handle_get_firmware_parameters(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_REQUEST_UPDATE_REQ:
             // rqst update
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PrUq");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PrUq");
+</#if>
             pldm_pkt_handle_request_update(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_REQUEST_FIRMWARE_DATA_REQ: // response from UA, having the data
             // rqst fw data resp
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "Prfdr");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "Prfdr");
+</#if>
             pldm_pkt_process_request_firmware_update_response();
             break;
 
         case PLDM_PASS_COMPONENT_TABLE_REQ:
             pldm_pkt_handle_pass_component_table(pldm_buf_tx, pldmContext);
             // pass comp table
-            trace0(PLDM_TRACE, PLDM_TSK, 3, "PPcTr");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 3, "PPcTr");
+</#if>
             break;
 
         case PLDM_UPDATE_COMPONENT_REQ:
             // update comp
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PUco");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PUco");
+</#if>
             pldm_pkt_handle_update_component(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_ACTIVATE_FIRMWARE_REQ:
             // activate firmware
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "Pafw");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "Pafw");
+</#if>
             pldm_pkt_handle_activate_firmware(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_CANCEL_UPDATE_COMPONENT_REQ:
             // cacl update comp
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PcUq");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PcUq");
+</#if>
             pldm_pkt_create_response_cancel_update_component(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_CANCEL_UPDATE_REQ:
             // cacl update
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PclU");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PclU");
+</#if>
             pldm_pkt_create_response_cancel_update(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_REQUEST_GET_STATUS:
             // get status
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PqGs");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PqGs");
+</#if>
             pldm_pkt_handle_get_status(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_TRANSFER_COMPLETE_REQ:
             // xfr cmplt resp
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PxCr");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PxCr");
+</#if>
             pldm_pkt_handle_transfer_complete_response(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_VERIFY_COMPLETE_REQ:
             // verify cmpt resp
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PvCq");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PvCq");
+</#if>
             pldm_pkt_handle_verify_complete_response(pldm_buf_tx, pldmContext);
             break;
 
         case PLDM_APPLY_COMPLETE_REQ:
             // apply cmpt resp
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PaCq");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PaCq");
+</#if>
             pldm_pkt_handle_apply_complete_response(pldm_buf_tx, pldmContext);
             break;
 
         default:
             // PLDM:invalid type 5 cmd code
-            trace0(PLDM_TRACE, PLDM_TSK, 3, "PIvcc");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 3, "PIvcc");
+</#if>            
             return 0xff;
         }
     }
@@ -2102,7 +1488,9 @@ uint8_t pldm_pkt_validate_and_process_pldm_msg(uint8_t pldm_type, uint8_t get_cm
 
         default:
             // PLDM:ivld type 0 cmd code
-            trace0(PLDM_TRACE, PLDM_TSK, 3, "PIvt");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 3, "PIvt");
+</#if>
             return 0xff;
         }
     }
@@ -2236,7 +1624,11 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
     /* destination eid */
     mctp_buf->pkt.field.hdr.dst_eid   = pldmContext->pldm_host_eid;
     /* source eid = eid of self/EC */
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     mctp_buf->pkt.field.hdr.src_eid = curr_ec_id;
+<#else>
+    mctp_buf->pkt.field.hdr.src_eid = pldmContext->pldm_ec_eid;
+</#if>
     /* message tag */
     /* for req/response packet */
     if (req_bit)
@@ -2275,6 +1667,13 @@ void pldm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *buf, PLDM_CONTEXT *pldmContex
         return;
     }
 
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false> 
+/* If tx state is MCTP_IDLE; then switch to MCTP_TX_NEXT. Else if tx state
+     * is not MCTP_IDLE; then tx state machine will automatically switch to
+     * MCTP_TX_NEXT after completing current tx */
+    mctp_tx_state = MCTP_TX_NEXT;
+</#if>
+
     buf->buf_full = MCTP_TX_PENDING;
 
     if((buf->pkt.field.hdr.eom != 1) || (pldm_request_firmware_update))
@@ -2289,7 +1688,12 @@ void pldm_pkt_msg_ready_trigger_mctp(MCTP_PKT_BUF *buf, PLDM_CONTEXT *pldmContex
         pldm_pktbuf_rx.buf_full = MCTP_EMPTY;
         offset_for_data = 0;
     }
-    di_send_pldm_reponse_packet((uint8_t*)buf, sizeof(MCTP_PKT_BUF), true, pldm_request_firmware_update);
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
+    is_pldm_request_firmware_update = (pldm_request_firmware_update == true) ? 1U : 0U ;
+    SET_MCTP_EVENT_TASK(mctp);
+<#else>
+    di_send_spdm_reponse_packet((uint8_t*)buf, sizeof(MCTP_PKT_BUF), true, pldm_request_firmware_update);
+</#if>
 }
 
 /******************************************************************************/
@@ -2306,8 +1710,11 @@ void pldm_pkt_tx_packet(void)
     pldmContext = pldm_ctxt_get();
     bool req_bit = 0;
     MCTP_PKT_BUF *pldm_rx_buf;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
-
+<#else>
+    pldm_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>
     if(NULL == pldmContext)
     {
         return;
@@ -2318,7 +1725,11 @@ void pldm_pkt_tx_packet(void)
     case PLDM_TX_IDLE:
         break;
     case PLDM_TX_IN_PROGRESS:
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
         mctp_buf_tx1 = &pldm_mctp_pktbuf_tx;
+<#else>
+        mctp_buf_tx1  = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF5];
+</#if>        
         memset(mctp_buf_tx1, 0, sizeof(MCTP_PKT_BUF));
 
         if (pldm_request_firmware_update)
@@ -2328,16 +1739,17 @@ void pldm_pkt_tx_packet(void)
                 pldm_pkt_create_request_firmware_data(pldm_buf_tx, pldmContext);
                 pldm_request_firmware_update = false;
             } else {
-                pldm_di_spi_tristate(sb_spi_port_get(spi_select));
+                pldm_write_firmware_data_complete(request_update_component.comp_identifier);
                 // PLDM:rcvd all binary data
-                trace0(PLDM_TRACE, PLDM_TSK, 2, "Prab");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+                trace0(PLDM_TRACE, SPDM_TSK, 2, "Prab");
+</#if>
                 pldm_request_firmware_update = false;
                 received_1024b_for_flash_write = 0;
-                offset_for_datacopy = 0;
                 offset_for_flash = 0;
                 number_of_1024b_requests = 0;
                 offset = 0;
-                length = 0;
+                len = 0;
                 pldm_pkt_create_transfer_complete_req(pldm_buf_tx, pldmContext);
                 return;
             }
@@ -2366,19 +1778,23 @@ void pldm_pkt_tx_packet(void)
         if (cmd_resp == PLDM_ACTIVATE_FIRMWARE_REQ && can_activate)
         {
             timer_delay_ms(10);
-            sb_boot_sys_soft_rst(); // send out activation request response and then soft reset Glacier
+            pldm_activate_firmware();
         }
 
         if (cmd_resp == PLDM_VERIFY_COMPLETE_REQ)
         {
             // PLDM : Verfiy cmpt
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "Pvcpt");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "Pvcpt");
+</#if>            
         }
         break;
 
     default:
         // pldm_tx_pkt: default
-        trace0(PLDM_TRACE, PLDM_TSK, 2, "Pxpd");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+        trace0(PLDM_TRACE, SPDM_TSK, 2, "Pxpd");
+</#if>
         break;
     }
 }
@@ -2402,7 +1818,11 @@ void pldm_pkt_rcv_packet()
         return;
     }
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &pldm_pktbuf_rx;
+<#else>
+    pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
+</#if>        
 
     if(MCTP_RX_PENDING == pldm_msg_rx_buf->buf_full)
     {
@@ -2433,15 +1853,18 @@ void pldm_pkt_rcv_packet()
                     offset_data_pos = PLDM_HEADER_DATA_POS_FOR_RESP;
                 }
 
-                if(safe_sub_16(pldm_msg_rx_buf->pkt.data[MCTP_BYTE_CNT_OFFSET], byte_cnt_for_one_pkt, &len))
+                if(is_sub_safe(pldm_msg_rx_buf->pkt.data[MCTP_BYTE_CNT_OFFSET], byte_cnt_for_one_pkt) == 0)
                 {
-                    ;//Handle erroe
+                    ;//Handle error
                 }
+                len = pldm_msg_rx_buf->pkt.data[MCTP_BYTE_CNT_OFFSET] - byte_cnt_for_one_pkt;
                 ret_sts = pldm_pkt_fill_buffer(pldm_msg_rx_buf, pldmContext, len, offset_data_pos);
                 if (ret_sts)
                 {
                     // PLDM:Fill bufr fail for single pkt
-                    trace0(PLDM_TRACE, PLDM_TSK, 2, "PFbp");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+                    trace0(PLDM_TRACE, SPDM_TSK, 2, "PFbp");
+</#if>
                 }
             }
             else if(!((pldm_msg_rx_buf->pkt.data[MCTP_MSG_TAG_REF_MASK] & MCTP_SOM_EOM_REF_MSK) == MCTP_SOM_EOM_REF))
@@ -2489,12 +1912,12 @@ void pldm_pkt_rcv_packet()
                 {
                     pkt_cnt = 0;
                     pldmContext->pldm_tx_state = PLDM_TX_IDLE;
-                    pldmContext->current_request_length = 0;
+                    pldmContext->pldm_current_request_length = 0;
                     memset(pldm_buf_tx, 0, MCTP_PKT_BUF_DATALEN);
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
-                    memset(get_mctp_pldm, 0, MAX_SIZE_CERTIFICATE);
+                    memset(get_mctp_pldm, 0, PLDM_MAX_PAYLOAD_BUFF_SIZE);
 <#else>
-                    memset(get_mctp_pld, 0, MAX_SIZE_CERTIFICATE);
+                    memset(get_mctp_pld, 0, PLDM_MAX_PAYLOAD_BUFF_SIZE);
 </#if>
 
                 }
@@ -2508,17 +1931,22 @@ void pldm_pkt_rcv_packet()
         if(ret_sts)
         {
             // PLDM:Ivld msg rcvd
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PImrx");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PImrx");
+</#if>
         }
         else
         {
             // PLDM:Vld msg rcvd
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PVmRx");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+            trace0(PLDM_TRACE, SPDM_TSK, 2, "PVmRx");
+</#if>
         }
     }
 
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_di_mctp_done_set();
-
+</#if>    
     pldm_msg_rx_buf->pkt.data[PLDM_HEADER_COMMAND_CODE_POS] = 0;
 }
 
@@ -2553,11 +1981,11 @@ uint8_t pldm_pkt_fill_buffer(MCTP_PKT_BUF *pldm_msg_rx_buf, PLDM_CONTEXT *pldmCo
     if(pldmContext->pldm_tx_state == PLDM_PACKETIZING)
     {
         pkt_cnt = (uint16_t)((pkt_cnt + len)&UINT16_MAX);
-        pldmContext->current_request_length = pkt_cnt;
+        pldmContext->pldm_current_request_length = pkt_cnt;
     }
     else if(pldmContext->pldm_tx_state == PLDM_NON_PACKETIZING)
     {
-        pldmContext->current_request_length = len;
+        pldmContext->pldm_current_request_length = len;
     }
 
     if (pkt_cnt > INPUT_BUF_MAX_BYTES)//if no of bytes received cross max input buffer size of 1224
@@ -2578,131 +2006,15 @@ uint8_t pldm_pkt_fill_buffer(MCTP_PKT_BUF *pldm_msg_rx_buf, PLDM_CONTEXT *pldmCo
 void pldm1_event_task(void)
 {
     // pldm_evt_tsk: Start
-    trace0(PLDM_TRACE, PLDM_TSK, 2, "PEtS");
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+    trace0(PLDM_TRACE, SPDM_TSK, 2, "PEtS");
+</#if>
     pldm_pkt_rcv_packet();
     pldm_pkt_tx_packet();
     // pldm_evt_tsk: End
-    trace0(PLDM_TRACE, PLDM_TSK, 2, "PetE");
-}
-
-/******************************************************************************/
-/** This is called for starting EC_FW/AP_CFG update process
-* EC_FW/AP_CFG is copied to staged location before this function is called, and
-* reusing EC_FW update and reboot I2C command code.
-* @param void
-* @return void
-*******************************************************************************/
-void pldm_start_update()
-{
-    //coverity fix
-    uint32_t tagx_address = 0x00;
-    uint32_t staged_address = 0x00;
-    uint32_t restore_address = 0x00;
-    uint8_t image_id = 0x00;
-    uint32_t image_size = 0x00;
-    uint8_t tagx_spi_select = 0x00;
-    uint8_t staged_spi_select = 0x00;
-    uint8_t restore_spi_select = 0x00;
-    uint8_t apcfg_id = 0x00;
-    uint8_t ht_id = SB_HASH_TABLE_ID_MAX;
-    uint8_t ap = 0x00;
-    uint8_t comp = 0x00;
-    uint8_t ht_num =0x00;
-    uint8_t img_id = 0x00;
-
-    if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG0) ||
-        (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG0)) 
-    {
-        image_id = ECFW_IMG_TAG0;
-    } else if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG1) ||
-        (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG1) ||
-        (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB1_TAG1)) 
-    {
-        image_id = ECFW_IMG_TAG1;
-    }
-    else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG0)
-    {
-        image_id = ECFW_IMG_APCFG0;
-        apcfg_id = 0;
-    }
-    else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG1)
-    {
-        image_id = ECFW_IMG_APCFG1;
-        apcfg_id = 1;
-    }
-
-    if (image_id == ECFW_IMG_TAG0 || image_id == ECFW_IMG_TAG1)
-    {
-        pldm_di_sb_ecfw_tagx_addr_get(&tagx_address, image_id);
-        if ((request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG0) || (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_TAG1))
-        {
-            FW_type = PLDM_FW_TYPE_EC_FW;
-        } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB1_TAG1) {
-            FW_type = PLDM_FW_TYPE_ECFWKHB_TOO;
-        }  else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG0) {
-            FW_type = PLDM_FW_TYPE_ECFW0_KHB;
-        } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_KHB_TAG1) {
-            FW_type = PLDM_FW_TYPE_ECFW1_KHB;
-        }
-    }
-    else if (image_id == ECFW_IMG_APCFG0 || image_id == ECFW_IMG_APCFG1)
-    {
-        tagx_address = di_pldm_sb_apcfg_apcfg_base_address_get(apcfg_id);
-        FW_type = PLDM_FW_TYPE_AP_CFG;
-    }
-
-    if (!INVALID_HASH_COMP_IDENTIFIER(request_update_component.comp_identifier))
-    {
-        FW_type = PLDM_FW_TYPE_HASH_TABLE;
-        sb_get_apx_compx_htnum_based_on_comp_identifier(request_update_component.comp_identifier, &ap, &comp, &ht_num);
-        ht_id = sb_get_hash_table_id_apx_compx(ap, comp, ht_num);
-    }
-
-    if (FW_type == PLDM_FW_TYPE_EC_FW || FW_type == PLDM_FW_TYPE_ECFWKHB_TOO || 
-        FW_type == PLDM_FW_TYPE_ECFW0_KHB || FW_type == PLDM_FW_TYPE_ECFW1_KHB)
-    {
-        di_pldm_sb_apcfg_ecfw_update_info_get(image_id, &staged_address, &restore_address);
-    }
-    
-    if (FW_type == PLDM_FW_TYPE_AP_CFG)
-    {
-        di_pldm_sb_apcfg_apcfg_update_info_get(image_id, &staged_address, &restore_address);
-    }
-
-    if (FW_type == PLDM_FW_TYPE_EC_FW || FW_type == PLDM_FW_TYPE_AP_CFG || 
-        FW_type == PLDM_FW_TYPE_ECFW0_KHB || FW_type == PLDM_FW_TYPE_ECFW1_KHB ||
-        FW_type == PLDM_FW_TYPE_ECFWKHB_TOO)
-    {
-        staged_spi_select = staged_address & 0xF;
-        restore_spi_select = restore_address & 0xF;
-        tagx_spi_select = (uint8_t)(tagx_address & 0xF); //coverity fix
-
-        pldm_di_i2c_spi_init(restore_spi_select, restore_spi_select, restore_spi_select);
-        pldm_di_i2c_spi_init(tagx_spi_select, tagx_spi_select, tagx_spi_select);
-        // PLDM ECFW/APCFG:staged ,restore,active
-        trace3(PLDM_TRACE, PLDM_TSK, 2, "PFA:%x,%x,%x", staged_address, restore_address, tagx_address);
-    }
-
-    if ((request_update_component.comp_identifier & PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE) ==
-        PLDM_COMP_IDENTIFIER_BYTE_MATCH_INT_SPI_BASE)
-    {
-        FW_type = PLDM_FW_BYTE_MATCH_INT_SPI;
-        if (di_pldm_sb_apcfg_byte_match_info_get(request_update_component.comp_identifier, &staged_address, 
-                                                &restore_address, &tagx_address, &img_id)) {
-            ht_id = img_id;
-            // continue
-        } else {
-            // invalid case
-            return;
-        }
-    }
-
-    image_size = request_update_component.comp_image_size;
-
-    if (sg3_state != SG3_CRISIS) {
-        pldm_di_sb_core_i2c_ec_fw_update_start(staged_address, FW_type,
-            restore_address, image_size, 0, tagx_address, true, failure_recovery_cap, ht_id);
-    }
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
+    trace0(PLDM_TRACE, SPDM_TSK, 2, "PetE");
+</#if>
 }
 
 /******************************************************************************/
@@ -2725,14 +2037,7 @@ void pldm_initiate_verify_req_to_update_agent(uint8_t verify_state)
     pldm_pkt_create_verify_complete_req(pldm_buf_tx, pldmContext);
     pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
     pldm_pkt_tx_packet();
-    if (sg3_state == SG3_POSTAUTH) {
-        ret_val = pldm_di_mctp_done_wait(MCTP_DI_PACKET_DONE);
-    
-        if (ret_val)
-        {
-            pldm_di_core_done_set();
-        }
-    }
+    pldm_initiate_verify_req_tx_end();
 }
 
 /******************************************************************************/
@@ -2754,108 +2059,6 @@ void pldm_initiate_apply_req_to_update_agent(uint8_t apply_state)
 
     pldm_pkt_tx_packet();
 }
-/******************************************************************************/
-/** This function is used for getting AP_CFG during initialization of PLDM task
-* @param pldmContext
-* @return void
-*******************************************************************************/
-void pldm_pkt_get_config_from_apcfg(PLDM_CONTEXT *pldmContext)
-{    
-    if (NULL == pldmContext)
-    {
-        return;
-    }
-
-    (void)di_sb_apcfg_config_data_request();
-    /* Move to idle state and wait for response */
-    pldmContext->pldm_state_info = PLDM_IDLE;
-}
-
-/******************************************************************************/
-/** This function returns the AP, COMP, HT_NUM based on PLDM component identifier
-* @param component_identifier - PLDM Component identifier
-* @param ap - to return the AP
-* @param comp - to return the Component
-* @param ht_num - to return the HT_NUM
-* @return void
-*******************************************************************************/
-void sb_get_apx_compx_htnum_based_on_comp_identifier(uint16_t component_identifier, uint8_t *ap, uint8_t *comp,
-        uint8_t *ht_num)
-{
-    switch(component_identifier)
-    {
-    case PLDM_COMP_IDENTIFIER_HT0_AP0C0:
-        *ap = AP_0;
-        *comp = COMPONENT_0;
-        *ht_num = SB_HASH_TABLE0;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT1_AP0C0:
-        *ap = AP_0;
-        *comp = COMPONENT_0;
-        *ht_num = SB_HASH_TABLE1;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT2_AP0C0:
-        *ap = AP_0;
-        *comp = COMPONENT_0;
-        *ht_num = SB_HASH_TABLE2;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT0_AP0C1:
-        *ap = AP_0;
-        *comp = COMPONENT_1;
-        *ht_num = SB_HASH_TABLE0;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT1_AP0C1:
-        *ap = AP_0;
-        *comp = COMPONENT_1;
-        *ht_num = SB_HASH_TABLE1;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT2_AP0C1:
-        *ap = AP_0;
-        *comp = COMPONENT_1;
-        *ht_num = SB_HASH_TABLE2;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT0_AP1C0:
-        *ap = AP_1;
-        *comp = COMPONENT_0;
-        *ht_num = SB_HASH_TABLE0;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT1_AP1C0:
-        *ap = AP_1;
-        *comp = COMPONENT_0;
-        *ht_num = SB_HASH_TABLE1;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT2_AP1C0:
-        *ap = AP_1;
-        *comp = COMPONENT_0;
-        *ht_num = SB_HASH_TABLE2;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT0_AP1C1:
-        *ap = AP_1;
-        *comp = COMPONENT_1;
-        *ht_num = SB_HASH_TABLE0;
-        break;
-    case PLDM_COMP_IDENTIFIER_HT1_AP1C1:
-        *ap = AP_1;
-        *comp = COMPONENT_1;
-        *ht_num = SB_HASH_TABLE1;
-        break;
-
-    case PLDM_COMP_IDENTIFIER_HT2_AP1C1:
-        *ap = AP_1;
-        *comp = COMPONENT_1;
-        *ht_num = SB_HASH_TABLE2;
-        break;
-    }
-}
 
 /******************************************************************************/
 /** PLDMResp_timer_callback();
@@ -2874,9 +2077,9 @@ void PLDMResp_timer_callback(TimerHandle_t pxTimer)
     }
     pkt_cnt = 0;
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
-    memset(get_mctp_pldm, 0, MAX_SIZE_CERTIFICATE);
+    memset(get_mctp_pldm, 0, PLDM_MAX_PAYLOAD_BUFF_SIZE);
 <#else>
-    memset(get_mctp_pld, 0, MAX_SIZE_CERTIFICATE);
+    memset(get_mctp_pld, 0, PLDM_MAX_PAYLOAD_BUFF_SIZE);
 </#if>
     
     if (PLDMResp_timer_started)
@@ -2889,51 +2092,6 @@ void PLDMResp_timer_callback(TimerHandle_t pxTimer)
     pldm_request_firmware_update = false;
     pldmContext->pldm_tx_state = PLDM_TX_IN_PROGRESS;
     pldm_pkt_tx_packet();
-}
-
-/******************************************************************************/
-/** pldm_get_staged_address_for_crisis_recovery();
-* Get staged/active locations for APFW crisis recovery
-* @param TimerHandle_t pxTimer
-* @return None
-*******************************************************************************/
-void pldm_get_staged_address_for_crisis_recovery()
-{
-    uint8_t buffer[32];
-        sb_parser_get_spi_info(&staged_address, &spi_select);  
-        pldm_di_qmspi_clr_port_init_status(spi_select);
-        pldm_di_init_flash_component((SPI_FLASH_SELECT)spi_select);
-    if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_AP_BA_PTR0) {
-        sb_parser_get_spi_info(&staged_address, &spi_select);        
-        if (di_pldm_spi_send_read_request(staged_address, buffer, 8, (SPI_FLASH_SELECT)spi_select, true)) {
-            // sb_parse_flash_map: Error in reading AP Descriptor 
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PAdEr");
-        }
-        memcpy(&APCFG_address, buffer, 4);
-        memcpy(&APKHB_address, (buffer + 4), 4);
-    } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_APCFG0) {
-        sb_parser_get_spi_info(&APCFG_address, &spi_select);
-        if ((is_addition_safe(APCFG_address, 0x5C0) == 0)) // Coverity INT30-C
-        {
-            return;
-        }
-        else
-        {
-            if (di_pldm_spi_send_read_request((APCFG_address + 0x5C0), buffer, 8, (SPI_FLASH_SELECT)spi_select, true)) {
-                // sb_parse_flash_map: Error in reading APCFG 
-                trace0(PLDM_TRACE, PLDM_TSK, 2, "PACEr");
-            }
-            memcpy(&HT_address, buffer, 4);
-        }
-    } else if (request_update_component.comp_identifier == PLDM_COMP_IDENTIFIER_HT0_AP0C0) {
-        sb_parser_get_spi_info(&HT_address, &spi_select);
-        if (di_pldm_spi_send_read_request((HT_address), buffer, 32, (SPI_FLASH_SELECT)spi_select, true)) {
-            // sb_parse_flash_map: Error in reading HT
-            trace0(PLDM_TRACE, PLDM_TSK, 2, "PHTer");
-        }
-        memcpy(&APFW_address, &buffer[28], 4);
-    }
-    pldm_di_spi_tristate(sb_spi_port_get(spi_select));
 }
 
 /******************************************************************************/
@@ -2976,17 +2134,117 @@ void pldm_init_flags()
     pldmContext->pldm_state_info = PLDM_IDLE;
     pldmContext->pldm_previous_state = PLDM_IDLE_STATE;
     pldmContext->pldm_current_state = PLDM_IDLE_STATE;
-    pldmContext->pldm_status_reason_code = INITIALIZATION_OF_FD;    
+    pldmContext->pldm_status_reason_code = INITIALIZATION_OF_FD;  
+    pldmContext->current_pkt_sequence = 0;  
 }
 
 /******************************************************************************/
-/** pldm_pkt_init_config_params();
-* Initialize the PLDM config params
+/** pldm_apcfg_device_identifier_length();
+* Returns device descriptor length
 * @param None
+* @return length of device descriptor
+*******************************************************************************/
+uint32_t pldm_apcfg_device_identifier_length(void)
+{
+    uint32_t length = 0;
+
+    length = pldm_ap_cfg.pldm_device_identifier_len;
+
+    return length;
+}
+
+/******************************************************************************/
+/** pldm_apcfg_descriptor_count();
+* Returns device descriptor count
+* @param None
+* @return count no of device descriptor available
+*******************************************************************************/
+uint8_t pldm_apcfg_descriptor_count(void)
+{
+    uint8_t count = 0;
+
+    if(pldm_ap_cfg.pldm_des_cnt > UINT8_MAX) // Coverity INT31-C Fix
+    {
+        // Handle Error
+    }
+    else
+    {
+        count = (uint8_t)(pldm_ap_cfg.pldm_des_cnt);
+    }
+
+    return count;
+}
+
+/******************************************************************************/
+/** pldm_apcfg_descriptor();
+* Returns device descriptor
+* @param descriptor array
 * @return None
 *******************************************************************************/
-void pldm_pkt_init_config_params()
+void pldm_apcfg_descriptor(uint8_t *descriptor)
+{
+    uint32_t length = 0;
+
+    length = pldm_ap_cfg.pldm_device_identifier_len;
+    memcpy(descriptor, pldm_ap_cfg.descriptor, length);
+
+    return;
+}
+
+/******************************************************************************/
+/** pldm_apcfg_override_cap_upgrade();
+* Returns flag of pldm override capabilities during upgrade
+* @param None
+* @return true = override, false = no override
+*******************************************************************************/
+bool pldm_apcfg_override_cap_upgrade(void)
+{
+    bool override = false;
+
+    override = pldm_ap_cfg.PLDM_override_capability_upgrade;
+
+    return override;
+}
+
+/******************************************************************************/
+/** pldm_apcfg_capabilities_upgrade();
+* Returns pldm capabilities during upgrade
+* @param None
+* @return cap capapbilites configured
+*******************************************************************************/
+uint16_t pldm_apcfg_capabilities_upgrade(void)
+{
+    uint16_t cap = 0;
+
+    cap = pldm_ap_cfg.cap_during_update;
+
+    return cap;
+}
+
+/******************************************************************************/
+/** pldm_apcfg_override_comp_classification();
+* Returns flag of pldm override component classification
+* @param None
+* @return true = override, false = no override
+*******************************************************************************/
+bool pldm_apcfg_override_comp_classification(void)
+{
+    bool override = false;
+
+    override = pldm_ap_cfg.PLDM_override_comp_classification;
+
+    return override;
+}
+
+/******************************************************************************/
+/** pldm_pkt_get_config_from_apcfg();
+* Initialize the PLDM config params
+* @param pldmContext
+* @return None
+*******************************************************************************/
+void pldm_pkt_get_config_from_apcfg(PLDM_CONTEXT *pldmContext)
 {  
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>    
     void *desc;
     pldm_ap_cfg.PLDM_override_device_descriptors = PLDM_DEVICE_DESCRIPTOR_OVERRIDE;
     pldm_ap_cfg.PLDM_override_capability_upgrade = PLDM_OVERRIDE_CAPABLITIES;
@@ -2996,11 +2254,46 @@ void pldm_pkt_init_config_params()
 <#assign byte_num = 0>
 <#list 0..49 as i>
 
-    *desc = &pldm_ap_cfg.descriptor[${byte_num}];
+    desc = (void*)&pldm_ap_cfg.descriptor[${byte_num}];
     *(uint32_t*)desc = GET_DESC(${byte_num});
 <#assign byte_num = byte_num+4>
 </#list>
     pldm_ap_cfg.cap_during_update = PLDM_UPGRADE_CAPABLITIES;
     pldm_ap_cfg.comp_classification = PLDM_COMP_CLASSIFICATION;
     pldm_ap_cfg.tid = PLDM_DEVICE_TID;
+<#else>
+    pldm_get_AP_custom_configs_from_apcfg();
+</#if>
+    /* Move to idle state and wait for response */
+    pldmContext->pldm_state_info = PLDM_IDLE;
+}
+
+/******************************************************************************/
+/** pldm_apcfg_tid();
+* Returns pldm terminal id
+* @param None
+* @return tid
+*******************************************************************************/
+uint8_t pldm_apcfg_tid(void)
+{
+    uint8_t tid = 0;
+
+    tid = pldm_ap_cfg.tid;
+
+    return tid;
+}
+
+/******************************************************************************/
+/** pldm_apcfg_component_classification();
+* Returns pldm component classification
+* @param None
+* @return comp_classification
+*******************************************************************************/
+uint16_t pldm_apcfg_component_classification(void)
+{
+    uint16_t comp_classification = 0;
+
+    comp_classification = pldm_ap_cfg.comp_classification;
+
+    return comp_classification;
 }

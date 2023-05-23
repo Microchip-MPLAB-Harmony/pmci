@@ -590,12 +590,12 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     if (is_pldm_request_firmware_update)
     {
-        SET_EVENT_PLDM_TASK(pldm);
+        SET_EVENT_PLDM_TASK_RESP(pldm);
     }
 
     if (pldm_pend)
     {
-        SET_EVENT_PLDM_TASK(pldm);
+        SET_EVENT_PLDM_TASK_RESP(pldm);
     }
 </#if>
     return ret_val;

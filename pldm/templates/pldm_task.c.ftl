@@ -195,7 +195,6 @@ static void pldm_main(void* pvParameters)
                 // do nothing
                 break;
             case PLDM_CMD_GET_AP_CFG:
-                //pldm_pkt_get_config_from_apcfg(spdmContext);
                 break;
             case PLDM_CMD_PROCESS_MODE:
                 pldm1_event_task();
@@ -279,5 +278,16 @@ void pldm_response_timeout_stop(void)
 void pldm_init_task(PLDM_CONTEXT *pldmContext)
 {
     pldm_init_flags();
-    pldm_pkt_init_config_params();
+    pldm_pkt_get_config_from_apcfg(pldmContext);
+}
+
+void SET_PLDM_RESP_EVENT_FLAG(void)
+{
+    pldmContext = pldm_ctxt_get();
+    if (NULL == pldmContext)
+    {
+        return;
+    }
+
+    xEventGroupSetBits( pldmContext->xPLDMEventGroupHandle, PLDM_RESP_EVENT_BIT);    
 }

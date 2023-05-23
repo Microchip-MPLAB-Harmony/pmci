@@ -916,6 +916,8 @@ extern void SET_SPDM_EVENT_FLAG(void);
  * ############################################################################
 *******************************************************************************/
 extern void SET_PLDM_EVENT_FLAG(void);
+
+extern void SET_PLDM_RESP_EVENT_FLAG(void);
 </#if>
 
 /* Provide C++ Compatibility */

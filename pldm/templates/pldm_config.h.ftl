@@ -68,6 +68,21 @@ extern "C" {
 #define PLDM_COMP_CLASSIFICATION          0x${PLDM_COMP_CLASSIFICATION}
 #define PLDM_DEVICE_TID                   0x${PLDM_DEVICE_TID}
 
+#define COMP_STRING_TYPE_SIZE UTF16_SIZE
+#define UTF16_SIZE 2
+#define ASCII_SIZE 40
+#define UTF8 1
+#define UTF16LE 2
+#define UTF16BE 2
+#define ONE_KB          1024
+
+// string types
+#define ASCII 0x01
+#define UTF16  0X03
+
+#define NO_OF_COMP_TBL 19
+#define PLDM_DEFAULT_COMP_CLASSIFICATION 0x000A
+#define PLDM_COMP_ACTIVATION_SUPPORTED 0x003A
 
 #ifdef __cplusplus
 }

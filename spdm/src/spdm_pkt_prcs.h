@@ -271,7 +271,7 @@ enum BYTE_OFFSETS
 #define TPM_ALG_ECDSA_ECC_NIST_P384 0x80
 #define MAX_NUM_BYTES_PLD           64u
 
-#define MCTP_BYTE_CNT_OFFSET                           2u
+
 #define NO_OF_MCTP_HDR_BYTES_FRM_BYTE_CNT_OFFSET       6
 #define MAX_SLOTS                                      8
 #define MAX_CERT_PER_CHAIN                             8

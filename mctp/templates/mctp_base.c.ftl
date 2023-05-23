@@ -57,6 +57,10 @@ MCTP_BSS_ATTR static uint8_t transmit_buf[sizeof(MCTP_BUFDATA)]__attribute__ ((a
 
 MCTP_BSS_ATTR static uint32_t start_time;
 
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+MCTP_BSS_ATTR uint8_t is_pldm_request_firmware_update;
+</#if>
+
 /******************************************************************************/
 /** UPDATES packetizing variable to check if input data spans more than one mctp packet
 * @param NULL

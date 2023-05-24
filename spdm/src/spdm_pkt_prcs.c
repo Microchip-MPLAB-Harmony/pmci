@@ -735,8 +735,6 @@ void spdm_init_task(SPDM_CONTEXT *spdmContext)
     memset(ecdsa_signature.signature_r_term, 0, CURVE_384_SZ);
     memset(ecdsa_signature.signature_s_term, 0, CURVE_384_SZ);
     spdmContext->spdm_state_info = SPDM_INIT_CERT_PARAMS;
-    spdmContext->pldm_state_info = PLDM_IDLE;
-    spdmContext->current_pkt_sequence = 0;
 
     spdmContext->get_requests_state = HASH_INIT_MODE;
 

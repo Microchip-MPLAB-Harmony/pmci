@@ -310,13 +310,13 @@ def instantiateComponent(spdmComponent):
 
     #Add spdm_task.h
     spdmIfaceHeaderFile = spdmComponent.createFileSymbol(None, None)
-    spdmIfaceHeaderFile.setSourcePath("spdm/src/spdm_task.h")
+    spdmIfaceHeaderFile.setSourcePath("spdm/templates/spdm_task.h.ftl")
     spdmIfaceHeaderFile.setOutputName("spdm_task.h")
     spdmIfaceHeaderFile.setDestPath("spdm/")
     spdmIfaceHeaderFile.setProjectPath("config/" + configName + "/spdm/")
     spdmIfaceHeaderFile.setOverwrite(True)
     spdmIfaceHeaderFile.setType("HEADER")
-    spdmIfaceHeaderFile.setMarkup(False)
+    spdmIfaceHeaderFile.setMarkup(True)
     
     #Add spdm_task.c
     spdmIfaceSourceFileFtl = spdmComponent.createFileSymbol(None, None)

@@ -71,6 +71,53 @@ enum SPDM_TASK_MODES
     PLDM_CMD_GET_AP_CFG
 };
 
+<#if SPDM_IS_SG3_COMPONENT_CONNECTED == true>
+typedef struct PLDM_CONTEXT
+{
+    uint8_t pldm_state_info; // added this to track PLDM packets (if tracking with spdm_state_info, if spdm packet comes in between
+    // pldm packets, the current state would go into toss)
+
+    uint8_t pldm_tx_state;
+
+    uint8_t pldm_host_eid;
+
+    uint8_t pldm_ec_eid;
+
+    uint8_t pldm_ec_slv_addr;
+
+    uint8_t pldm_host_slv_addr;
+
+    uint8_t pldm_instance_id;
+
+    uint8_t pldm_current_response_cmd;
+
+    uint8_t pldm_current_state;
+
+    uint8_t pldm_previous_state;  // maintaining this for sending previous state in GetStatus command
+
+    uint8_t pldm_next_state;
+
+    uint8_t pldm_verify_state;
+
+    uint8_t pldm_apply_state;
+
+    uint8_t pldm_status_reason_code;
+
+    uint8_t current_pkt_sequence; // PLDM; used to find for packet loss and retry
+
+    uint8_t expected_pkt_sequence;
+
+    uint16_t pldm_current_request_length;
+    
+    /* PLDM timeout response Timer Handle*/
+    TimerHandle_t xPLDMRespTimer;
+
+    /* PLDM timeout response Timer buffer*/
+    StaticTimer_t PLDMResp_TimerBuffer __attribute__((aligned(8)));
+
+}__attribute__((packed)) PLDM_CONTEXT;
+</#if>
+
 /******************************************************************************/
 /**  SPDM Context Information
 *******************************************************************************/
@@ -120,47 +167,13 @@ typedef struct SPDM_CONTEXT
 
     uint16_t cert_bytes_pending_to_sent[8];
 
+<#if SPDM_IS_SG3_COMPONENT_CONNECTED == true>
     uint16_t cert_bytes_requested[8];
-
-    uint8_t pldm_state_info; // added this to track PLDM packets (if tracking with spdm_state_info, if spdm packet comes in between
-    // pldm packets, the current state would go into toss)
-
-    uint8_t pldm_tx_state;
-
-    uint8_t pldm_host_eid;
-
-    uint8_t pldm_ec_eid;
-
-    uint8_t pldm_ec_slv_addr;
-
-    uint8_t pldm_host_slv_addr;
-
-    uint8_t pldm_instance_id;
-
-    uint8_t pldm_current_response_cmd;
-
-    uint8_t pldm_current_state;
-
-    uint8_t pldm_previous_state;  // maintaining this for sending previous state in GetStatus command
-
-    uint8_t pldm_next_state;
-
-    uint8_t pldm_verify_state;
-
-    uint8_t pldm_apply_state;
-
-    uint8_t pldm_status_reason_code;
-
-    uint8_t current_pkt_sequence; // PLDM; used to find for packet loss and retry
-
-    uint8_t expected_pkt_sequence;
-
-    /* PLDM timeout response Timer Handle*/
-    TimerHandle_t xPLDMRespTimer;
-
-    /* PLDM timeout response Timer buffer*/
-    StaticTimer_t PLDMResp_TimerBuffer __attribute__((aligned(8)));
-
+    PLDM_CONTEXT pldm_context __attribute__((aligned(8)));
+<#else>
+    uint16_t cert_bytes_requested[8]  __attribute__((aligned(8)));
+</#if>
+  
 } __attribute__((packed)) SPDM_CONTEXT;
 
 void spdm_init_task(SPDM_CONTEXT *spdmContext);
@@ -169,6 +182,9 @@ void spdm_pkt_get_cert_from_apcfg(SPDM_CONTEXT *spdmContext);
 void spdm_pkt_copy_cert_data_to_buf(SPDM_CONTEXT *spdmContext);
 void spdm_pkt_store_hash_of_chain(SPDM_CONTEXT *spdmContext);
 SPDM_CONTEXT* spdm_ctxt_get(void);
+<#if SPDM_IS_SG3_COMPONENT_CONNECTED == true>
+PLDM_CONTEXT* pldm_ctxt_get(void);
+</#if>
 /******************************************************************************/
 /** This function will periodically request for the status of post authentication
 * completion from sb_core task (trigger period = 500ms)
@@ -176,6 +192,24 @@ SPDM_CONTEXT* spdm_ctxt_get(void);
 * @return void
 *******************************************************************************/
 void spdm_wait_post_auth_completion(SPDM_CONTEXT *spdmContext);
+
+<#if SPDM_IS_SG3_COMPONENT_CONNECTED == true>
+/******************************************************************************/
+/** pldm_response_timeout_start
+* Start the software PLDMResponse timer
+* @param void
+* @return void
+*******************************************************************************/
+void pldm_response_timeout_start(void);
+
+/******************************************************************************/
+/** pldm_response_timeout_stop
+* Stop the software PLDMResponse timer
+* @param void
+* @return void
+*******************************************************************************/
+void pldm_response_timeout_stop(void);
+</#if>
 
 #ifdef __cplusplus
 }

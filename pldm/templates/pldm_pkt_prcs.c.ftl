@@ -1943,7 +1943,11 @@ void pldm_pkt_rcv_packet()
 </#if>
         }
     }
-
+    else
+    {
+        pldm_msg_rx_buf->buf_full = MCTP_EMPTY;
+    }
+    
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     pldm_di_mctp_done_set();
 </#if>    

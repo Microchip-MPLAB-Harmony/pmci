@@ -207,6 +207,15 @@ def instantiateComponent(pldmComponent):
     pldmIfaceSourceFile.setType("SOURCE")
     pldmIfaceSourceFile.setMarkup(True)
 
+    pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
+    pldmIfaceHeaderFile.setSourcePath("pldm/templates/pldm_common.h.ftl")
+    pldmIfaceHeaderFile.setOutputName("pldm_common.h")
+    pldmIfaceHeaderFile.setDestPath("pldm/")
+    pldmIfaceHeaderFile.setProjectPath("config/" + configName + "/pldm/")
+    pldmIfaceHeaderFile.setOverwrite(True)
+    pldmIfaceHeaderFile.setType("HEADER")
+    pldmIfaceHeaderFile.setMarkup(True)
+
     if(isSoteriaComponentConnected.getValue() == False):
         #Add pldm_task.h
         pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
@@ -228,43 +237,14 @@ def instantiateComponent(pldmComponent):
         pldmIfaceSourceFileFtl.setType("SOURCE")
         pldmIfaceSourceFileFtl.setMarkup(True)
 
-    if(isSoteriaComponentConnected.getValue() == False):
-        #Add pldm_common.h
-        pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
-        pldmIfaceHeaderFile.setSourcePath("pldm/src/pldm_common_app.h")
-        pldmIfaceHeaderFile.setOutputName("pldm_common.h")
-        pldmIfaceHeaderFile.setDestPath("pldm/")
-        pldmIfaceHeaderFile.setProjectPath("config/" + configName + "/pldm/")
-        pldmIfaceHeaderFile.setOverwrite(True)
-        pldmIfaceHeaderFile.setType("HEADER")
-        pldmIfaceHeaderFile.setMarkup(False)
-
         #Add pldm_common.c
         pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
-        pldmIfaceHeaderFile.setSourcePath("pldm/src/pldm_common_app.c")
+        pldmIfaceHeaderFile.setSourcePath("pldm/src/pldm_common.c")
         pldmIfaceHeaderFile.setOutputName("pldm_common.c")
         pldmIfaceHeaderFile.setDestPath("pldm/")
         pldmIfaceHeaderFile.setProjectPath("config/" + configName + "/pldm/")
         pldmIfaceHeaderFile.setOverwrite(True)
         pldmIfaceHeaderFile.setType("SOURCE")
-        pldmIfaceHeaderFile.setMarkup(False)        
-    else:
-        #Add pldm_common.h
-        pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
-        pldmIfaceHeaderFile.setSourcePath("pldm/src/pldm_common_sg_app.h")
-        pldmIfaceHeaderFile.setOutputName("pldm_common.h")
-        pldmIfaceHeaderFile.setDestPath("pldm/")
-        pldmIfaceHeaderFile.setProjectPath("config/" + configName + "/pldm/")
-        pldmIfaceHeaderFile.setOverwrite(True)
-        pldmIfaceHeaderFile.setType("HEADER")
         pldmIfaceHeaderFile.setMarkup(False)
 
-        #Add pldm_common.c
-        pldmIfaceHeaderFile = pldmComponent.createFileSymbol(None, None)
-        pldmIfaceHeaderFile.setSourcePath("pldm/src/pldm_common_sg_app.c")
-        pldmIfaceHeaderFile.setOutputName("pldm_common.c")
-        pldmIfaceHeaderFile.setDestPath("pldm/")
-        pldmIfaceHeaderFile.setProjectPath("config/" + configName + "/pldm/")
-        pldmIfaceHeaderFile.setOverwrite(True)
-        pldmIfaceHeaderFile.setType("SOURCE")
-        pldmIfaceHeaderFile.setMarkup(False)        
+         

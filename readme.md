@@ -11,8 +11,8 @@ MPLAB® Harmony 3 is an extension of the MPLAB® ecosystem for creating embedded
 - [Microchip MPLAB® Harmony](https://www.microchip.com/mplab/mplab-harmony)
 - [Microchip MPLAB® Harmony Pages](https://microchip-mplab-harmony.github.io/)
 
-This repository contains the MPLAB® Harmony 3 PMCI middleware stacks. This repository provides MCTP and SPDM stack libraries which allows easy addition of platform managment protocols in an application project. 
-This repo also contains links to example applications which demonstrate the use of SPDM and MCTP stacks.
+This repository contains the MPLAB® Harmony 3 PMCI middleware stacks. This repository provides MCTP, SPDM and PLDM stack libraries which allows easy addition of platform managment protocols in an application project. 
+This repo also contains links to example applications which demonstrate the use of SPDM, MCTP and PLDM stacks.
 
 - [Release Notes](./release_notes.md)
 - [MPLAB® Harmony License](mplab_harmony_license.md)
@@ -27,6 +27,7 @@ This repo also contains links to example applications which demonstrate the use 
 | config     | PMCI module configuration file                            |
 | mctp       | MCTP stack                                                |
 | spdm       | SPDM stack                                                |
+| pldm       | PLDM stack                                                |
 
 
 ____

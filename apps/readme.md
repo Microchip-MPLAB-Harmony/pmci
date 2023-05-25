@@ -2,4 +2,5 @@
 
 | Repository | Product family |
 | ---------- | -------------- |
-| [pmci_apps_cec173x](https://github.com/Microchip-MPLAB-Harmony/pmci_apps_cec173x) | MCTP and SPDM application examples for CEC173x family |
+| [pmci_apps_cec173x](https://github.com/Microchip-MPLAB-Harmony/pmci_apps_cec173x) | MCTP, SPDM 
+and PLDM application examples for CEC173x family |

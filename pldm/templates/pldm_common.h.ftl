@@ -24,17 +24,18 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "definitions.h"
-#include "pldm_config.h"
+#include "pldm_task.h"
 #include "pldm_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define PLDM_BSS0_ATTR                                     __attribute__((section("spdm_bss0")))
-#define PLDM_BSS1_ATTR                                     __attribute__((section("spdm_bss1")))
-#define PLDM_BSS2_ATTR                                     __attribute__((section("spdm_bss2")))
+#define PLDM_BSS0_ATTR                                     __attribute__((section("pldm_bss0")))
+#define PLDM_BSS1_ATTR                                     __attribute__((section("pldm_bss1")))
+#define PLDM_BSS2_ATTR                                     __attribute__((section("pldm_bss2")))
 
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
 #define PLDM_COMP_IDENTIFIER_TAG0 0x1020
 #define PLDM_COMP_IDENTIFIER_TAG1 0x1021
 #define PLDM_COMP_IDENTIFIER_KHB_TAG0 0x1024
@@ -83,6 +84,13 @@ extern "C" {
                                        (x != PLDM_COMP_IDENTIFIER_HT0_AP1C1) && \
                                        (x != PLDM_COMP_IDENTIFIER_HT1_AP1C1) && \
                                        (x != PLDM_COMP_IDENTIFIER_HT2_AP1C1))
+<#else>
+void timer_delay(uint32_t counts_to_delay);
+
+void timer_delay_ms(uint32_t num_ms);
+
+void timer_delay_us(uint32_t num_us);
+</#if>
 
 #ifdef __cplusplus
 }

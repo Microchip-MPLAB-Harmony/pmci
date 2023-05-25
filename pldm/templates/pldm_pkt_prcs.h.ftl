@@ -18,25 +18,6 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-/** @file pldm_pkt_prcs.h
- *  MEC1324 Peripheral common header file
- */
-/** @defgroup MEC1324 Peripherals
- */
-
-/*******************************************************************************
- *  MCHP version control information (Perforce):
- *
- *  FILE:     $ $
- *  REVISION: $Revision: #19 $
- *  DATETIME: $DateTime: 2023/02/02 13:26:58 $
- *  AUTHOR:   $Author: i53517 $
- *
- *  Revision history (latest first):
- *      # 1: Initial revision for the MCTP porting
- ***********************************************************************************
-*/
-
 #ifndef PLDM_PKT_PRCS_H
 #define PLDM_PKT_PRCS_H
 

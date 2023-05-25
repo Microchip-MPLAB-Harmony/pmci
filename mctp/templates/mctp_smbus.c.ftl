@@ -269,7 +269,6 @@ uint8_t mctp_copy_rx_for_pldm_for_ec(I2C_BUFFER_INFO *buffer_info)
             /* mark ec rx buffer pending for further processing */
             pldm_msg_rx_buf->buf_full = (uint8_t)MCTP_RX_PENDING;
             SET_EVENT_PLDM_TASK(pldm);
-            pldm_msg_rx_buf->buf_full = (uint8_t)MCTP_EMPTY;
         }
     }
 

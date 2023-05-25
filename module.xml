@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<Module name="pmci" id="40a90bec-7143-4530-a5f6-c41491da6b21" version="3.0.0">
+<Module name="pmci" id="40a90bec-7143-4530-a5f6-c41491da6b21" version="3.1.0">
     <ConfigRoot path="config/module.py"/>
 </Module>

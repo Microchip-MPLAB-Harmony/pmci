@@ -34,6 +34,7 @@
  * MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE
  * OF THESE TERMS.
  *****************************************************************************/
+
 #include "definitions.h"
 #include "pldm_task.h"
 #include "pldm_pkt_prcs.h"

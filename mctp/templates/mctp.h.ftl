@@ -880,7 +880,7 @@ extern void SET_SPDM_EVENT_FLAG(void);
  * Usage notes:
  * -----------------------
  * When the MCTP module identifies the received packet as being an PLDM packet,
- * it stores the packet into mctp_pktbuf[MCTP_BUF3], and calls this function.
+ * it stores the packet into mctp_pktbuf[MCTP_BUF4], and calls this function.
  * This function should be defined by the user's PLDM module and should ideally
  * include an IPC mechanism to trigger the user's PLDM module.
  * -----------------------
@@ -917,6 +917,55 @@ extern void SET_SPDM_EVENT_FLAG(void);
 *******************************************************************************/
 extern void SET_PLDM_EVENT_FLAG(void);
 
+/******************************************************************************/
+/** SET_PLDM_RESP_EVENT_FLAG()
+ * Set event flag to trigger PLDM packet processing dirung
+ * firmware update request which is a multiple packet request
+ * @param  none
+ * @return none
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * After the PLDM modure sends the send the firmware data request  ,
+ * MCTP module sends the request stored in [MCTP_BUF5] and call this
+ * function to triggers the PLDM module to create the next Packet request
+ * for firmware data. This function should be defined by the user's
+ * PLDM module and should ideally include an IPC mechanism to
+ * trigger the user's PLDM module.
+ * -----------------------
+ * Example:
+ * -----------------------
+ * Assume that user PLDM task is using eventgroups for notifications from 
+ * other tasks and uses BIT0 to wait and trigger PLDM packet processing event
+ * 
+ * EventGroupHandle_t pldmEventGroupHandle;
+ * StaticEventGroup_t pldmCreatedEventGroup;
+ * 
+ * int pldm_task_create(void *pvParams)
+ * {
+ *      pldmEventGroupHandle = xEventGroupCreateStatic(pldmCreatedEventGroup);
+ *      // User PLDM task creation
+ *      // assume task routine = pldm_task
+ * }
+ * 
+ * static void pldm_task(void* pvParameters)
+ * {
+ *     EventBits_t uxBits;
+ *     uxBits = xEventGroupWaitBits(pldmEventGroupHandle, PLDM_RESP_EVENT_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+ *     if (PLDM_RESP_EVENT_BIT == (uxBits & PLDM_RESP_EVENT_BIT))
+ *     {
+ *          // User PLDM packet processing routine(s)
+ *     }
+ * }
+ *
+ * void SET_PLDM_RESP_EVENT_FLAG(void)
+ * {
+ *      xEventGroupSetBits(pldmEventGroupHandle, PLDM_RESP_EVENT_BIT);
+ * }
+ * ############################################################################
+*******************************************************************************/
 extern void SET_PLDM_RESP_EVENT_FLAG(void);
 </#if>
 

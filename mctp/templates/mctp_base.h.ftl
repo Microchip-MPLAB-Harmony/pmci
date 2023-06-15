@@ -421,7 +421,7 @@ typedef struct MCTP_CONTEXT
 {
     uint8_t i2c_bus_freq;
 
-    uint8_t i2c_slave_addr;
+    uint16_t i2c_slave_addr;
 
     uint8_t eid;
 
@@ -505,7 +505,7 @@ void mctp_update_i2c_params(MCTP_CONTEXT* ret_mctp_ctxt);
 * @param void
 * @return void
 *****************************************************************/
-void mctp_i2c_update(uint8_t slv_addr, uint8_t freq);
+void mctp_i2c_update(uint16_t slv_addr, uint8_t freq);
 
 /****************************************************************/
 /** sb_mctp_enable

@@ -671,7 +671,7 @@ void mctp_txpktready_init(MCTP_PKT_BUF *tx_buf)
 * @param smb_address - Bus address
 * @return mctp_port - I2C controller port 
 *******************************************************************************/
-void mctp_smbaddress_update(uint8_t smb_address, uint8_t mctp_port)
+void mctp_smbaddress_update(uint16_t smb_address, uint8_t mctp_port)
 {
     uint8_t smbus_config;
 

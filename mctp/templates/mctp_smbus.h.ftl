@@ -146,7 +146,7 @@ uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info);
 * @param smb_address - Bus address
 * @return mctp_port - I2C controller port 
 *******************************************************************************/
-extern void mctp_smbaddress_update(uint8_t smb_address, uint8_t mctp_port);
+extern void mctp_smbaddress_update(uint16_t smb_address, uint8_t mctp_port);
 
 /******************************************************************************/
 /** This is called when packet received over smbus and the packet is 

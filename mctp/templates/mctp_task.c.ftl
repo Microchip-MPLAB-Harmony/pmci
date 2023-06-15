@@ -200,7 +200,7 @@ void SET_MCTP_EVENT_FLAG(void)
 * @param void
 * @return void
 *****************************************************************/
-void mctp_i2c_update(uint8_t slv_addr, uint8_t freq)
+void mctp_i2c_update(uint16_t slv_addr, uint8_t freq)
 {
     mctpContext = mctp_ctxt_get();
     if(NULL == mctpContext)

@@ -36,7 +36,7 @@ PLDM_BSS2_ATTR uint8_t pldm_request_firmware_update;
 PLDM_BSS2_ATTR MCTP_PKT_BUF *mctp_buf_tx1 = MCTP_NULL;
 PLDM_BSS2_ATTR uint32_t offset;
 PLDM_BSS2_ATTR uint32_t len;
-PLDM_BSS2_ATTR UINT8 get_mctp_pkt[PLDM_MAX_PAYLOAD_BUFF_SIZE]__attribute__((aligned(8)));
+PLDM_BSS2_ATTR uint8_t get_mctp_pkt[PLDM_MAX_PAYLOAD_BUFF_SIZE]__attribute__((aligned(8)));
 PLDM_BSS1_ATTR uint32_t pldm_packet_size;
 PLDM_BSS2_ATTR bool received_1024b_for_flash_write;
 PLDM_BSS1_ATTR uint32_t offset_for_flash;

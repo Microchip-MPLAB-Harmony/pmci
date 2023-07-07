@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include "pldm.h"
+#include <stdio.h>
 #include "pldm_common.h"
 <#if PLDM_IS_SG3_COMPONENT_CONNECTED == false>
 #include "pldm_task.h"
@@ -100,7 +101,7 @@ PLDM_BSS1_ATTR PLDM_AP_CFG pldm_ap_cfg;
 *******************************************************************************/
 void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pldmContext)
 {
-    bool override = 0;
+    bool override = false;
     uint16_t size=0x0u;
 
     uint16_t des_type1 = PLDM_QUERY_DEVICE_DES1_TYPE;
@@ -109,6 +110,10 @@ void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CO
 
     uint16_t des_type2 = PLDM_QUERY_DEVICE_DES2_TYPE;
     uint16_t des_length2 = PLDM_QUERY_DEVICE_DES2_LEN;
+    uint8_t des_type2_title_type = ASCII;
+    uint8_t des_type2_title_len = PLDM_QUERY_DEVICE_DES2_TITLE_LEN;
+    uint8_t des_type2_title[9] = "Device ID";
+
     uint64_t dec_value2_serial_number = 0x00; //coverity fix
     uint32_t dec_value2_part_number = 0x00; //coverity fix
 
@@ -132,16 +137,19 @@ void pldm_pkt_handle_query_device_identifiers(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CO
         memcpy(&device_desp_resp.descriptor[4], &dec_value1, 2); // mchp pci vendor
 
         memcpy(&device_desp_resp.descriptor[6], &des_type2, 2); // PCI vendor
-        memcpy(&device_desp_resp.descriptor[8], &des_length2, 2); // 2 bytes
-
-        if (0 == efuse_read_data(DEVICE_SERIAL_NUMBER_OFFSET, (uint8_t*)&dec_value2_serial_number, 8))
-        {
-            memcpy(&device_desp_resp.descriptor[14], &dec_value2_serial_number, 8);
-        }
+        memcpy(&device_desp_resp.descriptor[8], &des_length2, 2);
+        memcpy(&device_desp_resp.descriptor[10], &des_type2_title_type, 1); // 1 byte
+        memcpy(&device_desp_resp.descriptor[11], &des_type2_title_len, 1);
+        memcpy(&device_desp_resp.descriptor[12], des_type2_title, 9);
 
         if (0 == efuse_read_data(DEVICE_PART_NUMBER_OFFSET, (uint8_t*)&dec_value2_part_number, 4))
         {
-            memcpy(&device_desp_resp.descriptor[10], &dec_value2_part_number, 4); // mchp pci vendor // otp 980 serial number
+            memcpy(&device_desp_resp.descriptor[21], &dec_value2_serial_number, 4);
+        }
+
+        if (0 == efuse_read_data(DEVICE_SERIAL_NUMBER_OFFSET, (uint8_t*)&dec_value2_serial_number, 8))
+        {
+            memcpy(&device_desp_resp.descriptor[25], &dec_value2_serial_number, 8); // mchp pci vendor // otp 980 serial number
         }
 
         size = 6 + PLDM_QUERY_DEVICE_DES_TOTAL_LEN;
@@ -2237,4 +2245,18 @@ uint16_t pldm_apcfg_component_classification(void)
     comp_classification = pldm_ap_cfg.comp_classification;
 
     return comp_classification;
+}
+
+/******************************************************************************/
+/** convert16BitHexToAscii();
+* convert Hex value of size 2bytes to ASCII of size 4bytes
+* @param uint16_t Hex value to be converted
+* @return uint8_t * pointer to ASCII data
+*******************************************************************************/
+void convert16BitHexToAscii(uint16_t hex_value, uint32_t * ascii_conv)
+{
+    uint8_t i=0;
+    uint8_t string[5];
+    snprintf(string, 5, "%04X", hex_value);
+    memcpy(ascii_conv, string, 4);
 }

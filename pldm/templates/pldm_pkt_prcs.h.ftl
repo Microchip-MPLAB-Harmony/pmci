@@ -164,7 +164,7 @@ enum PLDM_STATES
 
 #define MAX_NUM_BYTES_PKT           64u
 
-#define PLDM_DEFAULT_CAP_DURING_UPDATE 0x00000024
+#define PLDM_DEFAULT_CAP_DURING_UPDATE 0x00000014
 #define PLDM_NUMBER_OF_COMPONENTS_SUPPORTED 4  // EC_FW Tag 0 & 1; AP_CFG 0 & 1
 
 #define PLDM_COMP_UPDATE_FAILURE_RECOVERY_CAP (1 << 0)
@@ -181,10 +181,12 @@ enum PLDM_STATES
 #define PLDM_QUERY_DEVICE_DES1_VAL 0x1055
 
 #define PLDM_QUERY_DEVICE_DES2_TYPE 0xFFFF
-#define PLDM_QUERY_DEVICE_DES2_LEN 0x000C
+#define PLDM_QUERY_DEVICE_DES2_TITLE_LEN 0x09
+#define PLDM_QUERY_DEVICE_DES2_LEN 0x0017
 
-#define PLDM_QUERY_DEVICE_DES_TOTAL_LEN 0x00000016
+#define PLDM_QUERY_DEVICE_DES_TOTAL_LEN 0x00000021 // size excluding completion code, desc len, count
 #define PLDM_QUERY_DEVICE_DES_COUNT 0x02
+#define HEX_TO_ASCII_SIZE 4
 
 #define PLDM_REQUEST_UPDATE_DATA_LEN sizeof(REQUEST_REQUEST_UPDATE)
 #define PLDM_REQUEST_ACTIVATE_FIRMWARE_LEN sizeof(REQUEST_ACTIVATE_FIRMWARE)
@@ -787,5 +789,13 @@ bool get_pldm_override_device_desc();
 *******************************************************************************/
 void pldm_get_AP_custom_configs_from_apcfg();
 </#if>
+
+/******************************************************************************/
+/** convert16BitHexToAscii();
+* convert Hex value to ASCII
+* @param uint16_t Hex value to be converted
+* @return uint8_t * pointer to ASCII data
+*******************************************************************************/
+void convert16BitHexToAscii(uint16_t hex_value, uint32_t * ascii_conv);
 
 #endif

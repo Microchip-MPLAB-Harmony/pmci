@@ -34,7 +34,7 @@ extern "C" {
 #define SPDM_PRIORITY ((tskIDLE_PRIORITY + configSPDM_PRIORITY) % configMAX_PRIORITIES)
 
 /* Stack size must be a power of 2 if the task is restricted */
-#define SPDM_STACK_SIZE 1024U       // 2 * configMINIMAL_STACK_SIZE (120)
+#define SPDM_STACK_SIZE 2048       // 2 * configMINIMAL_STACK_SIZE (120)
 #define SPDM_STACK_WORD_SIZE ((SPDM_STACK_SIZE) / 2U)
 
 #define SPDM_STACK_ALIGN __attribute__ ((aligned(SPDM_STACK_SIZE)))

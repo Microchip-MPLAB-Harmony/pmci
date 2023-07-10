@@ -44,7 +44,7 @@
 static void spdm_main(void *pvParameters);
 static StaticTask_t spdm_tcb;
 
-SPDM_BSS0_ATTR static uint32_t spdm_stack[SPDM_STACK_WORD_SIZE] SPDM_STACK_ALIGN;
+static uint32_t spdm_stack[SPDM_STACK_WORD_SIZE] SPDM_STACK_ATTR SPDM_STACK_ALIGN;
 SPDM_BSS2_ATTR static TaskHandle_t spdm_handle;
 SPDM_BSS2_ATTR SPDM_CONTEXT *spdmContext;
 

@@ -35,6 +35,7 @@ extern "C" {
 #define SPDM_BSS0_ATTR                                     __attribute__((section("spdm_bss0")))
 #define SPDM_BSS1_ATTR                                     __attribute__((section("spdm_bss1")))
 #define SPDM_BSS2_ATTR                                     __attribute__((section("spdm_bss2")))
+#define SPDM_STACK_ATTR                                    __attribute__((section("spdm_task_stack")))
 
 #define PVT_KEY_CODE_LENGTH               (96U)
 #define SPDM_SHA384_LEN                   (48U)

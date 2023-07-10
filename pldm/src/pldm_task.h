@@ -34,7 +34,7 @@ extern "C" {
 #define PLDM_PRIORITY ((tskIDLE_PRIORITY + configPLDM_PRIORITY) % configMAX_PRIORITIES)
 
 /* Stack size must be a power of 2 if the task is restricted */
-#define PLDM_STACK_SIZE 1024U       // 2 * configMINIMAL_STACK_SIZE (120)
+#define PLDM_STACK_SIZE 2048U       // 2 * configMINIMAL_STACK_SIZE (120)
 #define PLDM_STACK_WORD_SIZE ((PLDM_STACK_SIZE) / 4U)
 
 #define PLDM_STACK_ALIGN __attribute__ ((aligned(PLDM_STACK_SIZE)))

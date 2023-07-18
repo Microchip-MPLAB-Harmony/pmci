@@ -47,6 +47,7 @@
 
 MCTP_BSS_ATTR static uint8_t get_packet_len = 0x00;
 MCTP_BSS_ATTR static uint16_t smb_rx_index = 0x00;
+extern MCTP_BSS_ATTR UINT8 msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 
 /******************************************************************************/
 /** Initializes mctp-smbus interface. It calls smb_slave _register for
@@ -143,15 +144,11 @@ uint8_t mctp_receive_smbus(I2C_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFl
         /* call mctp packet routing function */
         if(0U != mctp_packet_routing(buffer_info))
         {
-            mctp_base_packetizing_val_set(false);
             smb_rx_index = 0;
-            mctp_clean_up_buffer_states();
             return (uint8_t)I2C_STATUS_BUFFER_ERROR;
         }
     }
     else
-    {
-        mctp_base_packetizing_val_set(false);
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
         spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
         memset(spdm_msg_rx_buf, 0, MCTP_PKT_BUF_DATALEN);
@@ -198,13 +195,11 @@ uint8_t packetize_data(uint8_t rx_packet_len, I2C_BUFFER_INFO *buffer_info, MCTP
     if (smb_rx_index > INPUT_BUF_MAX_BYTES)//if no of bytes received cross max input buffer size of 1023
     {
         smb_rx_index = 0;
-        mctp_base_packetizing_val_set(false);
         ret_val = MCTP_FAILURE;
     }
     else if((buffer_info->buffer_ptr[MCTP_PKT_TO_MSGTAG_POS]& MCTP_EOM_REF_MSK) == MCTP_EOM_REF)
     {
         smb_rx_index = 0;
-        mctp_base_packetizing_val_set(false);
     }
     else
     {
@@ -223,17 +218,13 @@ uint8_t packetize_data(uint8_t rx_packet_len, I2C_BUFFER_INFO *buffer_info, MCTP
 uint8_t mctp_copy_rx_for_pldm_for_ec(I2C_BUFFER_INFO *buffer_info)
 {
     uint8_t i;
-    uint8_t msg_type;
     uint8_t ret_val = MCTP_SUCCESS;
     MCTP_PKT_BUF *pldm_msg_rx_buf = NULL;
     bool is_packetizing = false;
-    is_packetizing = mctp_base_packetizing_val_get();
-
-    msg_type = mctp_self.message_type;
+    is_packetizing = mctp_base_packetizing_val_get(MCTP_IC_MSGTYPE_PLDM);
 
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
 
-    if (msg_type == MCTP_IC_MSGTYPE_PLDM)
     {
         if((uint8_t)MCTP_EMPTY == pldm_msg_rx_buf->buf_full)
         {
@@ -242,7 +233,7 @@ uint8_t mctp_copy_rx_for_pldm_for_ec(I2C_BUFFER_INFO *buffer_info)
                 ret_val = packetize_data(get_packet_len, buffer_info, pldm_msg_rx_buf);
                 if(ret_val == MCTP_SUCCESS)
                 {
-                    is_packetizing = mctp_base_packetizing_val_get();
+                    is_packetizing = mctp_base_packetizing_val_get(MCTP_IC_MSGTYPE_PLDM);
                     if(is_packetizing == false)
                     {
                         pldm_msg_rx_buf->rx_smbus_timestamp = buffer_info->TimeStamp;
@@ -287,7 +278,6 @@ uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info)
     uint8_t i;
     uint8_t ret_val = MCTP_SUCCESS;
     uint8_t pkt_type;
-    uint8_t msg_type;
     MCTP_CONTEXT *mctpContext = NULL;
     mctpContext = mctp_ctxt_get();
     if(NULL == mctpContext)
@@ -296,11 +286,9 @@ uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info)
     }
     MCTP_PKT_BUF *spdm_msg_rx_buf = NULL;
     uint8_t is_packetizing = 0x00;
-    is_packetizing = mctp_base_packetizing_val_get();
-    msg_type = mctp_self.message_type;
+    is_packetizing = mctp_base_packetizing_val_get(MCTP_IC_MSGTYPE_SPDM);
     spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
 
-    if (msg_type == MCTP_IC_MSGTYPE_SPDM)
     {
         if((uint8_t)MCTP_EMPTY == spdm_msg_rx_buf->buf_full)
         {
@@ -309,7 +297,7 @@ uint8_t mctp_copy_rx_for_spdm_for_ec(I2C_BUFFER_INFO *buffer_info)
                 ret_val = packetize_data(get_packet_len, buffer_info, spdm_msg_rx_buf);
                 if(ret_val == MCTP_SUCCESS)
                 {
-                    is_packetizing = mctp_base_packetizing_val_get();
+                    is_packetizing = mctp_base_packetizing_val_get(MCTP_IC_MSGTYPE_SPDM););
                     if(is_packetizing == false)
                     {
                         spdm_msg_rx_buf->rx_smbus_timestamp = buffer_info->TimeStamp;
@@ -352,11 +340,8 @@ uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info)
 {
     uint8_t i;
     uint8_t pkt_type;
-    uint8_t msg_type;
     uint8_t ret_val = MCTP_SUCCESS;
     MCTP_PKT_BUF *mctp_msg_rx_buf = NULL;
-
-    msg_type = mctp_self.message_type;
 
     /* get mctp packet type, request or response or other */
     pkt_type = mctp_get_packet_type(buffer_info->buffer_ptr);
@@ -366,8 +351,6 @@ uint8_t mctp_copy_rxpkt_for_ec(I2C_BUFFER_INFO *buffer_info)
     /* if rx pkt is request pkt */
     if(MCTP_REQ_PKT == pkt_type)
     {
-
-        if (msg_type == MCTP_IC_MSGTYPE_CONTROL)
             /* if mctp ec rx request buffer available */
         {
             if((uint8_t)MCTP_EMPTY == mctp_msg_rx_buf->buf_full)
@@ -448,6 +431,13 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 
     /* get current TX buffer pointer */
     tx_buf = (MCTP_PKT_BUF *)((void *) buffer_ptr);
+
+    mctp_tx_ctxt = mctp_msg_tx_ctxt_lookup(tx_buf->pkt.field.hdr.src_eid,tx_buf->pkt.field.hdr.dst_eid,
+                                tx_buf->pkt.field.hdr.msg_tag);
+    if (mctp_tx_ctxt != NULL) {
+        msg_type_tx = mctp_tx_ctxt->message_type;
+    }
+    
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     if(store_msg_type_tx == MCTP_IC_MSGTYPE_SPDM)
     {
@@ -633,7 +623,6 @@ void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf)
     pkt_buf->request_tx_retry_count = 0;
     pkt_buf->request_per_tx_timeout_count = 0;
     pkt_buf->rx_smbus_timestamp = 0;
-    mctp_clean_up_buffer_states();
 } /* End mctp_smbdone_drop */
 
 /******************************************************************************/

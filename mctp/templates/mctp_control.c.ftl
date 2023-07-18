@@ -51,7 +51,7 @@ void mctp_handle_get_mctp_version_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_res
 void mctp_handle_get_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf);
 void mctp_handle_get_vndr_msg_type_support_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf);
 void mctp_handle_unsupported_cmd(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_buf);
-
+extern MCTP_BSS_ATTR uint8_t active_pkt_msg_type_rx;
 MCTP_BSS_ATTR MCTP_ROUTING_TABLE mctp_rt;
 
 /******************************************************************************/
@@ -62,13 +62,11 @@ MCTP_BSS_ATTR MCTP_ROUTING_TABLE mctp_rt;
 *******************************************************************************/
 uint8_t mctp_packet_routing(I2C_BUFFER_INFO *buffer_info)
 {
-    uint8_t message_type;
     uint8_t ret_value;
 
     ret_value = MCTP_SUCCESS ;
-    message_type = mctp_self.message_type;
 
-    switch(message_type)
+    switch(active_pkt_msg_type_rx)
     {
     case MCTP_IC_MSGTYPE_CONTROL:
         ret_value = mctp_copy_rxpkt_for_ec(buffer_info);
@@ -558,10 +556,14 @@ void mctp_fill_control_msg_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_bu
 *******************************************************************************/
 void mctp_clean_up_buffer_states(void)
 {
-    mctp_self.buf_size = 0;
-    mctp_self.message_tag = 0;
-    mctp_self.message_type = MCTP_IC_MSGTYPE_UNKNWN;
-    mctp_self.packet_seq = 0;
+    uint8_t i = 0;
+
+    for (i = 0 ; i < 2; i ++) {
+        mctp_rx[i].buf_size = 0;
+        mctp_rx[i].message_tag = 0;
+        mctp_rx[i].message_type = MCTP_IC_MSGTYPE_UNKNWN;
+        mctp_rx[i].packet_seq = 0;
+    }
 
 } /* End mctp_clean_up_buffer_states() */
 

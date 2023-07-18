@@ -2143,6 +2143,7 @@ void spdm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *spdm_buf_tx, MCTP_PKT_
     //        mctp_buf->pkt.field.hdr.src_eid   = mctp_rt.ep.ec.field.current_eid;
     mctp_buf->pkt.field.hdr.src_eid = spdmContext->ec_eid;
     /* message tag */
+    mctp_buf->pkt.field.hdr.msg_tag = spdmContext->message_tag;
     /* for response packet */
     mctp_buf->pkt.field.hdr.tag_owner = 0;
     /* Packet sequence number */
@@ -3606,6 +3607,7 @@ void spdm_pkt_rcv_packet()
         spdmContext->ec_eid = spdm_msg_rx_buf->pkt.field.hdr.dst_eid;
         spdmContext->ec_slv_addr = spdm_msg_rx_buf->pkt.field.hdr.dst_addr;
         spdmContext->host_slv_addr = spdm_msg_rx_buf->pkt.field.hdr.src_addr;
+        spdmContext->message_tag = spdm_msg_rx_buf->pkt.field.hdr.msg_tag;
 
         if (spdm_tx_state == SPDM_TX_IDLE || spdm_tx_state == SPDM_PACKETIZING)
         {

@@ -87,6 +87,8 @@ typedef struct PLDM_CONTEXT
 
     uint8_t pldm_host_slv_addr;
 
+    uint8_t pldm_message_tag;
+
     uint8_t pldm_instance_id;
 
     uint8_t pldm_current_response_cmd;
@@ -136,6 +138,8 @@ typedef struct SPDM_CONTEXT
     uint8_t ec_slv_addr;
 
     uint8_t host_slv_addr;
+
+    uint8_t message_tag;
 
     /* Event group handle */
     EventGroupHandle_t xSPDMEventGroupHandle;

@@ -1590,6 +1590,7 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
     mctp_buf->pkt.field.hdr.src_eid = pldmContext->pldm_ec_eid;
 </#if>
     /* message tag */
+    mctp_buf->pkt.field.hdr.msg_tag = pldmContext->pldm_message_tag;
     /* for req/response packet */
     if (req_bit)
     {
@@ -1791,6 +1792,7 @@ void pldm_pkt_rcv_packet()
         pldmContext->pldm_ec_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.dst_addr;
         pldmContext->pldm_host_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.src_addr;
         pldmContext->pldm_instance_id = pldm_msg_rx_buf->pkt.field.hdr.inst_id;
+        pldmContext->pldm_message_tag = pldm_msg_rx_buf->pkt.field.hdr.msg_tag;
 
         if(pldmContext->pldm_tx_state == PLDM_TX_IDLE || pldmContext->pldm_tx_state == PLDM_PACKETIZING)
         {

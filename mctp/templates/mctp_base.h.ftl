@@ -164,6 +164,8 @@ extern "C" {
 #define PLDM_SEND_VERIFY_COMPLETE_CMD       23U
 #define PLDM_TYPE5_AND_HEADER_VERSION       0x05U
 
+#define MCTP_MSG_CONTEXT 2 //currently supporting SPDM and PLDM application
+
 /* Status codes for application callback from MCTP */
 enum STATUS_TO_APP
 {
@@ -393,11 +395,24 @@ typedef struct MCTP_CFG_PARA
 
 } MCTP_CFG_PARA;
 
+typedef struct MCTP_TX_CXT
+{
+    uint8_t in_active_state;
+    uint8_t message_type;
+    /* To hold the message tag value for the incomign start of Packet for Application*/
+    uint8_t message_tag;
+    /* Holds source endpoint */
+    uint8_t source_endpt;
+    /* Holds destination endpoint */
+    uint8_t destination_endpt;
+} MCTP_TX_CXT;
+
 /******************************************************************************/
 /** MCTP self idnetification flags for internal processing
 *******************************************************************************/
 typedef struct MCTP_IDENTITY
 {
+    uint8_t in_active_state;
     /*Holds the current packet Sequence number SMBus*/
     uint8_t packet_seq;
     /*Holds the current message type received Via SMBus*/
@@ -412,6 +427,14 @@ typedef struct MCTP_IDENTITY
     uint8_t app_register;
     /* To hold the error if any from SMBus transfer*/
     uint8_t smbus_error;
+    /* Holds the tag owner bit value*/
+    uint8_t tag_owner;
+    /* Holds source endpoint */
+    uint8_t source_endpt;
+    /* Holds destination endpoint */
+    uint8_t destination_endpt;
+    /* if packetizing is in progress */
+    uint8_t packetizing;
 } MCTP_IDENTITY;
 
 /******************************************************************************/
@@ -461,7 +484,7 @@ void mctp_event_task(void);
 * @param NULL
 * @return true/false
 *******************************************************************************/
-extern bool mctp_base_packetizing_val_get(void);
+extern bool mctp_base_packetizing_val_get(uint8_t msg_type);
 
 /******************************************************************************/
 /** UPDATES packetizing variable to check if input data spans more than one
@@ -469,7 +492,7 @@ extern bool mctp_base_packetizing_val_get(void);
 * @param val = true/false
 * @return None
 *******************************************************************************/
-extern void mctp_base_packetizing_val_set(bool val);
+extern void mctp_base_packetizing_val_set(uint8_t msg_type, bool value);
 
 /******************************************************************************/
 /** Validates packet received over smbus.
@@ -538,18 +561,59 @@ extern void mctp_rtupdate_eid_state(uint8_t i);
 
 extern MCTP_BSS_ATTR struct MCTP_CFG_PARA mctp_cfg;
 
-extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_self;
+extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_rx[2];
 
 extern MCTP_BSS_ATTR uint8_t mctp_tx_state;
 
 extern MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
 
-extern MCTP_BSS_ATTR uint8_t store_msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
+extern MCTP_BSS_ATTR uint8_t msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
 extern MCTP_BSS_ATTR uint8_t is_pldm_request_firmware_update;
 </#if>
 
 MCTP_CONTEXT* mctp_ctxt_get(void);
+
+/******************************************************************************/
+/** MCTP message context create
+* @param *pktbuf Pointer to smbus layer packet buffer
+* @return pointer to created mctp msg context
+*******************************************************************************/
+MCTP_IDENTITY * mctp_msg_ctxt_create(uint8_t *pkt_buf);
+
+/******************************************************************************/
+/** MCTP message lookup for message reassembly
+* @param *pktbuf Pointer to smbus layer packet buffer
+* @return pointer to mctp contest if lookup is success, else NULL pointer
+*******************************************************************************/
+MCTP_IDENTITY * mctp_msg_lookup(uint8_t *pkt_buf);
+
+/******************************************************************************/
+/** MCTP message context create
+* @param msg_type
+* @param src_eid
+* @param dst_eid
+* @param msg_tag
+* @return pointer to created context
+*******************************************************************************/
+MCTP_TX_CXT * mctp_msg_tx_ctxt_create (uint8_t msg_type, uint8_t src_eid, uint8_t dst_eid, uint8_t msg_tag);
+
+/******************************************************************************/
+/** mctp_msg_tx_ctxt_lookup
+* @param src_eid
+* @param dst_eid
+* @param msg_tag
+* @return pointer to mctp contest if lookup is success, else NULL pointer
+*******************************************************************************/
+MCTP_TX_CXT * mctp_msg_tx_ctxt_lookup (uint8_t src_eid, uint8_t dst_eid, uint8_t msg_tag);
+
+/******************************************************************************/
+/** mctp_msg_ctxt_drop
+* @param *mctp_ctxt Pointer to mtp ctxt to be dropped
+* @return none
+*******************************************************************************/
+void mctp_msg_ctxt_drop(MCTP_IDENTITY *mctp_ctxt);
+
 #ifdef __cplusplus
 }
 #endif

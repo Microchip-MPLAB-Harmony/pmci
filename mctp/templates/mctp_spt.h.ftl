@@ -6,7 +6,7 @@
     Microchip Technology Inc.
 
   File Name:
-   mctp_smbus.h.ftl
+   mctp_spt.h.ftl
 
   Summary:
     MCTP Freemarker Template File
@@ -35,78 +35,64 @@
 * OF THESE TERMS.
 *****************************************************************************/
 
-#ifndef MCTP_SMBUS_H
-#define MCTP_SMBUS_H
+#ifndef MCTP_SPT_H
+#define MCTP_SPT_H
 
 #include "mctp_common.h"
 #include "mctp_base.h"
 #include "mctp.h"
 
+#define MCTP_SPT_AQ_TIMEOUT  100000U
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Supported SMBus Speed*/
-#define SMBUS_AT_400_KHZ       1U
-#define SMBUS_AT_100_KHZ       0U
-/* Config Speed for Smbus either 400 or 100 Khz*/
-#define SMBUS_SPEED_CONFIG     SMBUS_AT_400_KHZ
-
-#define MCTP_SMBUS_AQ_TIMEOUT  100000U
-
-/*MCTP Retry Couners */
-#define MCTPSMBNKRET           0x08U
-#define MCTPSMBLBRET           0x0FU
-#define MCTPREQTOUT            0x0CU
-#define MCTPREQRET             0x03U
-
-#define INPUT_BUF_MAX_BYTES    1224U
-
 /******************************************************************************/
-/** Initializes mctp-smbus interface. It calls smb_slave _register for
-* registration with smbus.
+/** Initializes mctp-spt interface. It calls spt_slave _register for
+* registration with spt.
 * @param void
 * @return MCTP_TRUE if success, else MCTP_FALSE.
 *******************************************************************************/
-uint8_t mctp_smbus_init(void);
+uint8_t mctp_spt_init(void);
 
 /******************************************************************************/
-/** This is called when MCTP packet is to be transmitted over smbus.
+/** This is called when MCTP packet is to be transmitted over spt.
 * @param *tx_buf Pointer to TX packet buffer
 * @return void
 *******************************************************************************/
-void mctp_transmit_smbus(MCTP_PKT_BUF *tx_buf);
+void mctp_transmit_spt(MCTP_PKT_BUF *tx_buf);
 
 /******************************************************************************/
-/** This is called when packet is received over smbus.
-* @param *buffer_info Pointer to MCTP_BUFFER_INFO structure of smbus layer
+/** This is called when packet is received over spt.
+* @param *buffer_info Pointer to MCTP_BUFFER_INFO structure of spt layer
 * @param slaveTransmitFlag Slave Transmit Flag
-* @return I2C_STATUS_BUFFER_DONE / I2C_STATUS_BUFFER_ERROR to smbus layer
+* @return SPT_STATUS_BUFFER_DONE / SPT_STATUS_BUFFER_ERROR to SPT layer
 *******************************************************************************/
-uint8_t mctp_receive_smbus(MCTP_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFlag);
+uint8_t mctp_receive_spt(MCTP_BUFFER_INFO *buffer_info, uint8_t slaveTransmitFlag);
 
 /******************************************************************************/
-/** Once the packet trasmission is initiated over smbus, this function will be
-* called by smbus layer to return the status code to mctp layer.
+/** Once the packet trasmission is initiated over spt, this function will be
+* called by spt layer to return the status code to mctp layer.
 * Based on status code, mctp layer will schedule re-transmission of packet or
 * drop the packet / mark buffer available.
-* @param status Status code returned by smbus layer
+* @param status Status code returned by spt layer
 * @param *buffer_ptr Pointer to packet buffer
-* @param *newTxParams Pointer to structure for new SMBus Tx - Not Used
-* @return Release or Retry code to smbus layer.
+* @param *newTxParams Pointer to structure for new spt Tx - Not Used
+* @return Release or Retry code to spt layer.
 *******************************************************************************/
-uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr, I2C_MAPP_CBK_NEW_TX *newTxParams);
+uint8_t mctp_spt_tx_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr, SPT_MAPP_CBK_NEW_TX *newTxParams);
 
 /******************************************************************************/
-/** This will be called when smbus tx status is success, nack retry exhaust,
+/** This will be called when spt tx status is success, nack retry exhaust,
 * lab retry exhaust, bus error, or busy retry exhaust. This will configure
 * buffer parameters and configure events based on packet type (req or response).
 * @param *tx_buf Pointer to TX packet buffer
 * @param pkt_type Packet type (request or response packet)
-* @param status Smbus transaction status
+* @param status spt transaction status
 * @return void
 *******************************************************************************/
-void mctp_smbdone_handler(MCTP_PKT_BUF *tx_buf);
+void mctp_sptdone_handler(MCTP_PKT_BUF *tx_buf);
 
 /******************************************************************************/
 /** This will be called when TX packet buffer is dropped or abandoned.
@@ -114,23 +100,21 @@ void mctp_smbdone_handler(MCTP_PKT_BUF *tx_buf);
 * @param *tx_buf Pointer to TX packet buffer
 * @return void
 *******************************************************************************/
-void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf);
+void mctp_sptdone_drop(MCTP_PKT_BUF *pkt_buf);
 
 /******************************************************************************/
 /** Once any handler writes valid packet in TX buffer; it will call this
 * function to configure/initialize tx buffer parameters and handle tx state
-* for scheduling packet transmission over smbus.
+* for scheduling packet transmission over spt.
 * @param *tx_buf Pointer to TX packet buffer
 * @return void
 *******************************************************************************/
-void mctp_smbus_txpktready_init(MCTP_PKT_BUF *tx_buf);
+void mctp_spt_txpktready_init(MCTP_PKT_BUF *tx_buf);
 
 /******************************************************************************/
-/** This is called by smbus module whenever SMBUS address is updated.
-* @param smb_address - Bus address
-* @return mctp_port - I2C controller port 
+/** This is called by MCPT module whenever spt is enabled. 
 *******************************************************************************/
-extern void mctp_smbaddress_update(uint16_t smb_address, uint8_t mctp_port);
+extern void mctp_spt_enable();
 
 #ifdef __cplusplus
 }

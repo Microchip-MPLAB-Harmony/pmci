@@ -48,15 +48,23 @@ extern "C" {
 #define MCTP_EC_EID                            0x${MCTP_EC_EID}U
 #define MCTP_HOST_EID                          0x${MCTP_HOST_EID}U
 #define MCTP_TASK_PRIORITY                     ${MCTP_TASK_PRIORITY}U
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>  
 #define MCTP_I2C_PORT                          ${MCTP_I2C_PORT}U
 #define MCTP_I2C_CHANNEL                       ${MCTP_I2C_CONTROLLER}U
-<#if MCTP_I2C_CLK_FREQ == "1000">
+<#if MCTP_I2C_CLK_FREQ == "1000" || (MCTP_PHY_LAYER =="I2C+SPI")>
 #define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_1MHZ
-<#elseif MCTP_I2C_CLK_FREQ == "400">
+<#elseif MCTP_I2C_CLK_FREQ == "400" || (MCTP_PHY_LAYER =="I2C+SPI")>
 #define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_400KHZ
 <#else> <#-- MCTP_I2C_CLK_FREQ == 100 -->
 #define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_100KHZ
 </#if>
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+#define MCTP_SPI_CHANNEL                       ${MCTP_SPI_CHANNEL}U
+</#if>
+
+
 
 #ifdef __cplusplus
 }

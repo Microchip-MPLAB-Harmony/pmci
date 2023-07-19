@@ -23,7 +23,12 @@
 #include "mctp.h"
 #include "mctp_common.h"
 #include "mctp_base.h"
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")> 
 #include "mctp_smbus.h"
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+#include "mctp_spt.h"
+</#if>
 #include "mctp_control.h"
 #include "mctp_config.h"
 
@@ -40,7 +45,7 @@ MCTP_BSS_ATTR MCTP_PKT_BUF mctp_pktbuf[MCTP_PKT_BUF_NUM]__attribute__ ((aligned(
 MCTP_BSS_ATTR uint8_t mctp_tx_state;
 MCTP_BSS_ATTR static uint8_t mctp_txbuf_index;
 MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
-
+MCTP_BSS_ATTR uint8_t mctp_wait_spt_callback;
 MCTP_BSS_ATTR uint8_t active_pkt_msg_type_rx; // pldm or spdm or mctp
 MCTP_BSS_ATTR uint8_t msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 MCTP_BSS_ATTR static uint8_t out_of_seq_detected;
@@ -93,7 +98,6 @@ void mctp_base_packetizing_val_set(uint8_t msg_type, bool value)
         }
     }
     return;
-
 }
 /******************************************************************************/
 /** UPDATES CURRENT_EID FIELD OF RESPECTIVE ENDPOINT OF MCTP BRIDGE ROUTING TABLE
@@ -192,15 +196,21 @@ void mctp_init_task(void)
     mctp_tx_state = (uint8_t)MCTP_TX_IDLE;
     mctp_txbuf_index = MCTP_BUF1; // Used for TX
     mctp_wait_smbus_callback = 0U;
-
+    mctp_wait_spt_callback = 0U;
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")> 
     mctp_cfg.smbus_fairness = 1U; /// Fairness enable
-    mctp_cfg.mctp_discovery = (uint8_t)false;
     mctp_cfg.smbus_speed = (uint8_t)MCTP_I2C_CLK_FREQ; //default set to 400 Khz
-
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+    mctp_cfg.spt_channel = MCTP_SPI_CHANNEL;
+    mctp_cfg.spt_io_mode = SPT_IO_SINGLE;
+    mctp_cfg.spt_tar_time = 3;
+    mctp_cfg.spt_wait_time = 4;
+</#if>
 } /* End mctp_init_task(void) */
 
 /******************************************************************************/
-/** Store I2C parameters into MCTP context structure
+/** Store I2C Physical layer parameters into MCTP context structure
 * @param void
 * @return void
 *******************************************************************************/
@@ -214,6 +224,40 @@ void mctp_update_i2c_params(MCTP_CONTEXT* ret_mctp_ctxt)
     }
     mctp_cfg.smbus_speed = ret_mctp_ctxt->i2c_bus_freq;
 
+    /* update mctp bridging routing table endpoint entries */
+    for(i = 0U; i < (uint8_t)MCTP_ENDPOINTS_MAX; i++)
+    {
+        mctp_rtupdate_current_eid(i);
+        mctp_rtupdate_eid_type(i);
+        mctp_rtupdate_eid_state(i);
+    }
+    mctp_eid = ret_mctp_ctxt->eid;
+
+    mctp_rt.epA.ep[MCTP_RT_EC_INDEX].field.default_eid = mctp_eid;
+    mctp_rt.epA.ep[MCTP_RT_EC_INDEX].field.current_eid = mctp_eid;
+    mctp_rtupdate_eid_type((uint8_t)MCTP_RT_EC_INDEX);
+    mctp_rtupdate_eid_state((uint8_t)MCTP_RT_EC_INDEX);
+}
+
+/******************************************************************************/
+/** Store SPI Physical layer parameters into MCTP context structure
+* @param void
+* @return void
+*******************************************************************************/
+void mctp_update_spt_params(MCTP_CONTEXT* ret_mctp_ctxt)
+{
+    uint8_t i;
+    uint8_t mctp_eid;
+    if(NULL == ret_mctp_ctxt)
+    {
+        return;
+    }
+
+    mctp_cfg.spt_io_mode = ret_mctp_ctxt->spt_io_mode;
+    mctp_cfg.spt_wait_time = ret_mctp_ctxt->spt_wait_time;
+    mctp_cfg.spt_tar_time =  ret_mctp_ctxt->spt_tar_time;
+    mctp_cfg.spt_enable =  ret_mctp_ctxt->spt_enable;
+    mctp_cfg.spt_channel = ret_mctp_ctxt->spt_channel;
     /* update mctp bridging routing table endpoint entries */
     for(i = 0U; i < (uint8_t)MCTP_ENDPOINTS_MAX; i++)
     {
@@ -253,7 +297,7 @@ void mctp_init_buffers(void)
         mctp_pktbuf[i].smbus_lab_retry_count = 0;
         mctp_pktbuf[i].request_tx_retry_count = 0;
         mctp_pktbuf[i].request_per_tx_timeout_count = 0;
-        mctp_pktbuf[i].rx_smbus_timestamp = 0;
+        mctp_pktbuf[i].rx_timestamp = 0;
     }
 
 } /* End mctp_init_buffers() */
@@ -298,8 +342,7 @@ void mctp_event_tx_handler(void)
     MCTP_PKT_BUF *tx_buf = NULL;
     uint8_t acquire_status = 0x00;
     MCTP_TX_CXT *mctp_tx_ctxt = NULL;
-
-
+    
     switch(mctp_tx_state)
     {
     case (uint8_t)MCTP_TX_IDLE:
@@ -328,8 +371,9 @@ void mctp_event_tx_handler(void)
                     {
                         mctp_tx_ctxt = mctp_msg_tx_ctxt_create(tx_buf->pkt.field.hdr.msg_type, tx_buf->pkt.field.hdr.src_eid,
                                             tx_buf->pkt.field.hdr.dst_eid, tx_buf->pkt.field.hdr.msg_tag);
+                        
                         if (mctp_tx_ctxt != NULL) {
-                            msg_type_tx = mctp_tx_ctxt->message_type;
+                        msg_type_tx = mctp_tx_ctxt->message_type;
                         }
                     }
                     if ((bool)tx_buf->pkt.field.hdr.som == false)
@@ -387,8 +431,14 @@ void mctp_event_tx_handler(void)
                         else
                         {
                             /* drop packet, free that buffer */
-                            mctp_smbdone_drop(tx_buf);
-
+                            if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+                            {
+                                mctp_smbdone_drop(tx_buf);
+                            }
+                            else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+                            {
+                                mctp_sptdone_drop(tx_buf);
+                            }
                             /* for indexing to next tx buffer */
                             mctp_txbuf_index++;
 
@@ -406,8 +456,22 @@ void mctp_event_tx_handler(void)
                 {
                     /* change state to transmit it's data over smbus */
                     mctp_tx_state = (uint8_t)MCTP_TX_SMBUS_ACQUIRE;
-
+<#if MCTP_PHY_LAYER =="I2C"> 
                     start_time = (uint32_t)(mctp_i2c_get_current_timestamp());
+</#if>
+<#if MCTP_PHY_LAYER =="SPI"> 
+                    start_time = (uint32_t)(mctp_spt_get_current_timestamp());
+</#if>
+<#if MCTP_PHY_LAYER =="I2C+SPI"> 
+                    if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+                    {
+                        start_time = (uint32_t)(mctp_i2c_get_current_timestamp());
+                    }
+                    else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+                    {
+                        start_time = (uint32_t)(mctp_spt_get_current_timestamp());
+                    }
+</#if>
                     // interval = 0; // Coverity security Fixes, variable unused
                     /*Process the non empty buffer*/
                     /*This break comes out of "for" loop*/
@@ -445,28 +509,103 @@ void mctp_event_tx_handler(void)
         /*Check if smbus can be acquired. We are not running preemptive
          * kernel. So status check and bus usage following that, are atomic
          * in nature*/
-        acquire_status = mctp_i2c_get_chan_busy_status(MCTP_I2C_CHANNEL);
-
         /* get current TX buffer pointer */
+<#if MCTP_PHY_LAYER =="I2C"> 
+        acquire_status = mctp_i2c_get_chan_busy_status(MCTP_I2C_CHANNEL);
+</#if>
+<#if MCTP_PHY_LAYER =="SPI"> 
+        acquire_status = mctp_spt_get_chan_busy_status(MCTP_SPI_CHANNEL);
+</#if>
+<#if MCTP_PHY_LAYER =="I2C+SPI"> 
         tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
-
+        if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+        {
+            acquire_status = mctp_i2c_get_chan_busy_status(MCTP_I2C_CHANNEL);
+        }
+        else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+        {
+            acquire_status = mctp_spt_get_chan_busy_status(MCTP_SPI_CHANNEL);
+        }
+</#if>
+        bool avail = false;
+<#if MCTP_PHY_LAYER =="I2C"> 
         if((uint8_t)I2C_MASTER_AVAILABLE == acquire_status)
         {
-            /*smbus is available, start transmission*/
+            avail = true;
             mctp_wait_smbus_callback = 0x0;
-
+        }
+</#if>  
+<#if MCTP_PHY_LAYER =="SPI"> 
+        if((uint8_t)SPT_TX_AVAILABLE == acquire_status)
+        {
+            avail = true;
+            mctp_wait_spt_callback = 0x0;
+        } 
+</#if>
+<#if MCTP_PHY_LAYER =="I2C+SPI"> 
+        
+        if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+        {
+            if((uint8_t)I2C_MASTER_AVAILABLE == acquire_status)
+            {
+                avail = true;
+                mctp_wait_smbus_callback = 0x0;
+            }
+        }
+        else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+        {
+            if((uint8_t)SPT_TX_AVAILABLE == acquire_status)
+            {
+                avail = true;
+                mctp_wait_spt_callback = 0x0;
+            }
+        }
+</#if>  
+        if(avail)
+        {
+            /*smbus is available, start transmission*/
             mctp_tx_state = (uint8_t)MCTP_TX_IN_PROGRESS;
             /*Fall Through to MCTP_TX_IN_PROGRESS state*/
-        }
+        }             
         else
         {
-            interval = mctp_timer_difference(start_time);
-
-            if(interval >= (uint32_t) MCTP_SMBUS_AQ_TIMEOUT )//135000 = 135ms
+            interval = mctp_timer_difference(start_time)
+            uint32_t tout;
+<#if MCTP_PHY_LAYER =="I2C">
+            tout = MCTP_SMBUS_AQ_TIMEOUT;
+</#if>
+<#if MCTP_PHY_LAYER =="I2C">
+            tout = MCTP_SPT_AQ_TIMEOUT;
+</#if>
+<#if MCTP_PHY_LAYER =="I2C+SPI">
+           if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+           {
+                tout = MCTP_SMBUS_AQ_TIMEOUT;
+           }
+           else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+           {
+                tout = MCTP_SPT_AQ_TIMEOUT;
+           }
+</#if>
+            if(interval >= tout )//135000 = 135ms         
             {
                 /* update buffer parameters and configure events */
+<#if MCTP_PHY_LAYER =="I2C">
                 mctp_smbdone_handler(tx_buf);
-
+</#if>
+<#if MCTP_PHY_LAYER =="SPI">
+                mctp_sptdone_handler(tx_buf);
+</#if>
+<#if MCTP_PHY_LAYER =="I2C+SPI">
+                if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+                {
+                    mctp_smbdone_handler(tx_buf);
+                }
+                else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+                {
+                    mctp_sptdone_handler(tx_buf);;
+                }
+</#if>                
                 mctp_tx_state = (uint8_t)MCTP_TX_NEXT;
 
             }
@@ -482,11 +621,33 @@ void mctp_event_tx_handler(void)
         }
     /*Fall thorugh to the next state MCTP_TX_IN_PROGRESS*/
     case (uint8_t)MCTP_TX_IN_PROGRESS:
+<#if MCTP_PHY_LAYER =="I2C"> 
         if(0x00U == mctp_wait_smbus_callback)
         {
             mctp_wait_smbus_callback = 1;
 
             mctp_transmit_smbus(tx_buf);
+        }
+</#if>
+<#if MCTP_PHY_LAYER =="SPI"> 
+        if(0x00U == mctp_wait_spt_callback)
+        {
+            mctp_wait_spt_callback = 1;
+
+            mctp_transmit_spt(tx_buf);
+        }
+</#if>
+<#if MCTP_PHY_LAYER =="I2C+SPI">
+            tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
+            if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+            {
+                mctp_transmit_smbus(tx_buf);
+            }
+            else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+            {
+                mctp_transmit_spt(tx_buf);
+            }
+</#if>
         }
         break;
 
@@ -558,7 +719,22 @@ void mctp_handle_ec_rx_request_pkt(void)
             }
 
             mctp_ec_control_pkt_handler(rx_buf, tx_resp_buf);
-            mctp_txpktready_init(tx_resp_buf);
+<#if MCTP_PHY_LAYER =="I2C+SPI">
+        if(rx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+        {
+            mctp_smbus_txpktready_init(tx_resp_buf);
+        }
+        else if(rx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+        {
+            mctp_spt_txpktready_init(tx_resp_buf);
+        }
+</#if>        
+<#if MCTP_PHY_LAYER =="I2C">
+        mctp_smbus_txpktready_init(tx_resp_buf);
+</#if>
+<#if MCTP_PHY_LAYER =="SPI">
+        mctp_spt_txpktready_init(tx_resp_buf);
+</#if>            
         }
     }
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
@@ -635,9 +811,10 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
             {
                 return (uint8_t)MCTP_FALSE;
             }
-            mctp_ctx = mctp_msg_lookup(pkt_buf);
+            mctp_ctx = mctp_msg_ctxt_lookup(pkt_buf);
 
             if (mctp_ctx) {
+                mctp_msg_ctxt_reset(mctp_ctx);
                 //  If an existing context is present already, don't create new one
             } else {
                 mctp_ctx = mctp_msg_ctxt_create(pkt_buf);
@@ -651,7 +828,7 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
         }
         else if ((pkt_buf[MCTP_PKT_TO_MSGTAG_POS] & MCTP_EOM_REF_MSK) == MCTP_EOM_REF) // IF EOM == 1
         {
-            mctp_ctx = mctp_msg_lookup(pkt_buf);
+            mctp_ctx = mctp_msg_ctxt_lookup(pkt_buf);
             if (!mctp_ctx) {
                 return (uint8_t)MCTP_FALSE;
             }
@@ -668,7 +845,7 @@ uint8_t mctp_packet_validation(uint8_t *pkt_buf)
         }
         else if ((pkt_buf[MCTP_PKT_TO_MSGTAG_POS] & MCTP_SOM_EOM_REF) == 0x00)
         {
-            mctp_ctx = mctp_msg_lookup(pkt_buf);
+            mctp_ctx = mctp_msg_ctxt_lookup(pkt_buf);
             if (!mctp_ctx) {
                 return (uint8_t)MCTP_FALSE;
             }
@@ -760,6 +937,16 @@ MCTP_TX_CXT * mctp_msg_tx_ctxt_create (uint8_t msg_type, uint8_t src_eid, uint8_
 }
 
 /******************************************************************************/
+/** mctp_msg_ctxt_reset
+* @param *mctp_ctxt Context for which buffer parameters needs to be reset
+* @return none
+*******************************************************************************/
+void mctp_msg_ctxt_reset(MCTP_IDENTITY *mctp_ctxt)
+{
+    mctp_ctxt->buf_index = 0;
+    mctp_ctxt->buf_size = 0;
+}
+/******************************************************************************/
 /** mctp_msg_ctxt_create
 * @param *pktbuf Pointer to smbus layer packet buffer
 * @return pointer to created mctp msg context
@@ -789,7 +976,7 @@ MCTP_IDENTITY * mctp_msg_ctxt_create(uint8_t *pkt_buf)
 * @param *pktbuf Pointer to smbus layer packet buffer
 * @return pointer to mctp contest if lookup is success, else NULL pointer
 *******************************************************************************/
-MCTP_IDENTITY * mctp_msg_lookup(uint8_t *pkt_buf)
+MCTP_IDENTITY * mctp_msg_ctxt_lookup(uint8_t *pkt_buf)
 {
     uint8_t i;
 
@@ -823,7 +1010,7 @@ uint8_t mctp_tx_timeout(MCTP_PKT_BUF *tx_buf)
     MCTP_TX_CXT *mctp_tx_ctxt = NULL;
 
     /* get current request_per_tx_timeout_count */
-    processing_time = (uint16_t)mctp_timer_difference(tx_buf->rx_smbus_timestamp);
+    processing_time = (uint16_t)mctp_timer_difference(tx_buf->rx_timestamp);
 
     mctp_tx_ctxt = mctp_msg_tx_ctxt_lookup(tx_buf->pkt.field.hdr.src_eid,tx_buf->pkt.field.hdr.dst_eid,
                                 tx_buf->pkt.field.hdr.msg_tag);
@@ -869,7 +1056,7 @@ uint32_t mctp_timer_difference(uint32_t start_time_val)
     uint32_t interval;
 
     /* get current time interval */
-    interval = (uint32_t)(mctp_i2c_get_current_timestamp());
+    interval = (uint32_t)(tx_time_get());
 
     if(interval >= start_time_val)
     {
@@ -925,6 +1112,11 @@ uint8_t mctp_get_packet_type(uint8_t *buffer_ptr)
 void SET_MCTP_TX_STATE(void)
 {
     mctp_tx_state = (uint8_t)MCTP_TX_NEXT;
+}
+
+uint16_t tx_time_get()
+{
+    return (UINT16) (xTaskGetTickCount() / 10);
 }
 
 /**   @}

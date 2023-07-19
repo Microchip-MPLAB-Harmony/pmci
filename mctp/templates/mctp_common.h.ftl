@@ -40,6 +40,7 @@ extern "C" {
 
 #define MCTP_BSS_ATTR                                     __attribute__((section("mctp_bss")))
 
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>  
 /* -------------------- SMB Protocol Type --------------------------------------
    SMB table PROTOCOL TYPE
 
@@ -66,9 +67,26 @@ extern "C" {
 #define SMB_PROTO_WRITE_BLOCK                             ((I2C_OPER_WRITE  << 6) + 0x00U)
 #define SMB_PROTO_READ_BLOCK                              ((I2C_OPER_REPEAT << 6) + 0x3FU)
 #define SMB_PROTO_BLOCK_WRITE_BLOCK_READ_PROCESS_CALL     ((I2C_OPER_REPEAT << 6) + 0x3FU)
+</#if>  
+
+#define INPUT_BUF_MAX_BYTES    1224U
 
 #define is_add_safe(sum, aug_or_add)                     ((sum) < (aug_or_add) ? 0 : 1) // Coverity INT30-C Postcondition Test
 #define is_sub_safe(ui_a, ui_b)                          ((ui_a) < (ui_b) ? 0 : 1) // Coverity INT30-C Precondition Test
+
+#define SET_MCTP_EVENT_TASK(mctp)   SET_MCTP_EVENT_FLAG()
+
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+void SET_SPDM_EVENT_FLAG(void);
+#define SET_EVENT_SPDM_TASK(spdm)   SET_SPDM_EVENT_FLAG()
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+void SET_PLDM_RESP_EVENT_FLAG(void);
+#define SET_EVENT_PLDM_TASK_RESP(pldm)   SET_PLDM_RESP_EVENT_FLAG()
+
+void SET_PLDM_EVENT_FLAG(void);
+#define SET_EVENT_PLDM_TASK(pldm)   SET_PLDM_EVENT_FLAG()
+</#if>
 
 /* Provide C++ Compatibility */
 #ifdef __cplusplus

@@ -93,6 +93,10 @@ PLDM_BSS1_ATTR bool PLDMResp_timer_started;
 // support for update during crisis update
 PLDM_BSS1_ATTR PLDM_AP_CFG pldm_ap_cfg;
 
+PLDM_BSS1_ATTR uint8_t pldm_flash_busy;
+
+extern SPDM_BSS1_ATTR uint8_t spdm_flash_busy;
+
 /******************************************************************************/
 /** function for handling query device identifiers message
 * @param pldm_buf_tx trasmit buffer,
@@ -277,7 +281,10 @@ void pldm_pkt_handle_request_update(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *pld
     REQUEST_UPDATE_RESPONSE req_update_resp_data;
 
     pldmContext->pldm_previous_state = pldmContext->pldm_current_state;
-    if (!in_update_mode || (verify_fail && retry_update_comp_cap))
+    if (spdm_flash_busy || check_for_i2c_flash_busy_bit()) {
+        req_update_resp_data.completion_code = UNABLE_TO_INITIATE_UPDATE;
+    } 
+    else if (!in_update_mode || (verify_fail && retry_update_comp_cap)) {
     {
         req_update_resp_data.completion_code = PLDM_SUCCESS;
         pldmContext->pldm_current_state = PLDM_LEARN_COMPONENTS;
@@ -425,7 +432,11 @@ void pldm_pkt_handle_update_component(MCTP_PKT_BUF *pldm_buf_tx, PLDM_CONTEXT *p
     }
     REQUEST_UPDATE_COMPONENT_RESPONSE req_update_comp_resp_data;
 
-    if (!in_update_mode)
+    if (spdm_flash_busy || check_for_i2c_flash_busy_bit())
+    {
+        req_update_comp_resp_data.completion_code = BUSY_IN_BACKGROUND;
+    }  
+    else if (!in_update_mode)
     {
         req_update_comp_resp_data.completion_code = NOT_IN_UPDATE_MODE;
     }
@@ -1524,7 +1535,7 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
         mctp_buf->pkt.field.hdr.inst_id = pldmContext->pldm_instance_id & 0x1F;
     }
 
-    mctp_buf->rx_smbus_timestamp  = pldm_buf_tx->rx_smbus_timestamp;
+    mctp_buf->rx_timestamp  = pldm_buf_tx->rx_timestamp;
 
     if (cmd_resp == PLDM_QUERY_DEVICE_IDENTIFIERS_REQ || cmd_resp == PLDM_GET_FIRMWARE_PARAMETERS_REQ)
     {
@@ -1573,7 +1584,7 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
     mctp_buf->pkt.field.hdr.dst_addr  = pldmContext->pldm_host_slv_addr;
     mctp_buf->pkt.field.hdr.rw_dst    = 0;
     /*  Command Code */
-    mctp_buf->pkt.field.hdr.cmd_code  = MCTP_SMBUS_HDR_CMD_CODE;
+    mctp_buf->pkt.field.hdr.cmd_code  = pldmContext->pldm_cmd_code;
     /* Source Slave address*/
     mctp_buf->pkt.field.hdr.src_addr  = pldmContext->pldm_ec_slv_addr;
     mctp_buf->pkt.field.hdr.ipmi_src  = 1;
@@ -1589,6 +1600,7 @@ void pldm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *pldm_buf_tx, MCTP_PKT_
 <#else>
     mctp_buf->pkt.field.hdr.src_eid = pldmContext->pldm_ec_eid;
 </#if>
+    mctp_buf->pkt.field.hdr.msg_tag = pldmContext->pldm_message_tag;
     /* message tag */
     mctp_buf->pkt.field.hdr.msg_tag = pldmContext->pldm_message_tag;
     /* for req/response packet */
@@ -1793,6 +1805,10 @@ void pldm_pkt_rcv_packet()
         pldmContext->pldm_host_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.src_addr;
         pldmContext->pldm_instance_id = pldm_msg_rx_buf->pkt.field.hdr.inst_id;
         pldmContext->pldm_message_tag = pldm_msg_rx_buf->pkt.field.hdr.msg_tag;
+<<<<<<< HEAD
+=======
+        pldmContext->pldm_cmd_code = pldm_msg_rx_buf->pkt.field.hdr.cmd_code;
+>>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 
         if(pldmContext->pldm_tx_state == PLDM_TX_IDLE || pldmContext->pldm_tx_state == PLDM_PACKETIZING)
         {
@@ -2005,6 +2021,9 @@ void pldm_initiate_apply_req_to_update_agent(uint8_t apply_state)
 {
     PLDM_CONTEXT *pldmContext = NULL;
     pldmContext = pldm_ctxt_get();
+
+    pldm_flash_busy = false;
+    
     if(NULL == pldmContext)
     {
         return;

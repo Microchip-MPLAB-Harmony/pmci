@@ -63,6 +63,7 @@ extern "C" {
 #define MCTP_EVENT_BIT              (1U << 1)
 #define MCTP_I2C_ENABLE_BIT         (1U << 0)
 #define MCTP_SMB_RESPONSE_BIT       (2U << 1)
+#define MCTP_SPT_CTRL_BIT           (1U << 3)
 #define MCTP_WAIT_FOR_SPDM_DONE     (1U << 18)
 #define MCTP_WAIT_FOR_PLDM_DONE     (1U << 19)
 
@@ -73,6 +74,20 @@ extern "C" {
 * @return TaskHandle_t - MCTP task handle
 **********************************************************************/
 extern TaskHandle_t mctp_task1_get_handle(void);
+
+#define SET_MCTP_EVENT_TASK(mctp)   SET_MCTP_EVENT_FLAG()
+
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
+void SET_SPDM_EVENT_FLAG(void);
+#define SET_EVENT_SPDM_TASK(spdm)   SET_SPDM_EVENT_FLAG()
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
+void SET_PLDM_RESP_EVENT_FLAG(void);
+#define SET_EVENT_PLDM_TASK_RESP(pldm)   SET_PLDM_RESP_EVENT_FLAG()
+
+void SET_PLDM_EVENT_FLAG(void);
+#define SET_EVENT_PLDM_TASK(pldm)   SET_PLDM_EVENT_FLAG()
+</#if>
 
 #ifdef __cplusplus
 }

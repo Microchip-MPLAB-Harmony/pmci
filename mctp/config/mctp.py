@@ -21,7 +21,7 @@
 * ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF ANY,
 * THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
 *****************************************************************************"""
-phyLayerList = ["Select", "I2C"]
+phyLayerList = ["Select", "I2C", "SPI", "I2C+SPI"]
 i2cSpeedList = ["100", "400", "1000"]
 
 def destroyComponent(mctpComponent):
@@ -61,7 +61,11 @@ def handleMessage(messageID, args):
 
 def mctpI2CPortUpdate(symbol, event):
     selectedPhy = event["value"]
-    symbol.setVisible(selectedPhy == "I2C")
+    symbol.setVisible((selectedPhy == "I2C") or (selectedPhy == "I2C+SPI"))
+
+def mctpSPIChannelUpdate(symbol, event):
+    selectedPhy = event["value"]
+    symbol.setVisible((selectedPhy == "SPI") or (selectedPhy == "I2C+SPI"))
 
 def mctpIsSpdmRequired(symbol, event):
     usrSelection = event["value"]
@@ -87,6 +91,20 @@ def onAttachmentDisconnected(source, target):
         print("RTOS disconnected")
         isRtosComponentConnected.setValue(False)
 
+def mctpAddSptDriverFiles(symbol, event):
+    selectedPhy = event["value"]
+    if((selectedPhy == "SPI") or (selectedPhy == "I2C+SPI")):
+        symbol.setEnabled(True)    
+    else:
+        symbol.setEnabled(False)
+    
+def mctpAddI2cDriverFiles(symbol, event):
+    selectedPhy = event["value"]
+    if((selectedPhy == "I2C") or (selectedPhy == "I2C+SPI")):
+        symbol.setEnabled(True)    
+    else:
+        symbol.setEnabled(False)
+
 def instantiateComponent(mctpComponent):
 
     global phyLayerSelection
@@ -96,6 +114,7 @@ def instantiateComponent(mctpComponent):
     global isSpdmRequired
     global isPldmRequired
     global isSoteriaComponentConnected
+    global configName
 
     print("MCTP stack component initialize")
     
@@ -191,6 +210,17 @@ def instantiateComponent(mctpComponent):
     mctpI2CClkFreqSelect.setDefaultValue("100")
     mctpI2CClkFreqSelect.setDependencies(mctpI2CPortUpdate, ["MCTP_PHY_LAYER"])
     
+    # MCTP SPI Target channel selection
+    mctpSPTportSelect = mctpComponent.createIntegerSymbol("MCTP_SPI_CHANNEL", None)
+    mctpSPTportSelect.setHelp("mcc_h3_manager_configurations")
+    mctpSPTportSelect.setLabel("MCTP SPI Channel")
+    mctpSPTportSelect.setVisible(False)
+    mctpSPTportSelect.setDescription("The SPI Target channel to use")
+    mctpSPTportSelect.setMin(0)
+    mctpSPTportSelect.setMax(1)
+    mctpSPTportSelect.setDefaultValue(0)
+    mctpSPTportSelect.setDependencies(mctpSPIChannelUpdate, ["MCTP_PHY_LAYER"])
+
     isControlPktRequired = mctpComponent.createBooleanSymbol("MCTP_IS_CONTROL_REQUIRED", None)
     isControlPktRequired.setLabel("MCTP control packet processing")
     isControlPktRequired.setVisible(True)
@@ -271,13 +301,13 @@ def instantiateComponent(mctpComponent):
     #Add core files
     #Add mctp_common.h
     mctpCommonHeaderFile = mctpComponent.createFileSymbol(None, None)
-    mctpCommonHeaderFile.setSourcePath("mctp/src/mctp_common.h")
+    mctpCommonHeaderFile.setSourcePath("mctp/templates/mctp_common.h.ftl")
     mctpCommonHeaderFile.setOutputName("mctp_common.h")
     mctpCommonHeaderFile.setDestPath("mctp/")
     mctpCommonHeaderFile.setProjectPath("config/" + configName + "/mctp/")
     mctpCommonHeaderFile.setOverwrite(True)
     mctpCommonHeaderFile.setType("HEADER")
-    mctpCommonHeaderFile.setMarkup(False)
+    mctpCommonHeaderFile.setMarkup(True)
     #Add mctp_base.h
     mctpBaseHeaderFile = mctpComponent.createFileSymbol(None, None)
     mctpBaseHeaderFile.setSourcePath("mctp/templates/mctp_base.h.ftl")
@@ -298,13 +328,13 @@ def instantiateComponent(mctpComponent):
     mctpBaseSourceFile.setMarkup(True)
     #Add mctp_control.h
     mctpControlHeaderFile = mctpComponent.createFileSymbol(None, None)
-    mctpControlHeaderFile.setSourcePath("mctp/src/mctp_control.h")
+    mctpControlHeaderFile.setSourcePath("mctp/templates/mctp_control.h.ftl")
     mctpControlHeaderFile.setOutputName("mctp_control.h")
     mctpControlHeaderFile.setDestPath("mctp/")
     mctpControlHeaderFile.setProjectPath("config/" + configName + "/mctp/")
     mctpControlHeaderFile.setOverwrite(True)
     mctpControlHeaderFile.setType("HEADER")
-    mctpControlHeaderFile.setMarkup(False)
+    mctpControlHeaderFile.setMarkup(True)
     #Add mctp_control.c
     mctpControlSourceFile = mctpComponent.createFileSymbol(None, None)
     mctpControlSourceFile.setSourcePath("mctp/templates/mctp_control.c.ftl")
@@ -315,23 +345,29 @@ def instantiateComponent(mctpComponent):
     mctpControlSourceFile.setType("SOURCE")
     mctpControlSourceFile.setMarkup(True)
     #Add mctp_smbus.h
-    mctpSmbusHeaderFile = mctpComponent.createFileSymbol(None, None)
-    mctpSmbusHeaderFile.setSourcePath("mctp/templates/mctp_smbus.h.ftl")
-    mctpSmbusHeaderFile.setOutputName("mctp_smbus.h")
-    mctpSmbusHeaderFile.setDestPath("mctp/")
-    mctpSmbusHeaderFile.setProjectPath("config/" + configName + "/mctp/")
-    mctpSmbusHeaderFile.setOverwrite(True)
-    mctpSmbusHeaderFile.setType("HEADER")
-    mctpSmbusHeaderFile.setMarkup(True)
+    mctpSmbusHeaderFile0 = mctpComponent.createFileSymbol(None, None)
+    mctpSmbusHeaderFile0.setSourcePath("mctp/templates/mctp_smbus.h.ftl")
+    mctpSmbusHeaderFile0.setOutputName("mctp_smbus.h")
+    mctpSmbusHeaderFile0.setDestPath("mctp/")
+    mctpSmbusHeaderFile0.setProjectPath("config/" + configName + "/mctp/")
+    mctpSmbusHeaderFile0.setOverwrite(True)
+    mctpSmbusHeaderFile0.setType("HEADER")
+    mctpSmbusHeaderFile0.setMarkup(True)
+    mctpSmbusHeaderFile0.setEnabled(False)
+    mctpSmbusHeaderFile0.setDependencies(mctpAddI2cDriverFiles, ["MCTP_PHY_LAYER"])
+
     #Add mctp_smbus.c
-    mctpSmbusSourceFile = mctpComponent.createFileSymbol(None, None)
-    mctpSmbusSourceFile.setSourcePath("mctp/templates/mctp_smbus.c.ftl")
-    mctpSmbusSourceFile.setOutputName("mctp_smbus.c")
-    mctpSmbusSourceFile.setDestPath("mctp/")
-    mctpSmbusSourceFile.setProjectPath("config/" + configName + "/mctp/")
-    mctpSmbusSourceFile.setOverwrite(True)
-    mctpSmbusSourceFile.setType("SOURCE")
-    mctpSmbusSourceFile.setMarkup(True)
+    mctpSmbusSourceFile0 = mctpComponent.createFileSymbol(None, None)
+    mctpSmbusSourceFile0.setSourcePath("mctp/templates/mctp_smbus.c.ftl")
+    mctpSmbusSourceFile0.setOutputName("mctp_smbus.c")
+    mctpSmbusSourceFile0.setDestPath("mctp/")
+    mctpSmbusSourceFile0.setProjectPath("config/" + configName + "/mctp/")
+    mctpSmbusSourceFile0.setOverwrite(True)
+    mctpSmbusSourceFile0.setType("SOURCE")
+    mctpSmbusSourceFile0.setMarkup(True)
+    mctpSmbusSourceFile0.setEnabled(False)
+    mctpSmbusSourceFile0.setDependencies(mctpAddI2cDriverFiles, ["MCTP_PHY_LAYER"])
+
     #Add mctp_task.h
     mctpSmbusHeaderFile = mctpComponent.createFileSymbol(None, None)
     mctpSmbusHeaderFile.setSourcePath("mctp/templates/mctp_task.h.ftl")
@@ -350,6 +386,138 @@ def instantiateComponent(mctpComponent):
     mctpSmbusSourceFile.setOverwrite(True)
     mctpSmbusSourceFile.setType("SOURCE")
     mctpSmbusSourceFile.setMarkup(True)
+
+    #Add mctp_spt.h
+    mctpsptHdrFile = mctpComponent.createFileSymbol(None, None)
+    mctpsptHdrFile.setSourcePath("mctp/templates/mctp_spt.h.ftl")
+    mctpsptHdrFile.setOutputName("mctp_spt.h")
+    mctpsptHdrFile.setDestPath("mctp/")
+    mctpsptHdrFile.setProjectPath("config/" + configName + "/mctp/")
+    mctpsptHdrFile.setOverwrite(True)
+    mctpsptHdrFile.setType("HEADER")
+    mctpsptHdrFile.setMarkup(True)
+    mctpsptHdrFile.setEnabled(False)
+    mctpsptHdrFile.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add mctp_spt.c
+    mctpsptSrcFile0 = mctpComponent.createFileSymbol(None, None)
+    mctpsptSrcFile0.setSourcePath("mctp/templates/mctp_spt.c.ftl")
+    mctpsptSrcFile0.setOutputName("mctp_spt.c")
+    mctpsptSrcFile0.setDestPath("mctp/")
+    mctpsptSrcFile0.setProjectPath("config/" + configName + "/mctp/")
+    mctpsptSrcFile0.setOverwrite(True)
+    mctpsptSrcFile0.setType("SOURCE")
+    mctpsptSrcFile0.setMarkup(True)
+    mctpsptSrcFile0.setEnabled(False)
+    mctpsptSrcFile0.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add spt_task.h
+    mctpsptHeaderFile = mctpComponent.createFileSymbol(None, None)
+    mctpsptHeaderFile.setSourcePath("spt/templates/spt_task.h.ftl")
+    mctpsptHeaderFile.setOutputName("spt_task.h")
+    mctpsptHeaderFile.setDestPath("spt/")
+    mctpsptHeaderFile.setProjectPath("config/" + configName + "/spt/")
+    mctpsptHeaderFile.setOverwrite(True)
+    mctpsptHeaderFile.setType("HEADER")
+    mctpsptHeaderFile.setMarkup(True)
+    mctpsptHeaderFile.setEnabled(False)
+    mctpsptHeaderFile.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add spt_task.c
+    mctpsptSourceFile0 = mctpComponent.createFileSymbol(None, None)
+    mctpsptSourceFile0.setSourcePath("spt/templates/spt_task.c.ftl")
+    mctpsptSourceFile0.setOutputName("spt_task.c")
+    mctpsptSourceFile0.setDestPath("spt/")
+    mctpsptSourceFile0.setProjectPath("config/" + configName + "/spt/")
+    mctpsptSourceFile0.setOverwrite(True)
+    mctpsptSourceFile0.setType("SOURCE")
+    mctpsptSourceFile0.setMarkup(True)
+    mctpsptSourceFile0.setEnabled(False)
+    mctpsptSourceFile0.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add spt_drv.h
+    mctpsptHeaderFile1 = mctpComponent.createFileSymbol(None, None)
+    mctpsptHeaderFile1.setSourcePath("spt/src/spt_drv.h")
+    mctpsptHeaderFile1.setOutputName("spt_drv.h")
+    mctpsptHeaderFile1.setDestPath("spt/")
+    mctpsptHeaderFile1.setProjectPath("config/" + configName + "/spt/")
+    mctpsptHeaderFile1.setOverwrite(True)
+    mctpsptHeaderFile1.setType("HEADER")
+    mctpsptHeaderFile1.setMarkup(False)
+    mctpsptHeaderFile1.setEnabled(False)
+    mctpsptHeaderFile1.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add spt_drv.c
+    mctpsptSourceFile2 = mctpComponent.createFileSymbol(None, None)
+    mctpsptSourceFile2.setSourcePath("spt/src/spt_drv.c")
+    mctpsptSourceFile2.setOutputName("spt_drv.c")
+    mctpsptSourceFile2.setDestPath("spt/")
+    mctpsptSourceFile2.setProjectPath("config/" + configName + "/spt/")
+    mctpsptSourceFile2.setOverwrite(True)
+    mctpsptSourceFile2.setType("SOURCE")
+    mctpsptSourceFile2.setMarkup(False)
+    mctpsptSourceFile2.setEnabled(False)
+    mctpsptSourceFile2.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+    
+    #Add spt_common.h
+    mctpsptHeaderFile3 = mctpComponent.createFileSymbol(None, None)
+    mctpsptHeaderFile3.setSourcePath("spt/templates/spt_common.h.ftl")
+    mctpsptHeaderFile3.setOutputName("spt_common.h")
+    mctpsptHeaderFile3.setDestPath("spt/")
+    mctpsptHeaderFile3.setProjectPath("config/" + configName + "/spt/")
+    mctpsptHeaderFile3.setOverwrite(True)
+    mctpsptHeaderFile3.setType("HEADER")
+    mctpsptHeaderFile3.setMarkup(True)
+    mctpsptHeaderFile3.setEnabled(False)
+    mctpsptHeaderFile3.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add spt_app.c
+    mctpsptSourceFile4 = mctpComponent.createFileSymbol(None, None)
+    mctpsptSourceFile4.setSourcePath("spt/src/spt_app.c")
+    mctpsptSourceFile4.setOutputName("spt_app.c")
+    mctpsptSourceFile4.setDestPath("spt/")
+    mctpsptSourceFile4.setProjectPath("config/" + configName + "/spt/")
+    mctpsptSourceFile4.setOverwrite(True)
+    mctpsptSourceFile4.setType("SOURCE")
+    mctpsptSourceFile4.setMarkup(False)
+    mctpsptSourceFile4.setEnabled(False)
+    mctpsptSourceFile4.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+    
+    #Add spt_app.h
+    mctpsptHeaderFile5 = mctpComponent.createFileSymbol(None, None)
+    mctpsptHeaderFile5.setSourcePath("spt/src/spt_app.h")
+    mctpsptHeaderFile5.setOutputName("spt_app.h")
+    mctpsptHeaderFile5.setDestPath("spt/")
+    mctpsptHeaderFile5.setProjectPath("config/" + configName + "/spt/")
+    mctpsptHeaderFile5.setOverwrite(True)
+    mctpsptHeaderFile5.setType("HEADER")
+    mctpsptHeaderFile5.setMarkup(False)
+    mctpsptHeaderFile5.setEnabled(False)
+    mctpsptHeaderFile5.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add crc8.h
+    mctpsptHeaderFile5 = mctpComponent.createFileSymbol(None, None)
+    mctpsptHeaderFile5.setSourcePath("spt/src/crc8.h")
+    mctpsptHeaderFile5.setOutputName("crc8.h")
+    mctpsptHeaderFile5.setDestPath("spt/")
+    mctpsptHeaderFile5.setProjectPath("config/" + configName + "/spt/")
+    mctpsptHeaderFile5.setOverwrite(True)
+    mctpsptHeaderFile5.setType("HEADER")
+    mctpsptHeaderFile5.setMarkup(False)
+    mctpsptHeaderFile5.setEnabled(False)
+    mctpsptHeaderFile5.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
+
+    #Add crc8.c
+    mctpsptSrcFile5 = mctpComponent.createFileSymbol(None, None)
+    mctpsptSrcFile5.setSourcePath("spt/src/crc8.c")
+    mctpsptSrcFile5.setOutputName("crc8.c")
+    mctpsptSrcFile5.setDestPath("spt/")
+    mctpsptSrcFile5.setProjectPath("config/" + configName + "/spt/")
+    mctpsptSrcFile5.setOverwrite(True)
+    mctpsptSrcFile5.setType("SOURCE")
+    mctpsptSrcFile5.setMarkup(False)
+    mctpsptSrcFile5.setEnabled(False)
+    mctpsptSrcFile5.setDependencies(mctpAddSptDriverFiles, ["MCTP_PHY_LAYER"])
     
     #Project configurations
     xc32ProjSettings = mctpComponent.createSettingSymbol("XC32C_INCLUDE_DIR_MCTP", None)

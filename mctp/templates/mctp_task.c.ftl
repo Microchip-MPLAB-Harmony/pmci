@@ -40,7 +40,12 @@
 #include "mctp.h"
 #include "mctp_common.h"
 #include "mctp_task.h"
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")> 
 #include "mctp_smbus.h"
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+#include "mctp_spt.h"
+</#if>
 #include "mctp_config.h"
 
 /* MPU */
@@ -153,22 +158,32 @@ static void mctp_main(void* pvParameters)
 
     mctp_init_task();
     mctp_update_eid(MCTP_EC_EID);
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>  
     mctp_i2c_update(HOST_SLAVE_ADDR, (uint8_t)MCTP_I2C_CLK_FREQ);
     mctp_smbaddress_update(mctpContext->i2c_slave_addr, MCTP_I2C_PORT);
-    mctp_update_i2c_params(mctpContext);
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>  
+    mctp_spt_update(MCTP_SPI_CHANNEL, SPT_IO_SINGLE, 4, 3);
+</#if>
+    mctp_update_params(mctpContext);
     sb_mctp_enable();
 
     while(true)
     {
         uxBits = xEventGroupWaitBits((mctpContext->xmctp_EventGroupHandle),
-                                     (MCTP_EVENT_BIT | MCTP_I2C_ENABLE_BIT | MCTP_EVENT_BIT),
+                                     (MCTP_EVENT_BIT | MCTP_ENABLE_BIT | MCTP_EVENT_BIT),
                                      pdTRUE,
                                      pdFALSE,
                                      portMAX_DELAY);
 
-        if(MCTP_I2C_ENABLE_BIT == (uxBits & MCTP_I2C_ENABLE_BIT))
+        if(MCTP_ENABLE_BIT == (uxBits & MCTP_ENABLE_BIT))
         {
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>  
             (void)mctp_smbus_init();
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>  
+            (void)mctp_spt_init();
+</#if>
         }
 
         if(MCTP_EVENT_BIT == (uxBits & MCTP_EVENT_BIT))
@@ -200,15 +215,37 @@ void SET_MCTP_EVENT_FLAG(void)
 * @param void
 * @return void
 *****************************************************************/
-void mctp_i2c_update(uint16_t slv_addr, uint8_t freq)
+void mctp_i2c_update(uint16_t slv_addr, uint8_t freq, uint8_t eid)
 {
     mctpContext = mctp_ctxt_get();
     if(NULL == mctpContext)
     {
         return;
     }
+    mctpContext->eid = eid;
     mctpContext->i2c_bus_freq = freq;
     mctpContext->i2c_slave_addr = slv_addr;
+}
+
+/****************************************************************/
+/** mctp_spt_update
+* Updates SPT bus parameters
+* @param void
+* @return void
+*****************************************************************/
+void mctp_spt_update(uint8_t channel, uint8_t io_mode, uint8_t spt_wait_time,
+        uint8_t tar_time uint8_t enable)
+{
+    mctpContext = mctp_ctxt_get();
+    if(NULL == mctpContext)
+    {
+        return;
+    }
+    mctpContext->spt_enable = enable;
+    mctpContext->spt_io_mode = io_mode;
+    mctpContext->spt_wait_time = spt_wait_time;
+    mctpContext->spt_tar_time =tar_time ;
+    mctpContext->spt_channel = channel;
 }
 
 /****************************************************************/
@@ -228,17 +265,33 @@ void mctp_update_eid(uint8_t eid)
 }
 
 /****************************************************************/
-/** sb_mctp_enable
-* Enable MCTP module
+/** sb_mctp_i2c_enable
+* Enable I2C MCTP module
 * @param void
 * @return void
 *****************************************************************/
-void sb_mctp_enable(void)
+void sb_mctp_i2c_enable()
 {
     mctpContext = mctp_ctxt_get();
     if(NULL == mctpContext)
     {
         return;
     }
-    (void)xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_I2C_ENABLE_BIT );
+    xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_I2C_ENABLE_BIT );
+}
+
+/****************************************************************/
+/** sb_mctp_spt_enable
+* Enable SPT MCTP module
+* @param void
+* @return void
+*****************************************************************/
+void sb_mctp_spt_enable()
+{
+    mctpContext = mctp_ctxt_get();
+    if(NULL == mctpContext)
+    {
+        return;
+    }
+    xEventGroupSetBits( mctpContext->xmctp_EventGroupHandle, MCTP_SPT_CTRL_BIT);
 }

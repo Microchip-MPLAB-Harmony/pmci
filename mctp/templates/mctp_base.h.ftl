@@ -52,7 +52,9 @@ extern "C" {
 #define MCTP_BYTECNT_MIN            5U
 #define MCTP_BYTECNT_MAX           69U
 
+
 #define MCTP_SMBUS_HDR_CMD_CODE  0x0FU
+#define MCTP_SPT_HDR_CMD_CODE    0x0EU
 
 #define MCTP_MSGTYPE_CONTROL        0U
 #define MCTP_MSGTYPE_PLDM           1U
@@ -352,7 +354,7 @@ typedef struct MCTP_PKT_BUF
 
     /* Holds rx packet timestamp; i.e. time when packet was received
      * by smbus layer */
-    uint16_t rx_smbus_timestamp;
+    uint16_t rx_timestamp;
 
 } MCTP_PKT_BUF;
 
@@ -393,6 +395,16 @@ typedef struct MCTP_CFG_PARA
     /* byte value for selecting the i2c clock frequency upto 1 Mhz*/
     uint8_t smbus_speed;
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+    uint8_t spt_enable :1,
+            spt_channel :1,
+            spt_status :1,
+            spt_io_mode :1,
+            spt_tar_time : 3,
+            spt_rsvd :1;
+  
+    uint8_t spt_wait_time;    
+</#if>
 } MCTP_CFG_PARA;
 
 typedef struct MCTP_TX_CXT
@@ -442,6 +454,7 @@ typedef struct MCTP_IDENTITY
 *******************************************************************************/
 typedef struct MCTP_CONTEXT
 {
+   
     uint8_t i2c_bus_freq;
 
     uint16_t i2c_slave_addr;
@@ -450,6 +463,16 @@ typedef struct MCTP_CONTEXT
 
     uint8_t check_spdm_cmd;
 
+    uint8_t spt_io_mode;
+
+    uint8_t spt_wait_time;
+
+    uint8_t spt_tar_time;
+
+    uint8_t spt_channel;
+
+    uint8_t spt_enable;
+    
     /* Event group handle */
     EventGroupHandle_t xmctp_EventGroupHandle;
 
@@ -515,8 +538,9 @@ uint8_t mctp_get_packet_type(uint8_t *buffer_ptr);
 *******************************************************************************/
 uint32_t mctp_timer_difference(uint32_t start_time_val);
 
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>  
 /******************************************************************************/
-/** Store I2C parameters into MCTP context structure
+/** Store I2C Physical layer parameters into MCTP context structure
 * @param void
 * @return void
 *******************************************************************************/
@@ -528,15 +552,43 @@ void mctp_update_i2c_params(MCTP_CONTEXT* ret_mctp_ctxt);
 * @param void
 * @return void
 *****************************************************************/
-void mctp_i2c_update(uint16_t slv_addr, uint8_t freq);
+void mctp_i2c_update(uint16_t slv_addr, uint8_t freq, uint8_t eid);
 
 /****************************************************************/
-/** sb_mctp_enable
-* Enable MCTP module
+/** sb_mctp_i2c_enable
+* Enable MCTP module via I2C driver
 * @param void
 * @return void
 *****************************************************************/
-void sb_mctp_enable(void);
+void sb_mctp_i2c_enable(void);
+
+</#if>
+
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>  
+/******************************************************************************/
+/** Store SPT Physical layer parameters into MCTP context structure
+* @param void
+* @return void
+*******************************************************************************/
+void mctp_update_spt_params(MCTP_CONTEXT* ret_mctp_ctxt);
+
+/****************************************************************/
+/** mctp_spt_update
+* Updates SPT bus parameters
+* @param void
+* @return void
+*****************************************************************/
+void mctp_spt_update(uint8_t channel, uint8_t io_mode, uint8_t spt_wait_time,
+        uint8_t tar_time, uint8_t enable);
+
+/****************************************************************/
+/** sb_mctp_spt_enable
+* Enable MCTP module via SPI driver
+* @param void
+* @return void
+*****************************************************************/
+void sb_mctp_spt_enable(void);
+</#if>
 
 /******************************************************************************/
 /** UPDATES CURRENT_EID FIELD OF RESPECTIVE ENDPOINT OF MCTP BRIDGE ROUTING TABLE
@@ -561,11 +613,16 @@ extern void mctp_rtupdate_eid_state(uint8_t i);
 
 extern MCTP_BSS_ATTR struct MCTP_CFG_PARA mctp_cfg;
 
+<<<<<<< HEAD
 extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_rx[2];
+=======
+extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_rx[MCTP_MSG_CONTEXT];
+>>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 
 extern MCTP_BSS_ATTR uint8_t mctp_tx_state;
 
 extern MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
+extern MCTP_BSS_ATTR uint8_t mctp_wait_spt_callback;
 
 extern MCTP_BSS_ATTR uint8_t msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 <#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
@@ -574,6 +631,11 @@ extern MCTP_BSS_ATTR uint8_t is_pldm_request_firmware_update;
 
 MCTP_CONTEXT* mctp_ctxt_get(void);
 
+<<<<<<< HEAD
+=======
+uint16_t tx_time_get();
+
+>>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 /******************************************************************************/
 /** MCTP message context create
 * @param *pktbuf Pointer to smbus layer packet buffer
@@ -586,7 +648,11 @@ MCTP_IDENTITY * mctp_msg_ctxt_create(uint8_t *pkt_buf);
 * @param *pktbuf Pointer to smbus layer packet buffer
 * @return pointer to mctp contest if lookup is success, else NULL pointer
 *******************************************************************************/
+<<<<<<< HEAD
 MCTP_IDENTITY * mctp_msg_lookup(uint8_t *pkt_buf);
+=======
+MCTP_IDENTITY * mctp_msg_ctxt_lookup(uint8_t *pkt_buf);
+>>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 
 /******************************************************************************/
 /** MCTP message context create
@@ -614,6 +680,16 @@ MCTP_TX_CXT * mctp_msg_tx_ctxt_lookup (uint8_t src_eid, uint8_t dst_eid, uint8_t
 *******************************************************************************/
 void mctp_msg_ctxt_drop(MCTP_IDENTITY *mctp_ctxt);
 
+<<<<<<< HEAD
+=======
+/******************************************************************************/
+/** mctp_msg_ctxt_reset
+* @param *mctp_ctxt Context for which buffer parameters needs to be reset
+* @return none
+*******************************************************************************/
+void mctp_msg_ctxt_reset(MCTP_IDENTITY *mctp_ctxt);
+
+>>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 #ifdef __cplusplus
 }
 #endif

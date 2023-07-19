@@ -92,6 +92,7 @@ extern "C" {
 *******************************************************************************/
 extern MCTP_BSS_ATTR MCTP_PKT_BUF mctp_pktbuf[MCTP_PKT_BUF_NUM]__attribute__ ((aligned(8)));
 
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 /******************************************************************************/
 /** struct I2C_MAPP_CBK_NEW_TX
  * This structure is used to get information for new Tx from Application Callback
@@ -103,7 +104,22 @@ typedef struct I2C_MAPP_CBK_NEW_TX
     uint8_t WriteCount;       /**< Write Count */
     uint8_t pecEnable;        /**< PEC Enable/Disable Flag */
 } I2C_MAPP_CBK_NEW_TX;
+</#if>
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+/******************************************************************************/
+/** struct SPT_MAPP_CBK_NEW_TX
+ * This structure is used to get information for new Tx from Application Callback
+*******************************************************************************/
+typedef struct SPT_MAPP_CBK_NEW_TX
+{
+    uint8_t *buffer_ptr;      /**< Application buffer */
+    uint8_t WriteCount;       /**< Write Count */
+    uint8_t pecEnable;        /**< PEC Enable/Disable Flag */
+} SPT_MAPP_CBK_NEW_TX;
+</#if>
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 /******************************************************************************/
 /** enum i2c_master_busy_status 
  * Enumeration to denote whether master is busy or ready to send the next packet
@@ -150,7 +166,57 @@ enum i2c_slave_app_reg_status
     , I2C_SLAVE_APP_STATUS_APP_NOT_REGISTERED     /**< Application is not registered */
     , I2C_SLAVE_APP_STATUS_OK                     /**< Success status */
 };
+</#if>
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+/******************************************************************************/
+/** enum spt_busy_status 
+ * Enumeration to denote whether master is busy or ready to send the next packet
+ * on the bus
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * The SPT driver is expected to use the values in this enumeration
+ * when returning from mctp_spi_get_chan_busy_status interface function
+ * -----------------------
+ * Example:
+ * -----------------------
+ * Refer mctp_spi_get_chan_busy_status interface function
+ * ############################################################################
+*******************************************************************************/
+enum spi_busy_status
+{
+    SPT_TX_BUSY =0      /**< SPI is busy, retry after sometime */
+   , SPT_TX_AVAILABLE   /**< SPI is available, go ahead with transaction */
+};
+
+/******************************************************************************/
+/** enum spi_slave_app_reg_status 
+ * Enumeration to denote status codes for slave registration by application
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * The SPI driver is expected to use the values in this enumeration
+ * when returning from mctp_spi_rx_register interface function
+ * -----------------------
+ * Example:
+ * -----------------------
+ * Refer mctp_spi_rx_register interface function
+ * ############################################################################
+*******************************************************************************/
+enum spi_slave_app_reg_status
+{
+     SPT_SLAVE_APP_STATUS_ALREADY_REGISTERED = 0  /**< Application has already registered */
+    , SPT_SLAVE_APP_STATUS_APP_NOT_REGISTERED     /**< Application is not registered */
+    , SPT_SLAVE_APP_STATUS_OK                     /**< Success status */
+};
+</#if>
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 /******************************************************************************/
 /** Status codes for master transaction. The error codes are for Bus Error,
  * MNAKX and PEC Error. The success codes are for successful tx and successful
@@ -159,14 +225,14 @@ enum i2c_slave_app_reg_status
  * -----------------------
  * Usage notes:
  * -----------------------
- * The I2C driver is expected to use the values in this enumeration to communicate 
+ * The  driver is expected to use the values in this enumeration to communicate 
  * to the MCTP module about the packet transmission status 
  * -----------------------
  * Example:
  * -----------------------
- * Refer mctp_i2c_tx interface function
+ * Refer mctp_i2c_tx / mctp_spt_tx interface function
  *******************************************************************************/
-enum i2c_master_status
+enum mctp_tx_status
 {
     I2C_ERROR_BER_TIMEOUT =0        /**< Bus Error due to Timeout */
     , I2C_ERROR_BER_NON_TIMEOUT     /**< Bus Error due to Non Timeout */
@@ -180,8 +246,24 @@ enum i2c_master_status
     , I2C_SUCCESS_RX                /**< Successful Master Rx */
     , I2C_SUCCESS_TX_CHAINED        /**< Successful Master Tx for chained transfer - intermediate status*/
     , I2C_SUCCESS_RX_CHAINED        /**< Successful Master Rx for chained transfer - intermediate status*/
-};
 
+};
+</#if>
+
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+enum mctp_status_spt
+{
+    SPT_ERR_TIMEOUT =0        /**< Bus Error due to Timeout */
+    , SPT_PEC_ERROR                 /**< PEC Error */
+    , SPT_BUSY_TX        /** TX already in progress */
+    , SPT_ENABLE_ERROR
+    , SPT_TX_BUFF_ERROR
+    , SPT_SUCCESS_TX                /**< Successful Master Tx */
+
+};
+</#if>
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 /******************************************************************************/
 /** Application return values
  * Action codes to the I2C driver about the action to take for the current
@@ -206,7 +288,32 @@ enum i2c_application_return_values
     , I2C_APP_RETVAL_CHAINED_TX         /**< Application is continuing a chained TX transaction */
     , I2C_APP_RETVAL_CHAINED_TX_LAST    /**< Last request for a chained TX transaction */
 };
+</#if>
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+/******************************************************************************/
+/** Application return values
+ * Action codes to the SPT driver about the action to take for the current
+ * packet
+ * @note
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * The MCTP module will use the values in this enumeration to communicate to the
+ * SPT driver about the action to take with the current packet, when the spt driver
+ * communicates about the transmission status to the MCTP module (refer mctp_spt_tx)
+ * The SPT driver is expected to take relevent action
+ *******************************************************************************/
+enum spt_application_return_values
+{
+    SPT_APP_RETVAL_TX_DONE =0     /**< Application gets ready for next tx packet */
+    , SPT_APP_RETVAL_HOLD_SPT         /**< Application still acquires SPT */
+    , SPT_APP_RETVAL_RETRY              /**< Application wants to retry the current transaction */
+    , SPT_APP_RETVAL_NEW_TX             /**< Application wants to start new Master TX immediately */
+};
+</#if>
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 /******************************************************************************/
 /** i2c_bus_speed 
  * I2C bus speed values
@@ -240,7 +347,28 @@ enum i2c_slave_packet_status
     ,I2C_STATUS_BUFFER_DONE         /**< Packet accepted by application */
     ,I2C_STATUS_BUFFER_ERROR        /**< Packet not meant for this application */
 };
+</#if>
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+/******************************************************************************/
+/** spt_slave_packet_status 
+ * Values used by MCTP module to return the status of packet acceptance
+ * @note
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * The values in this enum are used by MCTP module to notify the SPT driver 
+ * if it accepted the provided packet or not
+ *******************************************************************************/
+enum spt_slave_packet_status
+{
+    SPT_STATUS_BUFFER_NOT_DONE= 0 ,  /**< Packet not accepted, since application is busy */
+    SPT_STATUS_BUFFER_DONE,         /**< Packet accepted by application */
+    SPT_STATUS_BUFFER_ERROR,        /**< Packet not meant for this application */     
+};
+</#if>
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 /******************************************************************************/
 /** i2c_slave_transmit_status 
  * Values used by MCTP module to check for i2c slave transmit protocol
@@ -257,9 +385,10 @@ enum i2c_slave_transmit_status
     I2C_SLAVE_TRANSMIT_FALSE = false    /**< Slave Transmit phase not required */
     ,I2C_SLAVE_TRANSMIT_TRUE= true      /**< Slave Transmit phase required */
 };
+</#if>
 
 /******************************************************************************/
-/** struct I2C_BUFFER_INFO
+/** struct MCTP_BUFFER_INFO
  * This structure is used to store information of a slave receive buffer XmitCount
  * is used along with slaveXmitDoneFlag for chaining slave transmit data
  * @note
@@ -267,14 +396,14 @@ enum i2c_slave_transmit_status
  * -----------------------
  * Usage notes:
  * -----------------------
- * The I2C driver is expected allocate a structure of this type and use it
+ * The I2C/SPT driver is expected allocate a structure of this type and use it
  * to pass information to MCTP module about the received packet
  * -----------------------
  * Example:
  * -----------------------
- * Refer I2C_SLAVE_FUNC_PTR
+ * Refer MCTP_SLAVE_FUNC_PTR
 *******************************************************************************/
-typedef struct I2C_BUFFER_INFO
+typedef struct MCTP_BUFFER_INFO
 {
     uint8_t *   buffer_ptr;          /**< Pointer to buffer memory */
     uint16_t    TimeStamp;           /**< Packet received timestamp */
@@ -282,14 +411,17 @@ typedef struct I2C_BUFFER_INFO
     uint8_t     XmitCount;           /**< Number of times slave has transmitted using this buffer for this transaction */
     uint8_t     RxCount;             /**< Number of times slave has received using this buffer for this transaction */
     uint8_t     pecFlag;             /**< PEC valid/invalid flag */
-    uint8_t     slaveXmitDoneFlag;   /**< Flag indicating if xmit is completed by slave application */
     uint8_t     channel;             /**< Channel on which this packet is received */
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
+    uint8_t     slaveXmitDoneFlag;   /**< Flag indicating if xmit is completed by slave application */
     bool        sdoneFlag;           /**< Flag to indicate if SDONE occured for this buffer */
-} I2C_BUFFER_INFO;
+</#if>
+} MCTP_BUFFER_INFO;
+
 
 /******************************************************************************/
-/** I2C_SLAVE_FUNC_PTR - Slave application function pointer
- * The first argument is pointer to I2C_BUFFER_INFO structure which will contain
+/** MCTP_SLAVE_FUNC_PTR - Slave application function pointer
+ * The first argument is pointer to MCTP_BUFFER_INFO structure which will contain
  * details of the packet received. The second parameter is flag to indicate
  * slave transmit phase. In case of slave transmit phase, the application
  * should provide the data to be transmitted in the same buffer and indicate
@@ -299,7 +431,7 @@ typedef struct I2C_BUFFER_INFO
  * -----------------------
  * Usage notes:
  * -----------------------
- * The I2C driver is expected allocate a structure of this type and use it
+ * The I2C/SPT driver is expected allocate a structure of this type and use it
  * to pass information to MCTP module about the received packet
  * -----------------------
  * Example:
@@ -310,7 +442,7 @@ typedef struct I2C_BUFFER_INFO
  *     uint8_t len;
  * };
  * struct i2c_packet i2c_pkt[MAX_I2C_CHANNELS];
- * I2C_BUFFER_INFO i2c_rx_packet;
+ * MCTP_BUFFER_INFO i2c_rx_packet;
  * 
  * uint8_t i2c_store_rxd_pkt(channel, uint8_t *data, uint8_t len)
  * {
@@ -339,12 +471,14 @@ typedef struct I2C_BUFFER_INFO
  * ############################################################################
  * ############################################################################
 *******************************************************************************/
-typedef uint8_t (*I2C_SLAVE_FUNC_PTR)(I2C_BUFFER_INFO *buffer_info, 
+typedef uint8_t (*MCTP_SLAVE_FUNC_PTR)(MCTP_BUFFER_INFO *buffer_info, 
                                       uint8_t slaveTransmitFlag);
 
 /******************************************************************************/
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 /** I2C_MASTER_FUNC_PTR - Master transmit status function pointer
- * This function pointer should be saved by the I2C driver and called later
+ * This function pointer should be saved by the driver and called later
  * to inform the MCTP module about the status of the packet transmission.
  * The first parameters should contain the channel information
  * The second parameter should contian the packet transmission status,
@@ -535,8 +669,153 @@ extern uint8_t mctp_i2c_tx(const uint8_t channel,
  * ############################################################################
 *******************************************************************************/
 extern uint8_t mctp_i2c_rx_register(const uint8_t channel, 
-                            I2C_SLAVE_FUNC_PTR slaveFuncPtr);
+                            MCTP_SLAVE_FUNC_PTR slaveFuncPtr);
+</#if>
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
+/** SPT_TX_FUNC_PTR - Master transmit status function pointer
+ * This function pointer should be saved by the driver and called later
+ * to inform the MCTP module about the status of the packet transmission.
+ * The first parameters should contain the channel information
+ * The second parameter should contian the packet transmission status,
+ * refer enum MasterStatus for a list of valid values
+ * The third parameter should contain a pointer to the transmit buffer being 
+ * containing the packet currently being transmitted
+ * The fourth parameter is reserved for furture use and is currently ignored
+ * by the MCTP module
+ * A function of this type will return a status code to the caller which 
+ * will be of type enum ApplicationReturnValues
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * When MCTP module initiates a packet transmission using mctp_spt_tx interface
+ * function, it also provides a pointer to a function of this type to the 
+ * I2C driver, which is expected to be saved by the I2C driver. The I2C driver
+ * is then expected to call this function after every packet sent on the bus
+ * to inform the MCTP module about the status of the transmission. Based on 
+ * status code, mctp layer will schedule re-transmission of packet or drop the 
+ * packet / mark buffer available by returning one of the values of type 
+ * enum ApplicationReturnValues
+ * -----------------------
+ * Example:
+ * -----------------------
+ * Refer mctp_spt_tx interface function
+ * ############################################################################
+*******************************************************************************/
+typedef uint8_t (*SPT_TX_FUNC_PTR)(uint8_t channel, 
+                                       uint8_t status, 
+                                       uint8_t *buffer_ptr, 
+                                       SPT_MAPP_CBK_NEW_TX *newTxParams);
+
+/******************************************************************************/
+/** mctp_spt_tx
+ * Initiates SPI Target operation
+ * @param channel          SPI Target channel
+ * @param buffer_ptr       Buffer for the SPT(SPI Target) transaction
+ * @param pecEnable        Flag to enable/disable PEC
+ * @param WriteCount       Number of bytes to transmit
+ * @param di_master_req    Data Isolation structure
+ * @param readChainedFlag  flag to indicate if read needs to be done
+ *                         using dma chaining
+ * @param writeChainedFlag flag to indicate if write needs to be done
+ *                         using dma chaining
+ * @return                 SPT_TX_OK on success, SPT_TX_BUSY if previous
+ *                         TX is in progress
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the MCTP module whenever it wants to
+ * initiate a transaction on the bus. If this function returns
+ * SPT_TX_BUSY, the MCTP module will retry after some time
+ * This function should be defined by the user and a call to the
+ * driver spt  write function should be made inside the body.
+ * If the user SPT driver is busy carrying out some other operation
+ * the user should return SPT_BUSY otherwise the user should return 
+ * SPT_TX_OK while exiting this function.
+ * -----------------------
+ * Example:
+ * -----------------------
+ * SPT_TX_FUNC_PTR spt_tx_status i2c_tx_status_cb;
+ * uint8_t spt_tx_status[MAX_SPT_CHANNELS];
+ * uint8_t spt_tx_done[MAX_SPT_CHANNELS];
+ * uint8_t *tx_buffer = NULL;
+ * uint8_t mctp_spt_tx(const uint8_t channel, uint8_t *buffer_ptr,  
+ *                     const uint8_t writeCount, SPT_TX_FUNC_PTR func_ptr, const uint8_t pecEnable, 
+ *                     const uint8_t readChainedFlag, const uint8_t writeChainedFlag);
+ * {
+ *     uint8_t status = MASTER_OK;
+ *     spt_tx_status[channel] = SUCCESS_TX;
+ *     spt_tx_status_cb = func_ptr;
+ *     tx_buffer = buffer_ptr;
+ *     status = spt_write(channel, buffer_ptr, writeCount, pecEnable);
+ *     if(status < 0)
+ *     {
+ *          status = SPT_TX_BUSY ;
+ *     }
+ *     return status;
+ * }
+*******************************************************************************/
+extern uint8_t mctp_spt_tx(const uint8_t channel, 
+                    uint8_t *buffer_ptr, 
+                    const uint8_t writeCount, 
+                    const uint8_t pecEnable, 
+                    SPT_TX_FUNC_PTR func_ptr, 
+                    const uint8_t readChainedFlag,
+                    const uint8_t writeChainedFlag);
+/******************************************************************************/
+/** mctp_spt_rx_register
+ * This function registers a SPT(SPI Target) application
+ * @channel the channel on which the slave is registered
+ * @param slaveFuncPtr The application function to call on receiving a packet
+ * @return             SPT_SLAVE_APP_STATUS_OK on successful registration, 
+ *                     else error status
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * Whenever an application expects data from SPT, it
+ * needs to register using this function.
+ * The application function that is registered should only copy the
+ * packet from SPT buffer, it should not the process the data in that
+ * function
+ * -----------------------
+ * Example:
+ * -----------------------
+ * MCTP_SLAVE_FUNC_PTR mctp_rx_cb[MAX_SPT_CHANNELS];
+ * uint8_t mctp_spt_rx_register(const uint8_t channel, MCTP_SLAVE_FUNC_PTR slaveFuncPtr)
+ * {
+ *     uint8_t status = SPT_SLAVE_APP_STATUS_APP_NOT_REGISTERED;
+ *      
+ *     do
+ *     {
+ *         if(channel > MAX_SPT_CHANNELS)
+ *         {
+ *             status = SPT_SLAVE_APP_STATUS_APP_NOT_REGISTERED;
+ *             break;
+ *         }
+ *         
+ *         if(mctp_rx_cb[channel] != NULL)
+ *         {
+ *             status = SPT_SLAVE_APP_STATUS_ALREADY_REGISTERED;
+ *             break;
+ *         }
+ *         mctp_rx_cb[channel] = slaveFuncPtr;
+ *         status = SPT_SLAVE_APP_STATUS_OK;
+ *     }
+ *     while(0);
+ * }
+ * ############################################################################
+*******************************************************************************/
+extern uint8_t mctp_spt_rx_register(const uint8_t channel, 
+                            MCTP_SLAVE_FUNC_PTR slaveFuncPtr);
+</#if>
+
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")> 
 /******************************************************************************/
 /** mctp_i2c_configure_and_enable
  * This function can be used to start and enable the i2c controller
@@ -644,6 +923,106 @@ extern uint8_t mctp_i2c_get_chan_busy_status(uint8_t channel);
  * ############################################################################
  ******************************************************************************/
 extern uint16_t mctp_i2c_get_current_timestamp(void);
+</#if>
+
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+/******************************************************************************/
+/** mctp_spt_configure_and_enable
+ * This function can be used to start and enable the SPI Target(SPT)
+ * @param channel     channel (SPT Channel number)
+ * @param io_mode     SINGLE/QUAD
+ * @param wait_time   SPT Wait cycles
+ * @param tar_time    SPT Turn around time
+ * @param pec_enable  PEC Enable(1)/ disable (0)
+ * @return            None
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the MCTP task with all parameters being populated
+ * from the user selection in MCC project configuration. The user is expected
+ * to define this function in his application and call their SPT driver 
+ * initialization routine making use of parameters as needed by the driver
+ * routine. 
+ * -----------------------
+ * Example:
+ * -----------------------
+ * void mctp_spt_configure_and_enable(uint8_t channel, 
+ *                                    uint8_t io_mode, 
+ *                                    uint8_t wait_time, 
+ *                                    uint8_t tar_time,
+ *                                    uint8_t pec_enable)
+ * {
+ *      spt_config_and_enable(channel, io_mode, wait_time, tar_time, pec);
+ * }
+ * ############################################################################
+*******************************************************************************/
+extern void mctp_spt_configure_and_enable(uint8_t channel, 
+                                   uint8_t io_mode, 
+                                   uint8_t wait_time, 
+                                   uint8_t tar_time, 
+                                   uint8_t pec_enable);
+
+/******************************************************************************/
+/** mctp_spt_get_chan_busy_status
+ * This function checks if SPT resource is available on a given
+ * channel
+ * @param channel SPT channel
+ * @return SPT_TX_
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the MCTP module to check if an I2C channel is
+ * busy performing some other operation. The MCTP module will wait for the 
+ * I2C channel to be free before calling mctp_i2c_tx interface function. The
+ * user is expected to define this function in his application and call their
+ * i2c driver function inside the body to check for channel busy status. Refer
+ * enum master_busy_status
+ * -----------------------
+ * Example:
+ * -----------------------
+ * uint8_t mctp_spt_get_chan_busy_status(uint8_t channel)
+ * {
+ *      uint8_t status = SPT_TX_BUSY;
+ *      if(spt_check_channel_busy(channel) == False)
+ *      {
+ *          status = I2C_MASTER_AVAILABLE
+ *      }
+ *      return status;
+ * }
+ * ############################################################################
+*******************************************************************************/
+extern uint8_t mctp_spt_get_chan_busy_status(uint8_t channel);
+
+/******************************************************************************/
+/** mctp_spt_get_current_timestamp
+ * Function to retrieve the current timestamp
+ * @param None
+ * @return 16-bit timestamp value
+ * @note
+ * ############################################################################
+ * -----------------------
+ * Usage notes:
+ * -----------------------
+ * This function is called by the MCTP module to check if for packet timeouts.
+ * The user expected to define this function and call xTaskGetTickCount()
+ * API of FreeRTOS depending on the rate at which their i2c driver task is
+ * running
+ * -----------------------
+ * Example:
+ * -----------------------
+ * Assume user SPT driver task running every 10 RTOS ticks
+ * uint16_t mctp_spt_get_current_timestamp(void)
+ * {
+ *     return (uint16_t) (xTaskGetTickCount() / 10);
+ * }
+ * ############################################################################
+ ******************************************************************************/
+extern uint16_t mctp_spt_get_current_timestamp(void);
+</#if>
 
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
 /******************************************************************************/

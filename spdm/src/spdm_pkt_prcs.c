@@ -698,7 +698,7 @@ void spdm_init_task(SPDM_CONTEXT *spdmContext)
     spdm_pktbuf[0].smbus_lab_retry_count = 0;
     spdm_pktbuf[0].request_tx_retry_count = 0;
     spdm_pktbuf[0].request_per_tx_timeout_count = 0;
-    spdm_pktbuf[0].rx_smbus_timestamp = 0;
+    spdm_pktbuf[0].rx_timestamp = 0;
     spdm_tx_state = SPDM_TX_IDLE;
     // initialize table entry buffers
     for (iter = 0; iter < SPDM_VER_NUM_ENTRY_COUNT; iter++)
@@ -2153,7 +2153,7 @@ void spdm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *spdm_buf_tx, MCTP_PKT_
     /* integrity check */
     mctp_buf->pkt.field.hdr.integrity_check = 0;
 
-    mctp_buf->rx_smbus_timestamp = spdm_buf_tx->rx_smbus_timestamp;
+    mctp_buf->rx_timestamp = spdm_buf_tx->rx_timestamp;
 
     switch (cmd_resp)
     {
@@ -3619,7 +3619,7 @@ void spdm_pkt_rcv_packet()
                 ret_sts = spdm_pkt_fill_buffer(spdm_msg_rx_buf, spdmContext);
                 if (!ret_sts)
                 {
-                    time_stamp = spdm_msg_rx_buf->rx_smbus_timestamp;
+                    time_stamp = spdm_msg_rx_buf->rx_timestamp;
                 }
             }
             else
@@ -3638,7 +3638,7 @@ void spdm_pkt_rcv_packet()
                     {
                         spdm_tx_state = SPDM_RX_LAST_PKT;
                         pld_index = 0;
-                        time_stamp = spdm_msg_rx_buf->rx_smbus_timestamp;
+                        time_stamp = spdm_msg_rx_buf->rx_timestamp;
                     }
                     else
                     {
@@ -3663,7 +3663,7 @@ void spdm_pkt_rcv_packet()
             // reached here means spdm request need to be processed for validation
             spdm_buf_tx = (MCTP_PKT_BUF *)&spdm_pktbuf[0];
             memset(spdm_buf_tx, 0, MCTP_PKT_BUF_DATALEN);
-            spdm_buf_tx->rx_smbus_timestamp = time_stamp;
+            spdm_buf_tx->rx_timestamp = time_stamp;
             get_cmd = (get_mctp_pld[1] & 0xff); // get the spdm command
 
             ret_sts = spdm_pkt_validate_and_process_spdm_msg(get_cmd, spdm_buf_tx, spdmContext);

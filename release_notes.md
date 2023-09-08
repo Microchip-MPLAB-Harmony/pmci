@@ -3,11 +3,13 @@
 
 # Microchip MPLAB® Harmony 3 Release Notes
 
-## PMCI Release v3.1.0
+## PMCI Release v3.0.1
     
 ### New Features
     
 - Added PLDM stack
+
+- Added SPI peripheral target support in MCTP stack
     
 - **Applications**
   

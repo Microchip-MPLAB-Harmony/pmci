@@ -108,6 +108,8 @@ typedef struct PLDM_CONTEXT
 
     uint8_t expected_pkt_sequence;
 
+    uint8_t pldm_cmd_code;
+    
     /* PLDM timeout response Timer Handle*/
     TimerHandle_t xPLDMRespTimer;
 

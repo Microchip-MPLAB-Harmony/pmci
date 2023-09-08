@@ -171,21 +171,23 @@ static void mctp_main(void* pvParameters)
     while(true)
     {
         uxBits = xEventGroupWaitBits((mctpContext->xmctp_EventGroupHandle),
-                                     (MCTP_EVENT_BIT | MCTP_ENABLE_BIT | MCTP_EVENT_BIT),
+                                     (MCTP_EVENT_BIT | MCTP_I2C_ENABLE_BIT |
+                                      MCTP_EVENT_BIT | MCTP_SPT_CTRL_BIT),
                                      pdTRUE,
                                      pdFALSE,
                                      portMAX_DELAY);
-
-        if(MCTP_ENABLE_BIT == (uxBits & MCTP_ENABLE_BIT))
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
+        if(MCTP_I2C_ENABLE_BIT == (uxBits & MCTP_I2C_ENABLE_BIT))
         {
-<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>  
             (void)mctp_smbus_init();
-</#if>
-<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>  
-            (void)mctp_spt_init();
-</#if>
         }
-
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+        if(MCTP_SPT_CTRL_BIT == (uxBits & MCTP_SPT_CTRL_BIT))
+        {
+            (void)mctp_spt_init();
+        }
+</#if>
         if(MCTP_EVENT_BIT == (uxBits & MCTP_EVENT_BIT))
         {
             mctp_event_task();

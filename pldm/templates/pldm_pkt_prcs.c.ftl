@@ -1805,10 +1805,7 @@ void pldm_pkt_rcv_packet()
         pldmContext->pldm_host_slv_addr = pldm_msg_rx_buf->pkt.field.hdr.src_addr;
         pldmContext->pldm_instance_id = pldm_msg_rx_buf->pkt.field.hdr.inst_id;
         pldmContext->pldm_message_tag = pldm_msg_rx_buf->pkt.field.hdr.msg_tag;
-<<<<<<< HEAD
-=======
         pldmContext->pldm_cmd_code = pldm_msg_rx_buf->pkt.field.hdr.cmd_code;
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 
         if(pldmContext->pldm_tx_state == PLDM_TX_IDLE || pldmContext->pldm_tx_state == PLDM_PACKETIZING)
         {

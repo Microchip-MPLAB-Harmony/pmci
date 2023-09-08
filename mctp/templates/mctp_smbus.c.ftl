@@ -45,16 +45,11 @@
 #include "mctp_task.h"
 #include "mctp_config.h"
 
-<<<<<<< HEAD
-MCTP_BSS_ATTR static uint8_t get_packet_len = 0x00;
-MCTP_BSS_ATTR static uint16_t smb_rx_index = 0x00;
-=======
 extern MCTP_BSS_ATTR UINT8 mctp_tx_state;
 extern MCTP_BSS_ATTR MCTP_PKT_BUF mctp_pktbuf[MCTP_PKT_BUF_NUM]__attribute__ ((aligned(8)));
 
 extern MCTP_BSS_ATTR UINT8 mctp_wait_smbus_callback;
 extern MCTP_BSS_ATTR UINT8 is_pldm_request_firmware_update;
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 extern MCTP_BSS_ATTR UINT8 msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 
 /******************************************************************************/
@@ -150,18 +145,11 @@ uint8_t mctp_receive_smbus(MCTP_BUFFER_INFO *buffer_info, uint8_t slaveTransmitF
         /* call mctp packet routing function */
         if(0U != mctp_packet_routing(buffer_info))
         {
-<<<<<<< HEAD
-            smb_rx_index = 0;
-=======
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
             return (uint8_t)I2C_STATUS_BUFFER_ERROR;
         }
     }
     else
-<<<<<<< HEAD
-=======
     {
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
         spdm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF3];
         memset(spdm_msg_rx_buf, 0, MCTP_PKT_BUF_DATALEN);
@@ -180,47 +168,6 @@ uint8_t mctp_receive_smbus(MCTP_BUFFER_INFO *buffer_info, uint8_t slaveTransmitF
 
 } /* End mctp_receive_smbus() */
 
-<<<<<<< HEAD
-/******************************************************************************/
-/** This is called when packet received over smbus and the packet is 
-* meant for SPDM or PLDM modules
-* @param rx_packet_len - length of the received packet
-* @param buffer_info - pointer to store the packetized data
-* @param rx_buf - pointer to the received data
-* @return void
-*******************************************************************************/
-uint8_t packetize_data(uint8_t rx_packet_len, MCTP_BUFFER_INFO *buffer_info, MCTP_PKT_BUF *rx_buf)
-{
-    uint8_t i;
-    uint8_t ret_val = MCTP_SUCCESS;
-    uint16_t packet_len = 0;
-
-    for(i = 0; i < rx_packet_len; i++)
-    {
-        rx_buf->pkt.data[i] = buffer_info->buffer_ptr[i];
-    }
-
-    packet_len = rx_packet_len;
-
-    smb_rx_index = smb_rx_index + packet_len;
-
-    if (smb_rx_index > INPUT_BUF_MAX_BYTES)//if no of bytes received cross max input buffer size of 1023
-    {
-        smb_rx_index = 0;
-        ret_val = MCTP_FAILURE;
-    }
-    else if((buffer_info->buffer_ptr[MCTP_PKT_TO_MSGTAG_POS]& MCTP_EOM_REF_MSK) == MCTP_EOM_REF)
-    {
-        smb_rx_index = 0;
-    }
-    else
-    {
-        /* Invalid */;
-    }
-    return ret_val;
-}
-=======
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 
 /******************************************************************************/
 /** This is called when MCTP packet is to be transmitted over smbus.
@@ -279,21 +226,12 @@ uint8_t mctp_smbmaster_done(uint8_t channel, uint8_t status, uint8_t *buffer_ptr
 
     /* get current TX buffer pointer */
     tx_buf = (MCTP_PKT_BUF *)((void *) buffer_ptr);
-<<<<<<< HEAD
-
-=======
     
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
     mctp_tx_ctxt = mctp_msg_tx_ctxt_lookup(tx_buf->pkt.field.hdr.src_eid,tx_buf->pkt.field.hdr.dst_eid,
                                 tx_buf->pkt.field.hdr.msg_tag);
     if (mctp_tx_ctxt != NULL) {
         msg_type_tx = mctp_tx_ctxt->message_type;
     }
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 <#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     if(msg_type_tx == MCTP_IC_MSGTYPE_SPDM)
     {
@@ -479,10 +417,6 @@ void mctp_smbdone_drop(MCTP_PKT_BUF *pkt_buf)
     pkt_buf->request_tx_retry_count = 0;
     pkt_buf->request_per_tx_timeout_count = 0;
     pkt_buf->rx_timestamp = 0;
-<<<<<<< HEAD
-
-=======
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 } /* End mctp_smbdone_drop */
 
 /******************************************************************************/

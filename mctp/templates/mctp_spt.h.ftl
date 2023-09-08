@@ -1,6 +1,6 @@
 <#--
 /*******************************************************************************
-  MCTP Freemarker Template File
+  MCTP-SPT Freemarker Template File
 
   Company:
     Microchip Technology Inc.
@@ -9,7 +9,7 @@
    mctp_spt.h.ftl
 
   Summary:
-    MCTP Freemarker Template File
+    MCTP-SPT Freemarker Template File
 
   Description:
 

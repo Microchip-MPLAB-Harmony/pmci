@@ -2129,7 +2129,7 @@ void spdm_pkt_populate_mctp_packet_for_resp(MCTP_PKT_BUF *spdm_buf_tx, MCTP_PKT_
     mctp_buf->pkt.field.hdr.dst_addr = spdmContext->host_slv_addr;
     mctp_buf->pkt.field.hdr.rw_dst = 0;
     /*  Command Code */
-    mctp_buf->pkt.field.hdr.cmd_code = MCTP_SMBUS_HDR_CMD_CODE;
+    mctp_buf->pkt.field.hdr.cmd_code = spdmContext->spdm_cmd_code;
     /* Source Slave address*/
     mctp_buf->pkt.field.hdr.src_addr = spdmContext->ec_slv_addr;
     mctp_buf->pkt.field.hdr.ipmi_src = 1;
@@ -3608,7 +3608,8 @@ void spdm_pkt_rcv_packet()
         spdmContext->ec_slv_addr = spdm_msg_rx_buf->pkt.field.hdr.dst_addr;
         spdmContext->host_slv_addr = spdm_msg_rx_buf->pkt.field.hdr.src_addr;
         spdmContext->message_tag = spdm_msg_rx_buf->pkt.field.hdr.msg_tag;
-
+        spdmContext->spdm_cmd_code = spdm_msg_rx_buf->pkt.field.hdr.cmd_code;
+        
         if (spdm_tx_state == SPDM_TX_IDLE || spdm_tx_state == SPDM_PACKETIZING)
         {
             // check if MCTP packet received is single packet request

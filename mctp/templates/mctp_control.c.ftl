@@ -77,11 +77,15 @@ uint8_t mctp_packet_routing(MCTP_BUFFER_INFO *buffer_info)
         ret_value = mctp_copy_rxpkt_for_ec(buffer_info);
         break;
     case MCTP_IC_MSGTYPE_SPDM:
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>    
         ret_value = mctp_copy_rx_for_spdm_for_ec(buffer_info);
         break;
+</#if>
+<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
     case MCTP_IC_MSGTYPE_PLDM:
         ret_value = mctp_copy_rx_for_pldm_for_ec(buffer_info);
         break;
+</#if>
     default:
         ret_value = MCTP_FAILURE;
         break;
@@ -560,16 +564,6 @@ void mctp_fill_control_msg_header(MCTP_PKT_BUF *rx_buf, MCTP_PKT_BUF *tx_resp_bu
 void mctp_clean_up_buffer_states(void)
 {
     uint8_t i = 0;
-<<<<<<< HEAD
-
-    for (i = 0 ; i < 2; i ++) {
-        mctp_rx[i].buf_size = 0;
-        mctp_rx[i].message_tag = 0;
-        mctp_rx[i].message_type = MCTP_IC_MSGTYPE_UNKNWN;
-        mctp_rx[i].packet_seq = 0;
-    }
-=======
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 
     for (i = 0 ; i < 2; i ++) {
         mctp_rx[i].buf_size = 0;

@@ -612,15 +612,8 @@ extern void mctp_rtupdate_eid_type(uint8_t i);
 extern void mctp_rtupdate_eid_state(uint8_t i);
 
 extern MCTP_BSS_ATTR struct MCTP_CFG_PARA mctp_cfg;
-
-<<<<<<< HEAD
-extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_rx[2];
-=======
 extern MCTP_BSS_ATTR struct MCTP_IDENTITY mctp_rx[MCTP_MSG_CONTEXT];
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
-
 extern MCTP_BSS_ATTR uint8_t mctp_tx_state;
-
 extern MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
 extern MCTP_BSS_ATTR uint8_t mctp_wait_spt_callback;
 
@@ -631,11 +624,8 @@ extern MCTP_BSS_ATTR uint8_t is_pldm_request_firmware_update;
 
 MCTP_CONTEXT* mctp_ctxt_get(void);
 
-<<<<<<< HEAD
-=======
 uint16_t tx_time_get();
 
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 /******************************************************************************/
 /** MCTP message context create
 * @param *pktbuf Pointer to smbus layer packet buffer
@@ -648,11 +638,7 @@ MCTP_IDENTITY * mctp_msg_ctxt_create(uint8_t *pkt_buf);
 * @param *pktbuf Pointer to smbus layer packet buffer
 * @return pointer to mctp contest if lookup is success, else NULL pointer
 *******************************************************************************/
-<<<<<<< HEAD
-MCTP_IDENTITY * mctp_msg_lookup(uint8_t *pkt_buf);
-=======
 MCTP_IDENTITY * mctp_msg_ctxt_lookup(uint8_t *pkt_buf);
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 
 /******************************************************************************/
 /** MCTP message context create
@@ -680,8 +666,6 @@ MCTP_TX_CXT * mctp_msg_tx_ctxt_lookup (uint8_t src_eid, uint8_t dst_eid, uint8_t
 *******************************************************************************/
 void mctp_msg_ctxt_drop(MCTP_IDENTITY *mctp_ctxt);
 
-<<<<<<< HEAD
-=======
 /******************************************************************************/
 /** mctp_msg_ctxt_reset
 * @param *mctp_ctxt Context for which buffer parameters needs to be reset
@@ -689,7 +673,6 @@ void mctp_msg_ctxt_drop(MCTP_IDENTITY *mctp_ctxt);
 *******************************************************************************/
 void mctp_msg_ctxt_reset(MCTP_IDENTITY *mctp_ctxt);
 
->>>>>>> a139cf5 (MCTP SPT stack changes SOTG3-1543)
 #ifdef __cplusplus
 }
 #endif

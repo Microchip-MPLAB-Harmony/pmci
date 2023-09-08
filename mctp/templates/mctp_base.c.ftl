@@ -43,7 +43,7 @@ MCTP_BSS_ATTR MCTP_PKT_BUF mctp_pktbuf[MCTP_PKT_BUF_NUM]__attribute__ ((aligned(
 
 /* mctp tx state machine variables */
 MCTP_BSS_ATTR uint8_t mctp_tx_state;
-MCTP_BSS_ATTR static uint8_t mctp_txbuf_index;
+MCTP_BSS_ATTR uint8_t mctp_txbuf_index;
 MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
 MCTP_BSS_ATTR uint8_t mctp_wait_spt_callback;
 MCTP_BSS_ATTR uint8_t active_pkt_msg_type_rx; // pldm or spdm or mctp
@@ -207,6 +207,7 @@ void mctp_init_task(void)
     mctp_cfg.spt_tar_time = 3;
     mctp_cfg.spt_wait_time = 4;
 </#if>
+    mctp_cfg.mctp_discovery = (uint8_t)false;
 } /* End mctp_init_task(void) */
 
 /******************************************************************************/
@@ -641,10 +642,12 @@ void mctp_event_tx_handler(void)
             tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
             if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
             {
+                mctp_wait_smbus_callback = 1;
                 mctp_transmit_smbus(tx_buf);
             }
             else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
             {
+                mctp_wait_spt_callback = 1;
                 mctp_transmit_spt(tx_buf);
             }
 </#if>

@@ -75,20 +75,6 @@ extern "C" {
 **********************************************************************/
 extern TaskHandle_t mctp_task1_get_handle(void);
 
-#define SET_MCTP_EVENT_TASK(mctp)   SET_MCTP_EVENT_FLAG()
-
-<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
-void SET_SPDM_EVENT_FLAG(void);
-#define SET_EVENT_SPDM_TASK(spdm)   SET_SPDM_EVENT_FLAG()
-</#if>
-<#if MCTP_IS_PLDM_COMPONENT_CONNECTED == true>
-void SET_PLDM_RESP_EVENT_FLAG(void);
-#define SET_EVENT_PLDM_TASK_RESP(pldm)   SET_PLDM_RESP_EVENT_FLAG()
-
-void SET_PLDM_EVENT_FLAG(void);
-#define SET_EVENT_PLDM_TASK(pldm)   SET_PLDM_EVENT_FLAG()
-</#if>
-
 #ifdef __cplusplus
 }
 #endif

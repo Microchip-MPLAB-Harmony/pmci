@@ -6,10 +6,10 @@
     Microchip Technology Inc.
 
   File Name:
-   mctp_task.h.ftl
+   spt_task.h.ftl
 
   Summary:
-    MCTP Freemarker Template File
+    SPT Freemarker Template File
 
   Description:
 

@@ -52,9 +52,9 @@ extern "C" {
 <#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>  
 #define MCTP_I2C_PORT                          ${MCTP_I2C_PORT}U
 #define MCTP_I2C_CHANNEL                       ${MCTP_I2C_CONTROLLER}U
-<#if MCTP_I2C_CLK_FREQ == "1000" || (MCTP_PHY_LAYER =="I2C+SPI")>
+<#if MCTP_I2C_CLK_FREQ == "1000" >
 #define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_1MHZ
-<#elseif MCTP_I2C_CLK_FREQ == "400" || (MCTP_PHY_LAYER =="I2C+SPI")>
+<#elseif MCTP_I2C_CLK_FREQ == "400">
 #define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_400KHZ
 <#else> <#-- MCTP_I2C_CLK_FREQ == 100 -->
 #define MCTP_I2C_CLK_FREQ                      I2C_BUS_SPEED_100KHZ

@@ -111,6 +111,8 @@ typedef struct PLDM_CONTEXT
 
     uint16_t pldm_current_request_length;
     
+    uint8_t pldm_cmd_code;
+
     /* PLDM timeout response Timer Handle*/
     TimerHandle_t xPLDMRespTimer;
 
@@ -140,6 +142,8 @@ typedef struct SPDM_CONTEXT
     uint8_t host_slv_addr;
 
     uint8_t message_tag;
+
+    uint8_t spdm_cmd_code;
 
     /* Event group handle */
     EventGroupHandle_t xSPDMEventGroupHandle;

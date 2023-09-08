@@ -3,7 +3,7 @@
 
 # Microchip MPLAB® Harmony 3 Release Notes
 
-## PMCI Release v3.0.1
+## PMCI Release v3.1.0
     
 ### New Features
     

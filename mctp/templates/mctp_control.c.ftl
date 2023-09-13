@@ -76,8 +76,8 @@ uint8_t mctp_packet_routing(MCTP_BUFFER_INFO *buffer_info)
     case MCTP_IC_MSGTYPE_CONTROL:
         ret_value = mctp_copy_rxpkt_for_ec(buffer_info);
         break;
+<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>
     case MCTP_IC_MSGTYPE_SPDM:
-<#if MCTP_IS_SPDM_COMPONENT_CONNECTED == true>    
         ret_value = mctp_copy_rx_for_spdm_for_ec(buffer_info);
         break;
 </#if>

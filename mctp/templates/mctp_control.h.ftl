@@ -264,7 +264,7 @@ uint8_t mctp_copy_rx_for_spdm_for_ec(MCTP_BUFFER_INFO *buffer_info);
 * @param *buffer_info Pointer to BUFFER_INFO structure of smbus layer
 * @return void
 ***********************************************************************************************/
-UINT8 mctp_copy_rx_for_pldm_for_ec(MCTP_BUFFER_INFO *buffer_info);
+uint8_t mctp_copy_rx_for_pldm_for_ec(MCTP_BUFFER_INFO *buffer_info);
 </#if>
 
 extern MCTP_BSS_ATTR MCTP_ROUTING_TABLE mctp_rt;

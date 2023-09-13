@@ -45,12 +45,12 @@
 #include "mctp_task.h"
 #include "mctp_config.h"
 
-extern MCTP_BSS_ATTR UINT8 mctp_tx_state;
+extern MCTP_BSS_ATTR uint8_t mctp_tx_state;
 extern MCTP_BSS_ATTR MCTP_PKT_BUF mctp_pktbuf[MCTP_PKT_BUF_NUM]__attribute__ ((aligned(8)));
 
-extern MCTP_BSS_ATTR UINT8 mctp_wait_smbus_callback;
-extern MCTP_BSS_ATTR UINT8 is_pldm_request_firmware_update;
-extern MCTP_BSS_ATTR UINT8 msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
+extern MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
+extern MCTP_BSS_ATTR uint8_t is_pldm_request_firmware_update;
+extern MCTP_BSS_ATTR uint8_t msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 
 /******************************************************************************/
 /** Initializes mctp-smbus interface. It calls smb_slave _register for

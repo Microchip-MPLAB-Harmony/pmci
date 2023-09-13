@@ -52,9 +52,12 @@ extern "C" {
 #define MCTP_BYTECNT_MIN            5U
 #define MCTP_BYTECNT_MAX           69U
 
-
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 #define MCTP_SMBUS_HDR_CMD_CODE  0x0FU
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
 #define MCTP_SPT_HDR_CMD_CODE    0x0EU
+</#if>
 
 #define MCTP_MSGTYPE_CONTROL        0U
 #define MCTP_MSGTYPE_PLDM           1U
@@ -463,6 +466,7 @@ typedef struct MCTP_CONTEXT
 
     uint8_t check_spdm_cmd;
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
     uint8_t spt_io_mode;
 
     uint8_t spt_wait_time;
@@ -472,6 +476,7 @@ typedef struct MCTP_CONTEXT
     uint8_t spt_channel;
 
     uint8_t spt_enable;
+</#if>
     
     /* Event group handle */
     EventGroupHandle_t xmctp_EventGroupHandle;

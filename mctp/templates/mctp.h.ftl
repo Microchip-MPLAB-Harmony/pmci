@@ -396,7 +396,8 @@ enum i2c_slave_transmit_status
  * -----------------------
  * Usage notes:
  * -----------------------
- * The I2C/SPT driver is expected allocate a structure of this type and use it
+ * The Physical layer driver is expected allocate a structure of
+ * this type and use it
  * to pass information to MCTP module about the received packet
  * -----------------------
  * Example:
@@ -431,7 +432,8 @@ typedef struct MCTP_BUFFER_INFO
  * -----------------------
  * Usage notes:
  * -----------------------
- * The I2C/SPT driver is expected allocate a structure of this type and use it
+ * The Physical layer driver is expected allocate a structure
+ * of this type and use it
  * to pass information to MCTP module about the received packet
  * -----------------------
  * Example:

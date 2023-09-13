@@ -44,8 +44,12 @@ MCTP_BSS_ATTR MCTP_PKT_BUF mctp_pktbuf[MCTP_PKT_BUF_NUM]__attribute__ ((aligned(
 /* mctp tx state machine variables */
 MCTP_BSS_ATTR uint8_t mctp_tx_state;
 MCTP_BSS_ATTR uint8_t mctp_txbuf_index;
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")>
 MCTP_BSS_ATTR uint8_t mctp_wait_smbus_callback;
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")>
 MCTP_BSS_ATTR uint8_t mctp_wait_spt_callback;
+</#if>
 MCTP_BSS_ATTR uint8_t active_pkt_msg_type_rx; // pldm or spdm or mctp
 MCTP_BSS_ATTR uint8_t msg_type_tx; // pldm or spdm or mctp - when transmitting multiple/single pkt through smbus
 MCTP_BSS_ATTR static uint8_t out_of_seq_detected;
@@ -195,13 +199,13 @@ void mctp_init_task(void)
     /* initialize mctp specific variables */
     mctp_tx_state = (uint8_t)MCTP_TX_IDLE;
     mctp_txbuf_index = MCTP_BUF1; // Used for TX
-    mctp_wait_smbus_callback = 0U;
-    mctp_wait_spt_callback = 0U;
 <#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+    mctp_wait_smbus_callback = 0U;
     mctp_cfg.smbus_fairness = 1U; /// Fairness enable
     mctp_cfg.smbus_speed = (uint8_t)MCTP_I2C_CLK_FREQ; //default set to 400 Khz
 </#if>
 <#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+    mctp_wait_spt_callback = 0U;
     mctp_cfg.spt_channel = MCTP_SPI_CHANNEL;
     mctp_cfg.spt_io_mode = SPT_IO_SINGLE;
     mctp_cfg.spt_tar_time = 3;
@@ -240,6 +244,7 @@ void mctp_update_i2c_params(MCTP_CONTEXT* ret_mctp_ctxt)
     mctp_rtupdate_eid_state((uint8_t)MCTP_RT_EC_INDEX);
 }
 
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
 /******************************************************************************/
 /** Store SPI Physical layer parameters into MCTP context structure
 * @param void
@@ -274,6 +279,7 @@ void mctp_update_spt_params(MCTP_CONTEXT* ret_mctp_ctxt)
     mctp_rtupdate_eid_type((uint8_t)MCTP_RT_EC_INDEX);
     mctp_rtupdate_eid_state((uint8_t)MCTP_RT_EC_INDEX);
 }
+</#if>
 
 /******************************************************************************/
 /** Initializes mctp buffers.
@@ -432,6 +438,7 @@ void mctp_event_tx_handler(void)
                         else
                         {
                             /* drop packet, free that buffer */
+<#if MCTP_PHY_LAYER =="I2C+SPI">
                             if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
                             {
                                 mctp_smbdone_drop(tx_buf);
@@ -440,6 +447,13 @@ void mctp_event_tx_handler(void)
                             {
                                 mctp_sptdone_drop(tx_buf);
                             }
+</#if>
+<#if MCTP_PHY_LAYER =="I2C">
+                            mctp_smbdone_drop(tx_buf);
+</#if>
+<#if MCTP_PHY_LAYER =="SPI">
+                            mctp_sptdone_drop(tx_buf);
+</#if>
                             /* for indexing to next tx buffer */
                             mctp_txbuf_index++;
 
@@ -570,12 +584,12 @@ void mctp_event_tx_handler(void)
         }             
         else
         {
-            interval = mctp_timer_difference(start_time)
+            interval = mctp_timer_difference(start_time);
             uint32_t tout;
 <#if MCTP_PHY_LAYER =="I2C">
             tout = MCTP_SMBUS_AQ_TIMEOUT;
 </#if>
-<#if MCTP_PHY_LAYER =="I2C">
+<#if MCTP_PHY_LAYER =="SPI">
             tout = MCTP_SPT_AQ_TIMEOUT;
 </#if>
 <#if MCTP_PHY_LAYER =="I2C+SPI">
@@ -639,19 +653,18 @@ void mctp_event_tx_handler(void)
         }
 </#if>
 <#if MCTP_PHY_LAYER =="I2C+SPI">
-            tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
-            if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
-            {
-                mctp_wait_smbus_callback = 1;
-                mctp_transmit_smbus(tx_buf);
-            }
-            else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
-            {
-                mctp_wait_spt_callback = 1;
-                mctp_transmit_spt(tx_buf);
-            }
-</#if>
+        tx_buf = (MCTP_PKT_BUF *)&mctp_pktbuf[mctp_txbuf_index];
+        if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+        {
+            mctp_wait_smbus_callback = 1;
+            mctp_transmit_smbus(tx_buf);
         }
+        else if(tx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+        {
+            mctp_wait_spt_callback = 1;
+            mctp_transmit_spt(tx_buf);
+        }
+</#if>
         break;
 
     default:
@@ -723,20 +736,20 @@ void mctp_handle_ec_rx_request_pkt(void)
 
             mctp_ec_control_pkt_handler(rx_buf, tx_resp_buf);
 <#if MCTP_PHY_LAYER =="I2C+SPI">
-        if(rx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
-        {
-            mctp_smbus_txpktready_init(tx_resp_buf);
-        }
-        else if(rx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
-        {
-            mctp_spt_txpktready_init(tx_resp_buf);
-        }
+            if(rx_buf->pkt.field.hdr.cmd_code == MCTP_SMBUS_HDR_CMD_CODE)
+            {
+                mctp_smbus_txpktready_init(tx_resp_buf);
+            }
+            else if(rx_buf->pkt.field.hdr.cmd_code == MCTP_SPT_HDR_CMD_CODE)
+            {
+                mctp_spt_txpktready_init(tx_resp_buf);
+            }
 </#if>        
 <#if MCTP_PHY_LAYER =="I2C">
-        mctp_smbus_txpktready_init(tx_resp_buf);
+            mctp_smbus_txpktready_init(tx_resp_buf);
 </#if>
 <#if MCTP_PHY_LAYER =="SPI">
-        mctp_spt_txpktready_init(tx_resp_buf);
+            mctp_spt_txpktready_init(tx_resp_buf);
 </#if>            
         }
     }
@@ -1119,7 +1132,7 @@ void SET_MCTP_TX_STATE(void)
 
 uint16_t tx_time_get()
 {
-    return (UINT16) (xTaskGetTickCount() / 10);
+    return (uint16_t) (xTaskGetTickCount() / 10);
 }
 
 /**   @}

@@ -61,9 +61,13 @@ extern "C" {
 #define MCTP_TASK1_BUF_ALIGN __attribute__((aligned(MCTP_TASK1_BUF_SIZE)))
 
 #define MCTP_EVENT_BIT              (1U << 1)
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")> 
 #define MCTP_I2C_ENABLE_BIT         (1U << 0)
 #define MCTP_SMB_RESPONSE_BIT       (2U << 1)
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
 #define MCTP_SPT_CTRL_BIT           (1U << 3)
+</#if>
 #define MCTP_WAIT_FOR_SPDM_DONE     (1U << 18)
 #define MCTP_WAIT_FOR_PLDM_DONE     (1U << 19)
 

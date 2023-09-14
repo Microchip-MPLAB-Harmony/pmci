@@ -142,7 +142,7 @@ SPDM_BSS1_ATTR uint16_t read_bytes_from_chain;
 SPDM_BSS1_ATTR uint16_t START_OFFSET_IN_BUFFER;
 SPDM_BSS1_ATTR uint16_t BUFFER_END_OFFSET;
 SPDM_BSS1_ATTR uint16_t length;
-
+SPDM_BSS1_ATTR uint8_t spdm_flash_busy;
 
 /******************************************************************************/
 /** get certificate length and update total length of chain into cert_len variable
@@ -995,6 +995,7 @@ void spdm_pkt_fill_spdm_buf_certificate(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT 
     {
         return;
     }
+    spdm_flash_busy = true;
 
     uint16_t read_frm_offset = spdmContext->cert_offset_to_read[requested_slot];
 
@@ -1131,6 +1132,7 @@ void spdm_pkt_fill_spdm_buf_certificate(MCTP_PKT_BUF *spdm_buf_tx, SPDM_CONTEXT 
             remaining_bytes_to_sent = (uint16_t)((remaining_bytes_to_sent + MAX_NUM_BYTES_PLD) & UINT16_MAX);
         }
     }
+    spdm_flash_busy = false;
 }
 
 /******************************************************************************/

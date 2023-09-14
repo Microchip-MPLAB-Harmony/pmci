@@ -170,8 +170,12 @@ static void mctp_main(void* pvParameters)
 <#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
     mctp_update_spt_params(mctpContext);
 </#if>
-    sb_mctp_enable();
-
+<#if MCTP_PHY_LAYER =="I2C" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+    sb_mctp_i2c_enable();
+</#if>
+<#if MCTP_PHY_LAYER =="SPI" || (MCTP_PHY_LAYER =="I2C+SPI")> 
+    sb_mctp_spt_enable();
+</#if>
     while(true)
     {
         uxBits = xEventGroupWaitBits((mctpContext->xmctp_EventGroupHandle),

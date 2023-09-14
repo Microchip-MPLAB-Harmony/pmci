@@ -631,8 +631,9 @@ uint8_t mctp_copy_rx_for_pldm_for_ec(MCTP_BUFFER_INFO *buffer_info)
     uint8_t is_packetizing = 0x00;
     is_packetizing = mctp_base_packetizing_val_get(MCTP_IC_MSGTYPE_PLDM);
 
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     trace0(MCTP_TRACE, MCTP, 0, "mplen");
-
+</#if>
     pldm_msg_rx_buf = (MCTP_PKT_BUF *) &mctp_pktbuf[MCTP_BUF4];
 
     {
@@ -657,7 +658,9 @@ uint8_t mctp_copy_rx_for_pldm_for_ec(MCTP_BUFFER_INFO *buffer_info)
             }
             else
             {
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
                 trace0(MCTP_TRACE, MCTP, 0, "mplbf");
+</#if>                
                 /* copy packet from smbus buffer to pldm ec rcv buffer */
                 for(i = 0; i < buffer_info->DataLen; i++)
                 {
@@ -673,8 +676,9 @@ uint8_t mctp_copy_rx_for_pldm_for_ec(MCTP_BUFFER_INFO *buffer_info)
             SET_EVENT_PLDM_TASK(pldm);
         }
     }
-
+<#if PLDM_IS_SG3_COMPONENT_CONNECTED == true>
     trace0(MCTP_TRACE, MCTP, 3, "mpled");
+</#if>    
     return ret_val;
 } /* End mctp_copy_rx_for_pldm_for_ec */
 </#if>
